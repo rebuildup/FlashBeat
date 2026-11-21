@@ -64,6 +64,10 @@ namespace FlashBeat.UI.V6.Common
             Action<int, bool> onAdjust, Action onClick)
         {
             var view = new V6SettingRowView { row = row };
+            // アクションボタン (「開く」等) は行ボタンの子孫なので、押下時は
+            // 子→親の順に onClick が走る。子側で処理済みを記録し、親の
+            // 行クリックが二重に Activate しないようにする (Issue #798)。
+            bool actionClickHandled = false;
 
             view.Root = V6Controls.Panel(parent, "Set " + row.Label, designTopLeft,
                 new Vector2(Width, Height),
@@ -78,6 +82,12 @@ namespace FlashBeat.UI.V6.Common
             V6ButtonPressFeedback.Attach(view.Root);
             rowButton.onClick.AddListener(() =>
             {
+                if (actionClickHandled)
+                {
+                    actionClickHandled = false;
+                    return;
+                }
+
                 if (onClick != null)
                 {
                     onClick();
@@ -93,25 +103,35 @@ namespace FlashBeat.UI.V6.Common
             // 編集値は左右の矢印の「間」に中央揃えで置く
             // (Prev 300-340 / Next 444-484 → 値は 344-440 の中央 392)。
             // アクション行 (キー設定等) は従来どおり右寄せの値を残す。
+            // ただし ActionButtonLabel を持つ行は値テキストを出さず、
+            // 右端に小型の共通ボタンとして描く (Issue #798)。
+            bool actionButton = !string.IsNullOrEmpty(row.ActionButtonLabel);
             bool centered = !row.IsAction;
-            view.ValueText = V6Controls.Text(view.Root, "Value",
-                row.Value != null ? row.Value() : string.Empty,
-                centered ? new Vector2(ValueCenterX, 0f) : new Vector2(ValueActionX, 0f),
-                centered ? new Vector2(ValueCenterW, Height) : new Vector2(ValueActionW, Height),
-                ValueFontSize, V6Tokens.Text,
-                centered ? TextAlignmentOptions.Center : TextAlignmentOptions.Right);
-            view.ValueText.textWrappingMode = TextWrappingModes.NoWrap;
-            view.ValueText.overflowMode = TextOverflowModes.Ellipsis;
-            if (centered)
+            if (!actionButton)
             {
-                view.ValueText.enableAutoSizing = true;
-                view.ValueText.fontSizeMin = 16f;
-                view.ValueText.fontSizeMax = ValueFontSize;
+                view.ValueText = V6Controls.Text(view.Root, "Value",
+                    row.Value != null ? row.Value() : string.Empty,
+                    centered ? new Vector2(ValueCenterX, 0f) : new Vector2(ValueActionX, 0f),
+                    centered ? new Vector2(ValueCenterW, Height) : new Vector2(ValueActionW, Height),
+                    ValueFontSize, V6Tokens.Text,
+                    centered ? TextAlignmentOptions.Center : TextAlignmentOptions.Right);
+                view.ValueText.textWrappingMode = TextWrappingModes.NoWrap;
+                view.ValueText.overflowMode = TextOverflowModes.Ellipsis;
+                if (centered)
+                {
+                    view.ValueText.enableAutoSizing = true;
+                    view.ValueText.fontSizeMin = 16f;
+                    view.ValueText.fontSizeMax = ValueFontSize;
+                }
             }
 
-            // 導線アイコン (「開く ›」の › をスプライト化したもの等)。
-            if (!string.IsNullOrEmpty(row.ValueIcon))
+            if (actionButton)
             {
+                BuildActionButton(view, row, onClick, () => actionClickHandled = true);
+            }
+            else if (!string.IsNullOrEmpty(row.ValueIcon))
+            {
+                // 導線アイコン (「開く ›」の › をスプライト化したもの等)。
                 var icon = V6Icons.Create(view.Root, row.ValueIcon, ValueIconSize,
                     V6Tokens.TextMuted, "Value Icon");
                 if (icon != null)
@@ -143,6 +163,68 @@ namespace FlashBeat.UI.V6.Common
             }
 
             return view;
+        }
+
+        /// <summary>
+        /// アクション行の右端に置く小型ボタン (Issue #798)。
+        /// 面色 ($k4)・角丸・アイコン (arrow-right)・押下フィードバックは
+        /// 他の共通ボタンと同じ V6Controls / V6ButtonPressFeedback を使う。
+        /// 高さはステッパーと同じ 40px に収め、行 (56px) の中で値と競合しない。
+        /// </summary>
+        private static void BuildActionButton(V6SettingRowView view, V6SettingRow row,
+            Action onClick, Action onHandled)
+        {
+            const float btnH = 40f;
+            const float btnFs = 20f;
+            const float btnPadX = 14f;
+            const float btnGap = 8f;
+            const float btnIcon = 18f;
+            const float btnRight = 12f;
+
+            float labelW = Mathf.Ceil(V6Ui.LabelAdvanceEm(row.ActionButtonLabel) * btnFs);
+            float btnW = btnPadX * 2f + labelW + btnGap + btnIcon;
+            var btnGo = V6Controls.Panel(view.Root, "Action " + row.Label,
+                new Vector2(Width - btnRight - btnW, (Height - btnH) * 0.5f),
+                new Vector2(btnW, btnH), V6Tokens.Key4, V6Tokens.RadiusMedium);
+
+            var btn = btnGo.AddComponent<Button>();
+            btn.transition = Selectable.Transition.None;
+            var btnNav = btn.navigation;
+            btnNav.mode = Navigation.Mode.None;
+            btn.navigation = btnNav;
+            V6ButtonPressFeedback.Attach(btnGo);
+            btn.onClick.AddListener(() =>
+            {
+                if (onHandled != null)
+                {
+                    onHandled();
+                }
+
+                if (onClick != null)
+                {
+                    onClick();
+                }
+            });
+
+            // ラベルは ValueText に載せる。RefreshValue / RenderedRowValue
+            // (監査 API) がそのままボタン内の表示文字を読める。
+            view.ValueText = V6Controls.Text(btnGo, "Label", row.ActionButtonLabel,
+                new Vector2(btnPadX, 0f), new Vector2(labelW, btnH),
+                btnFs, V6Tokens.Text, TextAlignmentOptions.MidlineLeft);
+            view.ValueText.textWrappingMode = TextWrappingModes.NoWrap;
+
+            var icon = V6Icons.Create(btnGo, "arrow-right", btnIcon,
+                V6Tokens.TextMuted, "Icon");
+            if (icon != null)
+            {
+                var rt = icon.rectTransform;
+                rt.anchorMin = new Vector2(0f, 1f);
+                rt.anchorMax = new Vector2(0f, 1f);
+                rt.pivot = new Vector2(0f, 1f);
+                rt.anchoredPosition = new Vector2(btnW - btnPadX - btnIcon,
+                    -(btnH - btnIcon) * 0.5f);
+                rt.sizeDelta = new Vector2(btnIcon, btnIcon);
+            }
         }
 
         /// <summary>選択状態の背景色を更新する。</summary>

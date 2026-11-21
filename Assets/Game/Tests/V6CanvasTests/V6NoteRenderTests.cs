@@ -72,6 +72,7 @@ namespace FlashBeat.V6CanvasTests
         private bool savedVideoDim;
         private bool savedStart;
         private bool savedPlayed;
+        private bool savedJudgmentsComplete;
         private bool savedLyricsEnabled;
         private float savedStepTime;
         private float savedNoteSpeed;
@@ -83,6 +84,7 @@ namespace FlashBeat.V6CanvasTests
             savedVideoDim = V6UiMode.VideoDim;
             savedStart = GManager.Start;
             savedPlayed = GManager.played;
+            savedJudgmentsComplete = GManager.judgmentsComplete;
             savedLyricsEnabled = PlaySession.LyricsEnabled;
             savedStepTime = GManager.step_time;
             savedNoteSpeed = GManager.noteSpeed;
@@ -136,6 +138,7 @@ namespace FlashBeat.V6CanvasTests
             V6UiMode.VideoDim = savedVideoDim;
             GManager.Start = savedStart;
             GManager.played = savedPlayed;
+            GManager.judgmentsComplete = savedJudgmentsComplete;
             PlaySession.SetLyricsEnabled(savedLyricsEnabled);
             GManager.step_time = savedStepTime;
             GManager.noteSpeed = savedNoteSpeed;
@@ -884,6 +887,9 @@ namespace FlashBeat.V6CanvasTests
             V6UiMode.Playfield = false;
             V6UiMode.VideoDim = false;
             GManager.played = true;
+            // 演奏中 = ノーツが画面に存在する状態を明示する
+            // (歌詞パネルの枠あり/回廊クリア切替の前提条件)。
+            GManager.judgmentsComplete = false;
             PlaySession.SetLyricsEnabled(true);
 
             Camera cam = CreateCamera();

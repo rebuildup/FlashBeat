@@ -4,10 +4,10 @@ import type { Chart } from "./types";
 /**
  * Chart fixtures for the editor.
  *
- * The publish API (#16) does not exist yet, so the editor ships with a real
- * chart from the repository (`Assets/Game/Resources/チュートリアル.json`) as its
- * default document. `src/lib/chart/__tests__/contract-schema.test.ts` keeps
- * the copy in sync with the repository file.
+ * The editor ships with the rights-cleared contract chart
+ * (`contracts/charts/sample-chart.json`, issue #823) as its default document.
+ * `src/lib/chart/__tests__/contract-schema.test.ts` keeps the copy in sync
+ * with the contract file.
  */
 export const SAMPLE_CHART = sampleChart as unknown as Chart;
 

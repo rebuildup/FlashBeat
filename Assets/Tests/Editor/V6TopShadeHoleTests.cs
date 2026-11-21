@@ -162,6 +162,62 @@ namespace FlashBeat.Tests
         }
 
         /// <summary>
+        /// Issue #789 (v0.2.1 実機受入): レーン回廊の抜きがパネル内側の
+        /// 大部分を透明にしても、角丸矩形の縁から
+        /// <see cref="V6PanelCorridorHole.FrameThicknessPx"/> 以内は
+        /// アルファが残り、パネル枠が常に視認できることを確認する。
+        /// 検証点は「レーン帯の内側」かつ「枠の内側」の交差 (上辺中央)。
+        /// </summary>
+        [Test]
+        public void LyricPanelSprite_KeepsFrameInsideCorridor()
+        {
+            V6PanelCorridorHole.ClearSpriteCacheForTests();
+            // 枠ありスプライトは「ノーツ非描画」の状態で選ばれる
+            // (Issue #735/#789)。開始待ち相当の played=false を明示する。
+            GManager.played = false;
+            var canvasGo = new GameObject("V6PanelHoleTests Canvas", typeof(Canvas));
+            try
+            {
+                var canvasRect = (RectTransform)canvasGo.transform;
+                canvasRect.sizeDelta = new Vector2(ScreenW, ScreenH);
+                var view = FlashBeat.UI.V6.Game.Hud.V6GameHudView.Create(canvasRect);
+
+                var img = view.LyricBoxForAudit.GetComponent<Image>();
+                Assert.NotNull(img, "Lyric Box has no Image");
+                var tex = img.sprite.texture;
+                int w = tex.width;
+                int h = tex.height;
+
+                Vector2 slotOrigin = V6HudLogic.LyricSlotOrigin(ScreenW, ScreenH);
+                var left = new float[h];
+                var right = new float[h];
+                V6TopShadeHole.CorridorRows(ScreenW, ScreenH, slotOrigin.y, h, h, left, right);
+
+                // 上辺の中央・縁から 3px 内側 (角丸の影響が無い位置)。
+                // テクスチャ行 h-1 がパネル上端、行 index は CorridorRows と同じ
+                // (0 = 帯下端)。
+                int frameRow = h - 1 - 3;
+                int frameX = w / 2;
+                float sx = slotOrigin.x + frameX + 0.5f;
+                Assert.Greater(sx, left[frameRow],
+                    "test premise: probe x must be inside the lane corridor");
+                Assert.Less(sx, right[frameRow],
+                    "test premise: probe x must be inside the lane corridor");
+
+                Assert.Greater(tex.GetPixel(frameX, frameRow).a, 0.5f,
+                    "panel frame must stay visible even inside the lane corridor");
+
+                // 対照: 枠から十分内側 (中央) は従来どおり回廊で透明。
+                Assert.AreEqual(0f, tex.GetPixel(w / 2, h / 2).a, 0.01f,
+                    "corridor interior must stay clear of the panel fill");
+            }
+            finally
+            {
+                Object.DestroyImmediate(canvasGo);
+            }
+        }
+
+        /// <summary>
         /// GameScene.unity の Main Camera と同じ姿勢・画角のカメラを立てる
         /// (pos 0,4.9,-0.8 / pitch 54.8 / fov 60)。
         /// </summary>

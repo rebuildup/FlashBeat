@@ -69,6 +69,14 @@ namespace FlashBeat.UI.V6.Game.Loading
         private bool leaving;
         private GameSceneManager sceneManager;
 
+        /// <summary>
+        /// 失敗時のエラーパネル (Issue #792)。design にエラー専用画面は無い
+        /// (Issue #606) が、説明のない自動復帰が実機受入で不合格になったため、
+        /// メインゾーン中央に理由表示 + 再試行 / 戻るボタンを出す。
+        /// </summary>
+        private GameObject errorPanel;
+        private TextMeshProUGUI errorText;
+
         private V6LoadingView()
         {
         }

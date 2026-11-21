@@ -7,8 +7,9 @@ using UnityEngine;
 /// <summary>
 /// Recovery contract of the media pipeline (issue #48/#31):
 ///
-///   * a song without a sound track cannot be played - the player has to be
-///     taken back to the song list instead of sitting in front of a silent song;
+///   * a song without a sound track cannot be played - the failure is shown
+///     with retry / back-to-select actions instead of an unexplained
+///     automatic return to the song list (Issue #792);
 ///   * the failure log names the stage, so it is visible where the playback
 ///     broke;
 ///   * the media cache lives in the player environment, the release build ships
@@ -19,24 +20,24 @@ public class PlaybackRecoveryTests
     [Test]
     public void ASongWithoutSoundIsTakenBackToTheSongList()
     {
-        Assert.IsTrue(PlaybackRecovery.NeedsSelectReturn(MediaFailure.MediaUnavailable, hasSound: false));
-        Assert.IsTrue(PlaybackRecovery.NeedsSelectReturn(MediaFailure.VideoPrepareFailed, hasSound: false));
-        Assert.IsTrue(PlaybackRecovery.NeedsSelectReturn(MediaFailure.AudioUnavailable, hasSound: false));
-        Assert.IsTrue(PlaybackRecovery.NeedsSelectReturn(MediaFailure.AudioSilent, hasSound: false));
+        Assert.IsTrue(PlaybackRecovery.IsUnplayable(MediaFailure.MediaUnavailable, hasSound: false));
+        Assert.IsTrue(PlaybackRecovery.IsUnplayable(MediaFailure.VideoPrepareFailed, hasSound: false));
+        Assert.IsTrue(PlaybackRecovery.IsUnplayable(MediaFailure.AudioUnavailable, hasSound: false));
+        Assert.IsTrue(PlaybackRecovery.IsUnplayable(MediaFailure.AudioSilent, hasSound: false));
     }
 
     [Test]
     public void ASongWithSoundStaysPlayable()
     {
-        Assert.IsFalse(PlaybackRecovery.NeedsSelectReturn(MediaFailure.MediaUnavailable, hasSound: true));
-        Assert.IsFalse(PlaybackRecovery.NeedsSelectReturn(MediaFailure.VideoPrepareFailed, hasSound: true));
+        Assert.IsFalse(PlaybackRecovery.IsUnplayable(MediaFailure.MediaUnavailable, hasSound: true));
+        Assert.IsFalse(PlaybackRecovery.IsUnplayable(MediaFailure.VideoPrepareFailed, hasSound: true));
     }
 
     [Test]
     public void WithoutAFailureTheSongIsNeverTakenBack()
     {
-        Assert.IsFalse(PlaybackRecovery.NeedsSelectReturn(MediaFailure.None, hasSound: false));
-        Assert.IsFalse(PlaybackRecovery.NeedsSelectReturn(MediaFailure.None, hasSound: true));
+        Assert.IsFalse(PlaybackRecovery.IsUnplayable(MediaFailure.None, hasSound: false));
+        Assert.IsFalse(PlaybackRecovery.IsUnplayable(MediaFailure.None, hasSound: true));
     }
 
     [Test]
@@ -63,29 +64,13 @@ public class PlaybackRecoveryTests
     }
 
     [Test]
-    public void ThePlayerIsToldThatTheGameGoesBackToTheSongList()
+    public void ThePlayerIsToldTheSongCannotBePlayedAndHowToLeave()
     {
         string hint = PlaybackRecovery.StartHint(MediaFailure.AudioUnavailable);
 
         StringAssert.Contains("選曲画面", hint);
         StringAssert.Contains("no sound track", hint);
-    }
-
-    [Test]
-    public void TheReturnToTheSongListIsBounded()
-    {
-        Assert.IsTrue(PlaybackRecovery.ShouldRetrySelectReturn(1));
-        Assert.IsTrue(PlaybackRecovery.ShouldRetrySelectReturn(PlaybackRecovery.MaxSelectReturnAttempts - 1));
-        Assert.IsFalse(PlaybackRecovery.ShouldRetrySelectReturn(PlaybackRecovery.MaxSelectReturnAttempts));
-        Assert.IsFalse(PlaybackRecovery.ShouldRetrySelectReturn(PlaybackRecovery.MaxSelectReturnAttempts + 1));
-    }
-
-    [Test]
-    public void TheReturnToTheSongListWaitsForTheMessage()
-    {
-        Assert.Greater(PlaybackRecovery.SelectReturnDelaySeconds, 1f,
-            "the player needs a moment to read the message");
-        Assert.Greater(PlaybackRecovery.SelectReturnRetrySeconds, 0f);
+        StringAssert.Contains("再試行", hint);
     }
 
     [Test]
@@ -145,9 +130,9 @@ public class PlaybackRecoveryTests
 
 /// <summary>
 /// The HUD hook of the recovery (issue #91): when the pipeline decides that the
-/// song cannot be played (MusicManager.SelectReturnPending), the HUD has to show
+/// song cannot be played (MusicManager.PlaybackFailed), the HUD has to show
 /// the failure at once - not when its own 45s timeout runs out, because the
-/// automatic return to the song list starts earlier than that.
+/// failure stays on screen until the player chooses retry or back (Issue #792).
 /// </summary>
 public class HudPlaybackFailureHookTests
 {

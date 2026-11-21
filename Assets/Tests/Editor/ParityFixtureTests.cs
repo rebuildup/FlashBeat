@@ -63,6 +63,10 @@ public class ParityFixtureTests
         public int scoreV3Settled;
         public int scoreV4;
         public int scoreV4Settled;
+        public int scoreV5;
+        public int scoreV5Settled;
+        public int scoreV6;
+        public int scoreV6Settled;
     }
 
     [Serializable]
@@ -139,6 +143,28 @@ public class ParityFixtureTests
                 Scoring.ScoreV4(c.perfect, c.great, c.bad, c.miss, c.maxCombo,
                     c.comboMilestones, c.noteCount, true),
                 label + " v4 settled");
+            // v5 (ADR-0035) is the same deterministic integer arithmetic:
+            // same two halves as v4 but the continuous combo bonus is gone
+            // and each milestone crossing pays MilestoneBonusPointsV5.
+            Assert.AreEqual(c.scoreV5,
+                Scoring.ScoreV5(c.perfect, c.great, c.bad, c.miss, c.maxCombo,
+                    c.comboMilestones, c.noteCount, c.judgmentsComplete),
+                label + " v5 (judgmentsComplete=" + c.judgmentsComplete + ")");
+            Assert.AreEqual(c.scoreV5Settled,
+                Scoring.ScoreV5(c.perfect, c.great, c.bad, c.miss, c.maxCombo,
+                    c.comboMilestones, c.noteCount, true),
+                label + " v5 settled");
+            // v6 (ADR-0037) is the same deterministic integer arithmetic:
+            // base floor(judgment*1e6/(5N)) plus the absolute additional
+            // score (quality + milestone + full-clear points).
+            Assert.AreEqual(c.scoreV6,
+                Scoring.ScoreV6(c.perfect, c.great, c.bad, c.miss, c.maxCombo,
+                    c.comboMilestones, c.noteCount, c.judgmentsComplete),
+                label + " v6 (judgmentsComplete=" + c.judgmentsComplete + ")");
+            Assert.AreEqual(c.scoreV6Settled,
+                Scoring.ScoreV6(c.perfect, c.great, c.bad, c.miss, c.maxCombo,
+                    c.comboMilestones, c.noteCount, true),
+                label + " v6 settled");
         }
     }
 
@@ -165,6 +191,10 @@ public class ParityFixtureTests
             // the live score must never exceed the settled one.
             Assert.LessOrEqual(c.scoreV4, c.scoreV4Settled,
                 "case '" + c.name + "': live v4 score must not exceed the settled one");
+            Assert.LessOrEqual(c.scoreV5, c.scoreV5Settled,
+                "case '" + c.name + "': live v5 score must not exceed the settled one");
+            Assert.LessOrEqual(c.scoreV6, c.scoreV6Settled,
+                "case '" + c.name + "': live v6 score must not exceed the settled one");
         }
     }
 

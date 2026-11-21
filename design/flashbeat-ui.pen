@@ -940,7 +940,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "assets/jk-poison.png",
+                    "url": "assets/placeholder.png",
                     "mode": "cover"
                   },
                   "cornerRadius": 4
@@ -5287,7 +5287,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/1-rosen.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -5400,7 +5400,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/2-mani.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -5513,7 +5513,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/3-who.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -5626,7 +5626,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/4-tweet.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -5739,7 +5739,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/5-shuumatsu.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -5852,7 +5852,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/6-euta.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -5965,7 +5965,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/7-chartreuse.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -6078,7 +6078,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/8-psyched.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -6191,7 +6191,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/9-dogbite.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -10304,7 +10304,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/1-rosen.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -10417,7 +10417,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/2-mani.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -10530,7 +10530,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/3-who.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -10643,7 +10643,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/4-tweet.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -10756,7 +10756,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/5-shuumatsu.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -10869,7 +10869,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/6-euta.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -10982,7 +10982,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/7-chartreuse.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -11095,7 +11095,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/8-psyched.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -11208,7 +11208,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/9-dogbite.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -13337,7 +13337,7 @@
                                       "fill": {
                                         "type": "image",
                                         "enabled": true,
-                                        "url": "assets/jackets/5-shuumatsu.jpg",
+                                        "url": "assets/jackets/placeholder.jpg",
                                         "mode": "cover"
                                       },
                                       "cornerRadius": 4
@@ -13780,7 +13780,7 @@
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "assets/jackets/5-shuumatsu.jpg",
+                        "url": "assets/jackets/placeholder.jpg",
                         "mode": "cover"
                       },
                       "cornerRadius": 4
@@ -14359,7 +14359,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/1-rosen.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -14472,7 +14472,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/2-mani.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -14585,7 +14585,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/3-who.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -14698,7 +14698,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/4-tweet.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -14811,7 +14811,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/5-shuumatsu.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -14924,7 +14924,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/6-euta.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -15037,7 +15037,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/7-chartreuse.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -15150,7 +15150,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/8-psyched.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -15263,7 +15263,7 @@
                               "fill": {
                                 "type": "image",
                                 "enabled": true,
-                                "url": "assets/jackets/9-dogbite.jpg",
+                                "url": "assets/jackets/placeholder.jpg",
                                 "mode": "cover"
                               },
                               "cornerRadius": 4
@@ -15654,7 +15654,7 @@
                                   "fill": {
                                     "type": "image",
                                     "enabled": true,
-                                    "url": "assets/jackets/5-shuumatsu.jpg",
+                                    "url": "assets/jackets/placeholder.jpg",
                                     "mode": "cover"
                                   },
                                   "cornerRadius": 4
@@ -18932,7 +18932,7 @@
                           "fill": {
                             "type": "image",
                             "enabled": true,
-                            "url": "assets/jackets/5-shuumatsu.jpg",
+                            "url": "assets/jackets/placeholder.jpg",
                             "mode": "cover"
                           },
                           "cornerRadius": 4
@@ -21106,7 +21106,7 @@
                           "fill": {
                             "type": "image",
                             "enabled": true,
-                            "url": "assets/jackets/5-shuumatsu.jpg",
+                            "url": "assets/jackets/placeholder.jpg",
                             "mode": "cover"
                           },
                           "cornerRadius": 4
@@ -30638,7 +30638,7 @@
               "fill": {
                 "type": "image",
                 "enabled": true,
-                "url": "assets/song-video-frame.jpg",
+                "url": "assets/placeholder.jpg",
                 "mode": "cover"
               },
               "layout": "none",
@@ -31042,7 +31042,7 @@
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "assets/jackets/5-shuumatsu.jpg",
+                        "url": "assets/jackets/placeholder.jpg",
                         "mode": "cover"
                       },
                       "cornerRadius": 4
@@ -34038,7 +34038,7 @@
               "fill": {
                 "type": "image",
                 "enabled": true,
-                "url": "assets/song-video-frame.jpg",
+                "url": "assets/placeholder.jpg",
                 "mode": "cover"
               },
               "layout": "none",
@@ -34534,7 +34534,7 @@
               "fill": {
                 "type": "image",
                 "enabled": true,
-                "url": "assets/song-video-frame.jpg",
+                "url": "assets/placeholder.jpg",
                 "mode": "cover"
               },
               "layout": "none",
@@ -35030,7 +35030,7 @@
               "fill": {
                 "type": "image",
                 "enabled": true,
-                "url": "assets/song-video-frame.jpg",
+                "url": "assets/placeholder.jpg",
                 "mode": "cover"
               },
               "layout": "none",
@@ -35535,7 +35535,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "assets/song-video-frame.jpg",
+                    "url": "assets/placeholder.jpg",
                     "mode": "cover"
                   },
                   "stroke": "#3FA9F5",
@@ -35666,7 +35666,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "assets/song-video-frame.jpg",
+                    "url": "assets/placeholder.jpg",
                     "mode": "cover"
                   },
                   "stroke": "#3FA9F5",
@@ -35797,7 +35797,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "assets/song-video-frame.jpg",
+                    "url": "assets/placeholder.jpg",
                     "mode": "cover"
                   },
                   "stroke": "#3FA9F5",
@@ -35948,7 +35948,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "assets/song-video-frame.jpg",
+                    "url": "assets/placeholder.jpg",
                     "mode": "cover"
                   },
                   "stroke": "#3FA9F5",
@@ -36289,7 +36289,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "assets/song-video-frame.jpg",
+                    "url": "assets/placeholder.jpg",
                     "mode": "cover"
                   },
                   "stroke": "#3FA9F5",
@@ -36630,7 +36630,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "assets/song-video-frame.jpg",
+                    "url": "assets/placeholder.jpg",
                     "mode": "cover"
                   },
                   "stroke": "#3FA9F5",
@@ -37019,7 +37019,7 @@
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "assets/jackets/5-shuumatsu.jpg",
+                        "url": "assets/jackets/placeholder.jpg",
                         "mode": "cover"
                       },
                       "cornerRadius": 4
@@ -37150,7 +37150,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "assets/loading-still.jpg",
+                    "url": "assets/placeholder.jpg",
                     "mode": "cover"
                   },
                   "stroke": "#3FA9F5",
@@ -37264,7 +37264,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "assets/loading-still.jpg",
+                    "url": "assets/placeholder.jpg",
                     "mode": "cover"
                   },
                   "stroke": "#3FA9F5",
@@ -37378,7 +37378,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "assets/loading-still.jpg",
+                    "url": "assets/placeholder.jpg",
                     "mode": "cover"
                   },
                   "stroke": "#3FA9F5",
@@ -37953,7 +37953,7 @@
               "fill": {
                 "type": "image",
                 "enabled": true,
-                "url": "assets/jackets/5-shuumatsu.jpg",
+                "url": "assets/jackets/placeholder.jpg",
                 "mode": "cover"
               },
               "cornerRadius": 8,
@@ -38560,7 +38560,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "assets/jackets/5-shuumatsu.jpg",
+                    "url": "assets/jackets/placeholder.jpg",
                     "mode": "cover"
                   },
                   "cornerRadius": 4

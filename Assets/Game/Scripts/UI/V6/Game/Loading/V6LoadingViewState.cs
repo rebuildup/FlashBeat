@@ -26,17 +26,50 @@ namespace FlashBeat.UI.V6.Game.Loading
             errorShown = false;
             leaving = false;
             progress = chartProgress;
+            if (errorPanel != null)
+            {
+                errorPanel.SetActive(false);
+            }
             ApplySong(songTitle, artist, jacket);
         }
 
-        /// <summary>
-        /// 失敗状態を記録する。design にエラー専用の表示は無い (Issue #606)
-        /// ため画面はローディングのまま (映像 + ヘッダーの戻る導線)。
-        /// </summary>
+        /// <summary>失敗状態を記録する (理由なしの旧呼び出し経路)。</summary>
         public void SetError()
+        {
+            SetError(null);
+        }
+
+        /// <summary>
+        /// 失敗状態を記録し、理由と再試行 / 戻るの導線を出す (Issue #792)。
+        /// design にエラー専用の表示は無い (Issue #606) が、説明のない
+        /// 自動復帰が実機受入で不合格になったため、メインゾーン中央の
+        /// エラーパネル (<see cref="BuildErrorPanel"/>) を表示する。
+        /// </summary>
+        /// <param name="message">失敗理由 (MusicManager.LastFailureMessage)。
+        /// null / 空なら既定の文言を出す。</param>
+        public void SetError(string message)
         {
             errorShown = true;
             leaving = false;
+            if (errorText != null)
+            {
+                errorText.text = string.IsNullOrEmpty(message)
+                    ? "読み込み / 再生に失敗しました"
+                    : message;
+            }
+            if (errorPanel != null)
+            {
+                errorPanel.SetActive(true);
+            }
+        }
+
+        /// <summary>
+        /// エラー表示が実際に出ているか (Issue #792)。
+        /// V6GameRuntime が Esc を「選曲へ戻る」へ振り分ける判定に使う。
+        /// </summary>
+        public bool ErrorActive
+        {
+            get { return errorShown && shown; }
         }
 
         /// <summary>選曲画面へ戻る (既存 HudPlayStatus.BackToSelect と同じ遷移)。</summary>
@@ -55,6 +88,30 @@ namespace FlashBeat.UI.V6.Game.Loading
             else
             {
                 Initiate.Fade("SelectScene", Color.black, 1.0f);
+            }
+        }
+
+        /// <summary>
+        /// 再試行 (Issue #792): GameScene を読み直してメディア準備をやり直す。
+        /// ポーズメニューのリトライ (<see cref="GameSceneManager.RetryGame"/>)
+        /// と同じ経路 — セッションを固定し直してからシーンを再読込するので、
+        /// 同じ曲でもう一度準備が走る。
+        /// </summary>
+        public void Retry()
+        {
+            if (leaving)
+            {
+                return;
+            }
+
+            leaving = true;
+            if (sceneManager != null)
+            {
+                sceneManager.RetryGame();
+            }
+            else
+            {
+                Initiate.Fade("GameScene", Color.black, 1.0f);
             }
         }
 

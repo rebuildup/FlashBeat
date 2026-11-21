@@ -138,6 +138,16 @@ namespace FlashBeat.UI.V6.Game.Hud
             get { return lyricText != null ? lyricText.fontSize : -1f; }
         }
 
+        /// <summary>
+        /// 歌詞本文に今表示されている文字列 (Issue #846)。
+        /// autotest が「枠は出ているのに本文が空」を検出するための読み取り口。
+        /// 表示行が無い・本文が空白の区間では空文字列、未構築なら null。
+        /// </summary>
+        public string LyricTextForAudit
+        {
+            get { return lyricText != null ? lyricText.text : null; }
+        }
+
         /// <summary>HUD canvas の実ピクセル寸法。</summary>
         public Vector2 CanvasSizeForAudit
         {
@@ -158,6 +168,29 @@ namespace FlashBeat.UI.V6.Game.Hud
         public GameObject ComboStatusBlockForAudit
         {
             get { return comboStatusBlock; }
+        }
+
+        /// <summary>
+        /// 検証ハーネス用: コンボボーナスブロック (Issue #784 / ADR-0035)。
+        /// miss > 0 で Combo Status が隠れても表示され続けること、
+        /// 値が Scoring.ComponentScoreV5 で換算した実スコア点であること、
+        /// 次の節目へ到達可能な間は未獲得でも進捗表示が出ることを検証する。
+        /// </summary>
+        public GameObject ComboBonusBlockForAudit
+        {
+            get { return comboBonusBlock; }
+        }
+
+        /// <summary>検証ハーネス用: コンボボーナスの表示文字列 ("+N")。</summary>
+        public string ComboBonusValueForAudit
+        {
+            get { return comboBonusStrip != null ? comboBonusStrip.Text : null; }
+        }
+
+        /// <summary>検証ハーネス用: 次の節目の獲得予定表示 ("NEXT +N")。</summary>
+        public string NextBonusTextForAudit
+        {
+            get { return nextBonusText != null ? nextBonusText.text : null; }
         }
 
         /// <summary>スコア表示の使用中桁数 (カンマを含む)。</summary>
@@ -183,8 +216,9 @@ namespace FlashBeat.UI.V6.Game.Hud
         {
             get
             {
-                return verdictTexts.Count > 0 && verdictTexts[0] != null
-                    ? verdictTexts[0].fontSize : -1f;
+                var entries = verdictPool != null ? verdictPool.EntriesOfLane(0) : null;
+                return entries != null && entries.Length > 0 && entries[0].Text != null
+                    ? entries[0].Text.fontSize : -1f;
             }
         }
 
@@ -193,16 +227,34 @@ namespace FlashBeat.UI.V6.Game.Hud
         {
             get
             {
-                return m != null && verdictTexts.Count > 0 && verdictTexts[0] != null
-                    && Mathf.Approximately(verdictTexts[0].fontSize, m.VerdictFs);
+                var entries = verdictPool != null ? verdictPool.EntriesOfLane(0) : null;
+                return m != null && entries != null && entries.Length > 0
+                    && entries[0].Text != null
+                    && Mathf.Approximately(entries[0].Text.fontSize, m.VerdictFs);
             }
         }
 
-        /// <summary>判定行 lane の表示文字列 (非表示なら空)。</summary>
+        /// <summary>判定行 lane の表示文字列 (Issue #793: 最新の表示中/直近の判定ラベル)。</summary>
         public string VerdictTextForAudit(int lane)
         {
-            return lane >= 0 && lane < verdictTexts.Count && verdictTexts[lane] != null
-                ? verdictTexts[lane].text : null;
+            return lane >= 0 && lane < laneVerdictText.Length
+                ? (laneVerdictText[lane] ?? string.Empty) : null;
+        }
+
+        /// <summary>レーンの表示中判定ポップ数 (Issue #793 の監査用)。</summary>
+        public int ActiveVerdictCountForAudit(int lane)
+        {
+            if (verdictPool == null || lane < 0) return 0;
+            var entries = verdictPool.EntriesOfLane(lane);
+            int count = 0;
+            if (entries != null)
+            {
+                for (int i = 0; i < entries.Length; i++)
+                {
+                    if (entries[i].Active) count++;
+                }
+            }
+            return count;
         }
 
         /// <summary>表示/非表示。非表示中は Refresh も何もしない。</summary>
@@ -242,15 +294,16 @@ namespace FlashBeat.UI.V6.Game.Hud
             if (score != lastRenderedScore)
             {
                 // scoringVersion で帯を切り替える (Issue #758 / ADR-0034)。
-                // 現行プレイは常に最新バージョン (scoring v4)。
-                gradeText.text = V6GradeLogic.GradeOf(score, FlashBeat.Gameplay.Scoring.LatestVersion);
+                // 現行プレイは常に最新バージョン (scoring v6、ADR-0037)。
+                gradeText.text = V6GradeLogic.GradeOf(score, FlashBeat.Gameplay.Scoring.LatestVersion,
+                    GManager.chartNoteCount);
                 scoreStrip.SetText(GameHudLogic.FormatScore(score), Time.unscaledTime);
                 lastRenderedScore = score;
             }
 
-            // スコアゲージ (scoring v4 の満点 2,000,000 をトラック全長へ写像。
-            // "+" セグメントも塗り対象に含めるため fillMax には GaugeW を渡す。
-            // Best は保存スコア)
+            // スコアゲージ (scoring v4+ の満点 2,000,000 をトラック全長へ写像。
+            // Issue #788: 塗り・Best・目盛りは全て ScoreFractionOf の
+            // 単一写像と GradeBandsOf の帯から導かれる。Best は保存スコア)
             // Issue #434: 値を瞬時に切り替えず、表示側を目標へ指数 tween させる。
             // 初回 (Rebuild 直後) は目標値へ即合わせて前回プレイの残像を出さない。
             float gaugeTargetW = V6HudLogic.GaugeFillWidth(score, m.GaugeW);
@@ -320,19 +373,21 @@ namespace FlashBeat.UI.V6.Game.Hud
             // Issue #402: コンボが変わらないフレームでは塗り幅を書き戻さない。
             V6LayoutWrites.SizeDeltaIfChanged(comboFill, comboFillW, m.StatusTrackH);
 
-            // 節目ボーナスの獲得表示 (scoring v4 / ADR-0033, Issue #736):
-            // 到達回数が増えたフレームで獲得スコア点を一時表示する。
+            // 節目ボーナスの獲得表示 (scoring v3 で導入、v5 は節目のみが
+            // コンボ報酬 / ADR-0035): 到達回数が増えたフレームで獲得
+            // スコア点を一時表示する。同じ到達値の再検出では発火しない
+            // (comboMilestones は JudgeScoreboard が単調に数える)。
             // 表示は「今回の獲得点」と「節目ボーナス累計」の 2 値で、
-            // v4 のボーナス分母 (MaxBonusRatioV4) で ratio points を
-            // 実際に加算されるスコア点へ換算する。
+            // 最新 scoringVersion のボーナス分母 (GManager.maxBonusRatio)
+            // で ratio points を実際に加算されるスコア点へ換算する。
             if (milestoneBonusText != null && GManager.comboMilestones != lastComboMilestones)
             {
                 int gained = GManager.comboMilestones - lastComboMilestones;
                 lastComboMilestones = GManager.comboMilestones;
                 var ci = System.Globalization.CultureInfo.InvariantCulture;
-                int gainedPoints = FlashBeat.Gameplay.Scoring.ComponentScoreV4(
-                    gained * FlashBeat.Gameplay.Scoring.MilestoneBonusPoints, GManager.maxBonusRatio);
-                int totalPoints = FlashBeat.Gameplay.Scoring.ComponentScoreV4(
+                int gainedPoints = V6HudLogic.ComponentScoreLatest(
+                    gained * V6HudLogic.MilestoneBonusPointsLatest(), GManager.maxBonusRatio);
+                int totalPoints = V6HudLogic.ComponentScoreLatest(
                     GManager.milestoneBonus, GManager.maxBonusRatio);
                 milestoneBonusText.text = "MILESTONE  +" + gainedPoints.ToString("N0", ci)
                     + "  TOTAL +" + totalPoints.ToString("N0", ci);
@@ -341,13 +396,65 @@ namespace FlashBeat.UI.V6.Game.Hud
                 milestoneBonusText.gameObject.SetActive(true);
             }
 
-            // issue-162 B-4 再照合 (2026-11-11): 正本 Uc9v6 には Gx3kq "Combo Bonus" が
-            // BIKrJ "Combo Status" と同じ (1512,460) に重ねて置かれている (design 側の
-            // 状態の重複)。Gx3kq の「+1,200」「次のボーナス 300 / +3,000」は
-            // JudgeScoreboard にコンボボーナス加点が無いため実在しない値で、
-            // BonusTotal / NextBonusReward も近似式にすぎない。加点そのものは
-            // 新しいゲーム仕様 (今回のスコープ外) なので、数値を捏造せず
-            // 同じ座標を Combo Status (NO MISS / FULL COMBO) が使う。
+            // コンボボーナス (Issue #784 / ADR-0035、scoring v6 は
+            // ADR-0037): 獲得済みボーナスを右コラム上段のブロックに常設
+            // する。v5 では連続加点が無く、節目到達の累計
+            // (GManager.milestoneBonus) がこの値になる。v6 では追加スコア
+            // 全体 (品質点 + 節目 + フルクリア = GManager.bonusScore) を
+            // 絶対スコア点で表示し、基礎スコアと別の加点として見せる
+            // (ADR-0037 の「2 つのスコア部分を別々に表示」)。節目到達後は
+            // comboFill が次の節目までの進捗を示し、nextBonusText が
+            // 次の獲得予定点を示す (獲得済み累計・今回の加点・次の獲得予定を
+            // 別々の値として表示する契約)。
+            // Issue #784: 獲得済みボーナス点はスコア / コンボと同じ桁別
+            // アニメーション (ValueStrip) で表示する。値が変わると変化した
+            // 桁だけがポップ + 発光し、節目ゲージの伸びと同じフレームで
+            // 連動する。表示はスコア点が変わったときだけ書き換える
+            // (issue #381)。
+            int earnedComboBonus = V6HudLogic.EarnedBonusPointsLatest();
+            int comboBonusPoints = V6HudLogic.ComboBonusScorePoints(
+                earnedComboBonus, GManager.maxBonusRatio);
+            if (comboBonusPoints != lastComboBonusPoints && comboBonusStrip != null)
+            {
+                lastComboBonusPoints = comboBonusPoints;
+                comboBonusStrip.SetText("+" + comboBonusPoints.ToString(
+                    "N0", System.Globalization.CultureInfo.InvariantCulture),
+                    Time.unscaledTime);
+            }
+
+            // 次の節目到達で確定するボーナスのスコア点 (ADR-0035)。
+            // v5 では 1 節目あたり一定 (MilestoneBonusPointsV5) で、
+            // v4 以前は値が節目ごとに変わるため非表示 (0)。
+            // 残りノーツでは次の節目へ届かない終盤は「獲得予定」を
+            // 出さない (到達不能な目標を提示しない)。
+            int nextBonusPoints = V6HudLogic.NextMilestoneReachable(
+                GManager.combo, GManager.settledNoteCount, GManager.chartNoteCount)
+                ? V6HudLogic.NextMilestoneScorePoints(GManager.maxBonusRatio)
+                : 0;
+            if (nextBonusPoints != lastNextBonusPoints && nextBonusText != null)
+            {
+                lastNextBonusPoints = nextBonusPoints;
+                nextBonusText.text = nextBonusPoints > 0
+                    ? "NEXT +" + nextBonusPoints.ToString(
+                        "N0", System.Globalization.CultureInfo.InvariantCulture)
+                    : "";
+            }
+
+            // ブロックの表示条件 (ADR-0035): 獲得済みコンボボーナスが
+            // あれば miss 後も表示を続ける。未獲得でも、次の節目へ
+            // まだ到達可能なら進捗ゲージと「NEXT +N」を先に見せる
+            // (到達前のゲージは次の節目までの進捗を示す契約)。
+            // 節目に一度も届かず終わったプレイでは出ない。
+            if (comboBonusBlock != null)
+            {
+                V6LayoutWrites.ActiveIfChanged(comboBonusBlock,
+                    V6HudLogic.ShowComboBonus(earnedComboBonus)
+                        || nextBonusPoints > 0);
+            }
+
+            // issue-162 B-4 再照合 → Issue #784 で実値化: 「+ COMBO BONUS」
+            // 「次のボーナス」は Combo Bonus ブロックとして実データ表示に
+            // 復活した (上の comboBonusPoints / comboFillW の更新)。
 
             // 進捗バー + 歌詞 (メディアタイム = GManager.step_time)
             float duration = CurrentSongDuration();
@@ -464,7 +571,8 @@ namespace FlashBeat.UI.V6.Game.Hud
             }
 
             keyCaps.Clear();
-            verdictTexts.Clear();
+            // Issue #793: verdictPool は子ごと破棄されるので参照だけ外す。
+            verdictPool = null;
             // Issue #680: 判定イベントのキューはここでは消さない。
             // 未消費分は次の Refresh で新しい判定行へそのまま出る
             // (リセットは Judge.Start / カウンタ減少時 / VerdictRow=false 時)。
@@ -488,6 +596,10 @@ namespace FlashBeat.UI.V6.Game.Hud
             comboStatusBlock = null;
             comboStatusRow = null;
             fullComboChip = null;
+            comboBonusBlock = null;
+            comboBonusStrip = null;
+            nextBonusText = null;
+            lastNextBonusPoints = int.MinValue;
             keyGuideRow = null;
             gradeText = null;
             scoreStrip = null;
@@ -506,10 +618,15 @@ namespace FlashBeat.UI.V6.Game.Hud
             gaugeBestShownX = 0f;
             lastComboFillWidth = -1f;
             comboBonusPulseStart = -1f;
+            lastComboBonusPoints = int.MinValue;
             // 節目回数は現在値に合わせる (リビルド直後に獲得ポップを
             // 誤発火させない)。
             lastComboMilestones = GManager.comboMilestones;
             verdictBaseY = 0f;
+            for (int lane = 0; lane < laneVerdictText.Length; lane++)
+            {
+                laneVerdictText[lane] = string.Empty;
+            }
             // 新しい TextMeshPro は空文字から始まる。前の部品に出していた値を
             // 「表示済み」のまま残すと、値が変わらない限り Refresh が書き込まず
             // スコア / コンボが次に増えるまで空のままになる。
@@ -545,6 +662,12 @@ namespace FlashBeat.UI.V6.Game.Hud
             // (Owner 指示 2026-11-08)。
             Vector2 canvasSize = CanvasSize();
             m = V6HudMetrics.ForResolution(canvasSize.x, canvasSize.y);
+            // Issue #735: Update の解像度監視 (lyricSlotWidth の変化検知) が
+            // 初回フレームで必ず Rebuild を走らせないよう、構築時の値を記録する。
+            // 未初期化 (-1) のままだと Create 直後の最初の Update で HUD 全体が
+            // 作り直され、起動時に一度だけ無効化された "Video Dim" が
+            // 有効なまま復活していた (実機でノーツが灰色に見える原因)。
+            lastLyricSlotWidth = V6HudLogic.LyricSlotWidth(canvasSize.x);
             // Root は自分自身。未代入だと Refresh のガードが常に早期 return し、
             // スコア / コンボ / 歌詞 / 判定行 / レーン格子の更新が一切走らない。
             Root = V6Layout.RectOf(gameObject);

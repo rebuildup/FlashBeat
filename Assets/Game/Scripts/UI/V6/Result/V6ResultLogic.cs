@@ -18,7 +18,12 @@ namespace FlashBeat.UI.V6.Result
         public const float DesignW = 1728f;
         public const float DesignH = 972f;
 
-        /// <summary>スコア満点 (scoring v4 = 2,000,000。<see cref="Common.V6GradeLogic.ScoreMaxV4""/> と同じ)。</summary>
+        /// <summary>
+        /// スコア満点の v4 参照値 (2,000,000。
+        /// <see cref="Common.V6GradeLogic.ScoreMaxV4"/> と同じ)。
+        /// v6 の満点は譜面ごとの <see cref="Scoring.ScoreMaxV6"/> で、
+        /// この定数は v4 帯のテスト等の参照用。
+        /// </summary>
         public const int ScoreMax = Common.V6GradeLogic.ScoreMaxV4;
 
         /// <summary>スコアゲージの全長 (design px, zcSHh の Score Gauge)。</summary>
@@ -72,19 +77,25 @@ namespace FlashBeat.UI.V6.Result
         /// スコアからグレード文字列を返す。スコアが無い (0 以下) ときは "–"。
         ///
         /// scoringVersion で帯を切り替える (Issue #758 / ADR-0034):
-        /// v4 以降は <see cref="Common.V6GradeLogic.GradeOfV4"/> (満点
+        /// v6 は <see cref="Common.V6GradeLogic.GradeOfV6"/> (譜面満点
+        /// ScoreMaxV6(noteCount) に対する割合の帯。SS はその譜面の満点のみ、
+        /// ADR-0037 / Issue #825)、v4/v5 は
+        /// <see cref="Common.V6GradeLogic.GradeOfV4"/> (満点
         /// 2,000,000 の帯。SS は全 Perfect + フルコンボの 2,000,000 のみ)、
         /// v1–v3 は既存の Assessment 判定 (V5 ResultView.RankFor) の閾値を
         /// そのまま使う (旧スコアを暗黙に再解釈しない)。
+        /// <paramref name="noteCount"/> は scoring v6 のグレードにだけ
+        /// 使う譜面ノーツ数 (他バージョンでは無視される)。
         /// </summary>
-        public static string GradeOf(int score, int scoringVersion = Scoring.LatestVersion)
+        public static string GradeOf(int score, int scoringVersion = Scoring.LatestVersion,
+            int noteCount = 0)
         {
             if (score <= 0)
             {
                 return "–";
             }
 
-            return Common.V6GradeLogic.GradeOf(score, scoringVersion);
+            return Common.V6GradeLogic.GradeOf(score, scoringVersion, noteCount);
         }
 
         /// <summary>スコア表示。3桁カンマ区切り (デザイン表記 988,513)。</summary>
@@ -94,20 +105,59 @@ namespace FlashBeat.UI.V6.Result
         }
 
         /// <summary>
-        /// scoring v4 (ADR-0033 / Issue #736) の基礎スコア + ボーナス内訳の
-        /// 表示文字列。基礎スコアは判定由来のみで上限 1,000,000、ボーナスは
-        /// コンボ継続・節目・クリア (ノーミス + フルコンボ終了) の 3 群で、
-        /// それぞれ実際に加算されるスコア点を "+値" で返す (未達は "–")。
-        /// 値は ratio points をスコア点へ換算した目安で、送信フィールド
-        /// ではない (サーバは内訳を信用せず再計算する)。
-        /// <paramref name="judgmentsComplete"/> is GManager.judgmentsComplete:
-        /// the full-combo end bonus only shows once every chart note was
-        /// judged (Issue #618).
+        /// scoring v4/v5 (ADR-0033 / ADR-0035 / Issue #736, #797) の基礎
+        /// スコア + ボーナス内訳の表示文字列。基礎スコアは判定由来のみで
+        /// 上限 1,000,000、ボーナスはコンボ・節目・クリア (ノーミス +
+        /// フルコンボ終了) の 3 群で、それぞれ実際に加算されるスコア点を
+        /// "+値" で返す (未達は "–")。v5 には連続コンボボーナスが無いため
+        /// COMBO 行は常に "–" で、コンボ由来の獲得済みは MILESTONE 行が
+        /// 表す。値は ratio points をスコア点へ換算した目安で、送信
+        /// フィールドではない (サーバは内訳を信用せず再計算する)。
+        /// <paramref name="judgmentsComplete"/> は GManager.judgmentsComplete
+        /// で、フルコンボ終了ボーナスは全ノーツ判定確定後にのみ表示する
+        /// (Issue #618)。
         /// </summary>
         public static void BonusBreakdownTexts(int perfect, int great, int bad, int miss, int maxCombo,
             int comboMilestones, int noteCount, bool judgmentsComplete,
             out string baseScore, out string comboBonus, out string milestoneBonus, out string clearBonus)
         {
+            if (Scoring.LatestVersion >= Scoring.Version6)
+            {
+                // scoring v6 (ADR-0037): 基礎スコア (上限 1,000,000) と
+                // 絶対追加スコアの内訳。COMBO 列はノーツ品質点
+                // (P*1000+G*600+B*200)、MILESTONE 列は節目点、CLEAR 列は
+                // フルクリア点。いずれも既に絶対スコア点なので換算しない。
+                Scoring.V6Breakdown v6 = Scoring.BreakdownV6(
+                    perfect, great, bad, miss, maxCombo, comboMilestones, noteCount, judgmentsComplete);
+                baseScore = FormatScore(v6.BaseScore);
+                comboBonus = v6.QualityScore > 0
+                    ? "+" + FormatScore(v6.QualityScore)
+                    : "–";
+                milestoneBonus = v6.MilestoneScore > 0
+                    ? "+" + FormatScore(v6.MilestoneScore)
+                    : "–";
+                clearBonus = v6.ClearScore > 0
+                    ? "+" + FormatScore(v6.ClearScore)
+                    : "–";
+                return;
+            }
+
+            if (Scoring.LatestVersion >= Scoring.Version5)
+            {
+                Scoring.V5Breakdown v5 = Scoring.BreakdownV5(
+                    perfect, great, bad, miss, maxCombo, comboMilestones, noteCount, judgmentsComplete);
+                baseScore = FormatScore(v5.BaseScore);
+                comboBonus = "–";
+                milestoneBonus = v5.MilestoneBonus > 0
+                    ? "+" + FormatScore(Scoring.ComponentScoreV5(v5.MilestoneBonus, noteCount))
+                    : "–";
+                int clearRatioV5 = v5.NoMissBonus + v5.FinalBonus;
+                clearBonus = clearRatioV5 > 0
+                    ? "+" + FormatScore(Scoring.ComponentScoreV5(clearRatioV5, noteCount))
+                    : "–";
+                return;
+            }
+
             Scoring.V4Breakdown v4 = Scoring.BreakdownV4(
                 perfect, great, bad, miss, maxCombo, comboMilestones, noteCount, judgmentsComplete);
             baseScore = FormatScore(v4.BaseScore);
@@ -141,19 +191,22 @@ namespace FlashBeat.UI.V6.Result
         /// base + bonus 合計がそのまま 0..満点 の 1 本のレールになる
         /// (Issue #758 / ADR-0034。ベストマーカーも同じ写像なので、
         /// 分割を保存しない既存スコアでも表示が一致する)。
+        /// scoring v6 (ADR-0037) の満点は譜面ごとの
+        /// <see cref="Scoring.ScoreMaxV6"/> なので、<paramref name="noteCount"/>
+        /// が必要。v6 以外では noteCount は使われない。
         /// </summary>
-        public static float GaugeFillWidth(int score)
+        public static float GaugeFillWidth(int score, int noteCount)
         {
-            return GaugeRatio(score) * GaugeW;
+            return GaugeRatio(score, noteCount) * GaugeW;
         }
 
         /// <summary>
         /// スコアゲージの Best マーカー位置 (design px, 左端基準)。
         /// Fill と同じ写像 (最新 scoringVersion の満点で正規化)。
         /// </summary>
-        public static float GaugeBestX(int bestScore)
+        public static float GaugeBestX(int bestScore, int noteCount)
         {
-            return GaugeRatio(bestScore) * GaugeW;
+            return GaugeRatio(bestScore, noteCount) * GaugeW;
         }
 
         /// <summary>曲長表示 (秒 → "m:ss")。無効値は "–"。</summary>
@@ -163,14 +216,12 @@ namespace FlashBeat.UI.V6.Result
             return string.IsNullOrEmpty(text) ? "–" : text;
         }
 
-        private static float GaugeRatio(int score)
+        private static float GaugeRatio(int score, int noteCount)
         {
-            if (score <= 0)
-            {
-                return 0f;
-            }
-
-            return Mathf.Clamp01((float)score / Common.V6GradeLogic.ScoreMaxOf(Scoring.LatestVersion));
+            // Issue #788: ゲージの目盛り・ラベルは V6GradeLogic.GradeBandsOf
+            // の帯と同じ単一写像 (ScoreFractionOf) から導出する。
+            // scoring v6 (ADR-0037) は譜面満点 ScoreMaxV6(noteCount) で正規化。
+            return Common.V6GradeLogic.ScoreFractionOf(score, Scoring.LatestVersion, noteCount);
         }
 
         // --- メイン / フッターの layout 幾何 (契約 §4)。

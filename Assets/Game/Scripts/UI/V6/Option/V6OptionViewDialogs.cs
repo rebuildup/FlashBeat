@@ -108,6 +108,11 @@ namespace FlashBeat.UI.V6.Option
         {
             confirmKind = ConfirmKind.ClearSaveData;
             confirmClearOpen = true;
+            // Issue #733 フォローアップ: 行の Activate は共有設定画面から
+            // 呼ばれ、画面側の Refresh は設定領域しか更新しない。モーダルは
+            // ビューの Rebuild が組み立てるので、ここで Rebuild しないと
+            // confirmClearOpen が立ってもダイアログが出ない。
+            Rebuild();
         }
 
         /// <summary>
@@ -118,6 +123,9 @@ namespace FlashBeat.UI.V6.Option
         {
             confirmKind = ConfirmKind.MediaCache;
             confirmClearOpen = true;
+            // OpenClearConfirm と同じ理由で Rebuild が必要 (モーダルは
+            // Rebuild が confirmClearOpen を見て組み立てる)。
+            Rebuild();
         }
 
         /// <summary>Key Layout のリセット確認を開く (まだ何も戻さない)。</summary>

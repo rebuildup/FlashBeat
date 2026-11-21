@@ -120,3 +120,6 @@ node_modules/
 
 # RC 証跡としてコミットするテスト結果は例外
 !docs/evidence/**/TestResults*.xml
+
+# 同梱メディア取得ツール (script/fetch-media-tools.sh が取得、issue #795)
+tools/media/

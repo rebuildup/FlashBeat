@@ -5,6 +5,7 @@ using System.Globalization;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using FlashBeat.Gameplay;
 using FlashBeat.UI.V5;
 using FlashBeat.UI.V6;
 using FlashBeat.UI.V6.Common;
@@ -103,22 +104,45 @@ namespace FlashBeat.UI.V6.Result
             var zone = V6Layout.Place(V5Ui.Node(main, "Score Gauge Zone"), 0f, GaugeZoneY, 840f, 100f);
             var gauge = V6Layout.Place(V5Ui.Node(zone, "Score Gauge"), 0f, GaugeY, V6ResultLogic.GaugeW, 76f);
 
-            // セグメント (y24 h16): C(0,165) B(168,164) A(335,165) S(503,164) SS(670,55) +(728,96)。
-            float[] segX = { 0f, 168f, 335f, 503f, 670f, 728f };
-            float[] segW = { 165f, 164f, 165f, 164f, 55f, 96f };
-            string[] segNames = { "C", "B", "A", "S", "SS", "+" };
-            for (int i = 0; i < segX.Length; i++)
+            // セグメントは V6GradeLogic.GradeBandsOf (グレード閾値の正本、
+            // Issue #788) をトラック幅へ写した値。「満点のみ」の SS は
+            // 幅を持たない点帯なので、右端に接する細いキャップとして描く。
+            // 旧デザインの固定座標 (C 165 / B 164 / A 165 / S 164 / SS 55 / + 96)
+            // ではグレード境界と目盛りが一致しなかった。
+            var bands = Common.V6GradeLogic.GradeBandsOf(FlashBeat.Gameplay.Scoring.LatestVersion);
+            float pointW = V6ResultLogic.GaugeW / 150f;
+            foreach (var band in bands)
             {
-                Color fill = i == 5 ? V5Tokens.FromHex("#3A3220") : V5Tokens.Key0;
-                V6Layout.Place(V5Ui.Panel(gauge.gameObject, "Seg " + segNames[i], new Vector2(segW[i], GaugeTrackH), fill, 2f),
-                    segX[i], GaugeTrackY);
-                var label = V5GameUi.Text(gauge.gameObject, "Label " + segNames[i], segNames[i], 16f,
+                if (band.IsPoint)
+                {
+                    V6Layout.Place(V5Ui.Panel(gauge.gameObject, "Seg " + band.Label,
+                        new Vector2(pointW, GaugeTrackH), V5Tokens.FromHex("#3A3220"), 2f),
+                        V6ResultLogic.GaugeW - pointW, GaugeTrackY);
+                    var capLabel = V5GameUi.Text(gauge.gameObject, "Label " + band.Label, band.Label, 16f,
+                        V5Tokens.TextDim, TextAlignmentOptions.Center);
+                    V6Layout.Place(capLabel, V6ResultLogic.GaugeW - pointW * 2f, 46f, pointW * 4f, 20f,
+                        new Vector2(0f, 0.5f));
+                    continue;
+                }
+
+                float segX = band.Start * V6ResultLogic.GaugeW;
+                float segW = (band.End - band.Start) * V6ResultLogic.GaugeW;
+                V6Layout.Place(V5Ui.Panel(gauge.gameObject, "Seg " + band.Label,
+                    new Vector2(segW, GaugeTrackH), V5Tokens.Key0, 2f), segX, GaugeTrackY);
+                var label = V5GameUi.Text(gauge.gameObject, "Label " + band.Label, band.Label, 16f,
                     V5Tokens.TextDim, TextAlignmentOptions.Center);
-                V6Layout.Place(label, segX[i], 46f, segW[i], 20f, new Vector2(0f, 0.5f));
+                V6Layout.Place(label, segX, 46f, segW, 20f, new Vector2(0f, 0.5f));
             }
 
             gaugeFill = V6Layout.Place(V5Ui.Panel(gauge.gameObject, "Fill",
                 new Vector2(0f, GaugeTrackH), V5Tokens.FromHex("#EDEDED"), 2f), 0f, GaugeTrackY).GetComponent<Image>();
+
+            // SS キャップが塗りで隠れないよう、Fill の後に最前面へ。
+            var ssCap = gauge.transform.Find("Seg SS");
+            if (ssCap != null)
+            {
+                ssCap.SetAsLastSibling();
+            }
 
             gaugeBestMarker = V6Layout.Place(V5Ui.Panel(gauge.gameObject, "Best Marker", new Vector2(4f, 24f),
                 V5Tokens.Text, 0f), 0f, 20f).GetComponent<Image>();
@@ -177,8 +201,10 @@ namespace FlashBeat.UI.V6.Result
                 TextAlignmentOptions.Left);
             V6Layout.Place(label, 0f, 8f, 100f, 28f, new Vector2(0f, 0.5f));
 
-            string[] names = { "BASE", "COMBO", "MILESTONE", "CLEAR" };
-            string[] keys = { "Base Score", "Combo Bonus", "Milestone Bonus", "Clear Bonus" };
+            // scoring v6 (ADR-0037) では 2 列目はコンボではなくノーツ品質点
+            // (P*1000+G*600+B*200 の絶対点) を表す。
+            string[] names = { "BASE", "QUALITY", "MILESTONE", "CLEAR" };
+            string[] keys = { "Base Score", "Note Quality", "Milestone Bonus", "Clear Bonus" };
             const float colX = 110f;
             const float colW = (840f - colX) / 4f;
             for (int i = 0; i < 4; i++)
@@ -261,7 +287,11 @@ namespace FlashBeat.UI.V6.Result
         private void RefreshResult()
         {
             int score = runScore;
-            gradeLetter.text = V6ResultLogic.GradeOf(score);
+            // scoring v6 (ADR-0037) のグレード・ゲージは譜面満点
+            // ScoreMaxV6(noteCount) で正規化するためノーツ数が必要。
+            // 完走後なので確定済み判定合計 = 譜面ノーツ数。
+            int noteCount = runPerfect + runGreat + runBad + runMiss;
+            gradeLetter.text = V6ResultLogic.GradeOf(score, Scoring.LatestVersion, noteCount);
             FitGradeFont();
             scoreValue.text = V6ResultLogic.FormatScore(score);
             judgeValues[0].text = runPerfect.ToString();
@@ -270,9 +300,9 @@ namespace FlashBeat.UI.V6.Result
             judgeValues[3].text = runMiss.ToString();
             judgeValues[4].text = runMaxCombo.ToString();
 
-            // scoring v4 の基礎スコア + ボーナス内訳 (ADR-0033 / Issue #736)。
-            // ノーツ数は確定済みの判定合計 = 譜面のノーツ数 (完走後なので残りは無い)。
-            int noteCount = runPerfect + runGreat + runBad + runMiss;
+            // scoring v4/v6 の基礎スコア + ボーナス内訳 (ADR-0033/0037,
+            // Issue #736, #825)。ノーツ数は確定済みの判定合計 = 譜面の
+            // ノーツ数 (完走後なので残りは無い)。
             V6ResultLogic.BonusBreakdownTexts(
                 runPerfect, runGreat, runBad, runMiss, runMaxCombo, runComboMilestones, noteCount,
                 GManager.judgmentsComplete,
@@ -283,10 +313,10 @@ namespace FlashBeat.UI.V6.Result
             bonusValues[2].text = milestoneBonusText;
             bonusValues[3].text = clearBonusText;
 
-            float fill = V6ResultLogic.GaugeFillWidth(score);
+            float fill = V6ResultLogic.GaugeFillWidth(score, noteCount);
             gaugeFill.rectTransform.sizeDelta = new Vector2(fill, GaugeTrackH);
             int best = BestOf();
-            float bestX = V6ResultLogic.GaugeBestX(best);
+            float bestX = V6ResultLogic.GaugeBestX(best, noteCount);
             gaugeBestMarker.rectTransform.anchoredPosition = new Vector2(bestX, -20f);
 
             if (prevHiscore >= 0)

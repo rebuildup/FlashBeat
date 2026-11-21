@@ -41,12 +41,15 @@ namespace FlashBeat.V6HudTests
 
         private float savedMainVolume;
         private float savedEffectVolume;
+        private float savedSongVolume;
         private float savedListenerVolume;
         private int savedSongId;
         private bool savedMainVolumePrefExists;
         private float savedMainVolumePref;
         private bool savedEffectVolumePrefExists;
         private float savedEffectVolumePref;
+        private bool savedSongVolumePrefExists;
+        private float savedSongVolumePref;
 
         private static readonly MethodInfo SetSelectedPauseVolumeMethod =
             typeof(V6PauseView).GetMethod("SetSelectedPauseVolume",
@@ -67,15 +70,19 @@ namespace FlashBeat.V6HudTests
 
             savedMainVolume = GManager.mainVolume;
             savedEffectVolume = GManager.effectVolume;
+            savedSongVolume = GManager.songVolume;
             savedListenerVolume = AudioListener.volume;
             savedSongId = GManager.songID;
             savedMainVolumePrefExists = PlayerPrefs.HasKey(OptionSettings.MainVolumeKey);
             savedMainVolumePref = PlayerPrefs.GetFloat(OptionSettings.MainVolumeKey, 0f);
             savedEffectVolumePrefExists = PlayerPrefs.HasKey(OptionSettings.EffectVolumeKey);
             savedEffectVolumePref = PlayerPrefs.GetFloat(OptionSettings.EffectVolumeKey, 0f);
+            savedSongVolumePrefExists = PlayerPrefs.HasKey(OptionSettings.SongVolumeKey);
+            savedSongVolumePref = PlayerPrefs.GetFloat(OptionSettings.SongVolumeKey, 0f);
 
             GManager.mainVolume = 0.5f;
             GManager.effectVolume = 0.5f;
+            GManager.songVolume = 0.5f;
             AudioListener.volume = 0.5f;
             // songID = -1 で GetSong が null を返すようにし、RefreshHeader の
             // ジャケット取得 (ネットワーク) を走らせない。
@@ -121,11 +128,13 @@ namespace FlashBeat.V6HudTests
             PauseGate.HardReset();
             GManager.mainVolume = savedMainVolume;
             GManager.effectVolume = savedEffectVolume;
+            GManager.songVolume = savedSongVolume;
             AudioListener.volume = savedListenerVolume;
             GManager.songID = savedSongId;
 
             RestorePref(OptionSettings.MainVolumeKey, savedMainVolumePrefExists, savedMainVolumePref);
             RestorePref(OptionSettings.EffectVolumeKey, savedEffectVolumePrefExists, savedEffectVolumePref);
+            RestorePref(OptionSettings.SongVolumeKey, savedSongVolumePrefExists, savedSongVolumePref);
         }
 
         // ------------------------------------------------------------------
@@ -150,8 +159,12 @@ namespace FlashBeat.V6HudTests
             Assert.AreEqual(0.51f, GManager.mainVolume, 0.0001f, "Main は 1% 刻みで増える");
             Assert.AreEqual(GManager.mainVolume, AudioListener.volume, 0.0001f,
                 "AudioListener.volume が mainVolume に追従する");
-            Assert.AreEqual(GManager.mainVolume, musicSource.volume, 0.0001f,
-                "MusicManager の AudioSource.volume が mainVolume に追従する");
+            // Main Volume は AudioListener.volume が担う。演奏音源
+            // (MusicManager の audioS / streamAudioSource) はプレイ楽曲
+            // チャンネルなので GManager.songVolume を持つ (Issue #851。
+            // Main を音源へ二重に掛けない)。
+            Assert.AreEqual(GManager.songVolume, musicSource.volume, 0.0001f,
+                "MusicManager の AudioSource は songVolume を持つ (Main は AudioListener が担う)");
             Assert.AreEqual(0.5f, judgeSource.volume, 0.0001f,
                 "Judge の AudioSource (SE) は Main 変更では変わらない");
             Assert.AreEqual(0.5f, GManager.effectVolume, 0.0001f, "SE は変わらない");
@@ -172,14 +185,14 @@ namespace FlashBeat.V6HudTests
         {
             view.Open();
 
-            view.SelectRowForAudit(2, 1); // Sound タブ / SEVolume 行
+            view.SelectRowForAudit(2, 3); // Sound タブ / Effect Volume 行 (Issue #851 で 4 行化)
             view.AdjustSelectedForAudit(-1);
 
             Assert.AreEqual(0.49f, GManager.effectVolume, 0.0001f, "SE は 1% 刻みで減る");
             Assert.AreEqual(GManager.effectVolume, judgeSource.volume, 0.0001f,
                 "Judge の AudioSource.volume が effectVolume に追従する");
-            Assert.AreEqual(0.5f, musicSource.volume, 0.0001f,
-                "MusicManager の AudioSource (Main) は SE 変更では変わらない");
+            Assert.AreEqual(GManager.songVolume, musicSource.volume, 0.0001f,
+                "MusicManager の AudioSource は songVolume のまま (SE 変更では変わらない)");
             Assert.AreEqual(0.5f, AudioListener.volume, 0.0001f,
                 "AudioListener.volume は mainVolume のまま");
             // Issue #733: キー操作の保存は Option と同じく遅延。flush して確認する。
@@ -206,7 +219,8 @@ namespace FlashBeat.V6HudTests
 
             Assert.AreEqual(0.8f, GManager.mainVolume, 0.0001f, "ドラッグ中も値は適用される");
             Assert.AreEqual(0.8f, AudioListener.volume, 0.0001f, "即時反映される");
-            Assert.AreEqual(0.8f, musicSource.volume, 0.0001f);
+            // 演奏音源は songVolume を持つ (Main は AudioListener が担う)。
+            Assert.AreEqual(GManager.songVolume, musicSource.volume, 0.0001f);
             Assert.AreEqual(0.25f, PlayerPrefs.GetFloat(OptionSettings.MainVolumeKey, -1f), 0.0001f,
                 "ドラッグ中 (final=false) は保存しない");
 
@@ -225,14 +239,22 @@ namespace FlashBeat.V6HudTests
         }
 
         /// <summary>
-        /// Issue #681 review: StreamSeparate 経路の演奏音源
-        /// (MusicManager.streamAudioSource) も mainVolume に追従する。
-        /// 以前は AudioSource を 1 つだけ書き換えていたため、
-        /// streamAudioSource が残って音量が変わらなかった。
+        /// Issue #681 review + PR #787 review + #851: 演奏音源は
+        /// MusicManager.streamAudioSource (StreamSeparate 経路) と audioS
+        /// (GetComponent 経路) の 2 系統ある。Song Volume の変更は
+        /// <see cref="MusicManager.ApplySongVolume"/> が両方へ書くので、
+        /// 片方だけ書き換える退行 (片系統が音量に追従しない) を検出する。
+        /// Sound タブの行順は Main / Song / BGM / Effect (Issue #851)。
+        /// BGM Volume 行はメニュー背景動画専用で、演奏音源には触れない。
         /// </summary>
         [Test]
-        public void AdjustMainVolume_ReachesStreamAudioSource()
+        public void AdjustSongVolume_ReachesBothMusicSources_BgmDoesNot()
         {
+            float savedSongVolume = GManager.songVolume;
+            float savedBgmVolume = GManager.BGMVolume;
+            GManager.songVolume = 0.5f;
+            GManager.BGMVolume = 0.5f;
+
             var streamGo = new GameObject("V6PauseSettingsTests StreamAudio");
             var streamSource = streamGo.AddComponent<AudioSource>();
             streamSource.volume = 0.5f;
@@ -245,14 +267,32 @@ namespace FlashBeat.V6HudTests
             try
             {
                 view.Open();
-                view.SelectRowForAudit(2, 0); // Sound タブ / MainVolume 行
+                view.SelectRowForAudit(2, 1); // Sound タブ / Song Volume 行
                 view.AdjustSelectedForAudit(1);
 
-                Assert.AreEqual(GManager.mainVolume, streamSource.volume, 0.0001f,
-                    "StreamSeparate の AudioSource も mainVolume に追従する");
+                Assert.AreEqual(0.51f, GManager.songVolume, 0.0001f, "Song は 1% 刻みで増える");
+                Assert.AreEqual(GManager.songVolume, musicSource.volume, 0.0001f,
+                    "audioS 側の AudioSource が songVolume に追従する");
+                Assert.AreEqual(GManager.songVolume, streamSource.volume, 0.0001f,
+                    "StreamSeparate の AudioSource も songVolume に追従する");
+                Assert.AreEqual(0.5f, GManager.BGMVolume, 0.0001f,
+                    "Song 変更はメニュー BGM に影響しない");
+
+                // BGM Volume 行 (position 2) は GManager.BGMVolume だけを変え、
+                // 演奏音源の音量は songVolume のまま。
+                view.SelectRowForAudit(2, 2);
+                view.AdjustSelectedForAudit(1);
+
+                Assert.AreEqual(0.51f, GManager.BGMVolume, 0.0001f, "BGM は 1% 刻みで増える");
+                Assert.AreEqual(GManager.songVolume, musicSource.volume, 0.0001f,
+                    "BGM 変更で演奏音源の音量は変わらない");
+                Assert.AreEqual(GManager.songVolume, streamSource.volume, 0.0001f,
+                    "StreamSeparate 側も songVolume のまま");
             }
             finally
             {
+                GManager.songVolume = savedSongVolume;
+                GManager.BGMVolume = savedBgmVolume;
                 streamField.SetValue(musicManager, null);
                 Object.DestroyImmediate(streamGo);
             }

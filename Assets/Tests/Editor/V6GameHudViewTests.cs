@@ -23,6 +23,13 @@ namespace FlashBeat.Tests
         private int originalCombo;
         private int originalMiss;
         private int originalComboMilestones;
+        private int originalComboBonus;
+        private int originalMilestoneBonus;
+        private int originalChartNoteCount;
+        private int originalSettledNoteCount;
+        private float originalMaxBonusRatio;
+        private int originalBonusScore;
+        private int originalBaseScore;
         private bool originalLyricsEnabled;
 
         [SetUp]
@@ -32,6 +39,15 @@ namespace FlashBeat.Tests
             originalCombo = GManager.combo;
             originalMiss = GManager.miss;
             originalComboMilestones = GManager.comboMilestones;
+            originalComboBonus = GManager.comboBonus;
+            originalMilestoneBonus = GManager.milestoneBonus;
+            originalChartNoteCount = GManager.chartNoteCount;
+            originalSettledNoteCount = GManager.settledNoteCount;
+            originalMaxBonusRatio = GManager.maxBonusRatio;
+            originalBonusScore = GManager.bonusScore;
+            GManager.bonusScore = 0;
+            originalBaseScore = GManager.baseScore;
+            GManager.baseScore = 0;
             originalLyricsEnabled = PlaySession.LyricsEnabled;
 
             canvasGo = new GameObject("V6GameHudViewTests Canvas", typeof(Canvas));
@@ -50,6 +66,13 @@ namespace FlashBeat.Tests
             GManager.combo = originalCombo;
             GManager.miss = originalMiss;
             GManager.comboMilestones = originalComboMilestones;
+            GManager.comboBonus = originalComboBonus;
+            GManager.milestoneBonus = originalMilestoneBonus;
+            GManager.chartNoteCount = originalChartNoteCount;
+            GManager.settledNoteCount = originalSettledNoteCount;
+            GManager.maxBonusRatio = originalMaxBonusRatio;
+            GManager.bonusScore = originalBonusScore;
+            GManager.baseScore = originalBaseScore;
             PlaySession.SetLyricsEnabled(originalLyricsEnabled);
 
             if (canvasGo != null)
@@ -110,6 +133,63 @@ namespace FlashBeat.Tests
         }
 
         /// <summary>
+        /// Issue #788: スコアゲージの目盛り (Seg *) はグレード閾値の正本
+        /// (<see cref="FlashBeat.UI.V6.Common.V6GradeLogic.GradeBandsOf"/>)
+        /// から導かれ、塗りと同じ ScoreFractionOf 写像に乗る。
+        /// 1920×1080 canvas → FHD metrics (GaugeW=600) で、実際の
+        /// RectTransform 配置が帯境界と一致することを検証する。
+        /// </summary>
+        [Test]
+        public void ScoreGauge_Segments_FollowGradeBands()
+        {
+            var track = view.transform.Find("Score Gauge/Track");
+            Assert.IsNotNull(track, "Score Gauge/Track が無い");
+
+            // v6 帯 (ADR-0037): C[0,.55) B[.55,.75) A[.75,.9) S[.9,1)
+            // SS=満点の点。GaugeW=600 への写像で x = 0/330/450/540。
+            AssertSegment(track, "Seg C", 0f, 330f);
+            AssertSegment(track, "Seg B", 330f, 120f);
+            AssertSegment(track, "Seg A", 450f, 90f);
+            AssertSegment(track, "Seg S", 540f, 60f);
+
+            // SS は幅を持たない点帯 → トラック右端に接するキャップ。
+            var ss = track.Find("Seg SS") as RectTransform;
+            Assert.IsNotNull(ss, "Seg SS (満点点帯のキャップ) が無い");
+            Assert.AreEqual(600f - ss.sizeDelta.x, ss.anchoredPosition.x, 0.01f,
+                "SS キャップの右端がトラック右端に一致しない");
+        }
+
+        /// <summary>
+        /// v6 (ADR-0037) の再現ケース: N=139 の譜面で 700,000 点
+        /// (B 評価、700000/1174000 ≈ 59.6%) の塗り終端が B 帯
+        /// [55%,75%) の内側にあり、A 帯へはみ出さないことを実際の
+        /// Fill の sizeDelta で検証する。
+        /// </summary>
+        [Test]
+        public void ScoreGauge_BGradeScore_FillStaysInsideBBand()
+        {
+            GManager.chartNoteCount = 139; // ScoreMaxV6(139) = 1,174,000
+            GManager.score = 700000;
+            view.Refresh();
+
+            var fill = view.transform.Find("Score Gauge/Track/Fill") as RectTransform;
+            Assert.IsNotNull(fill, "Score Gauge/Track/Fill が無い");
+
+            // 初回 Refresh はゲージ tween を目標値へ即合わせる。
+            float frac = fill.sizeDelta.x / 600f;
+            Assert.GreaterOrEqual(frac, 0.55f, "B 評価の塗りが B 帯の左端より左");
+            Assert.Less(frac, 0.75f, "B 評価の塗りが A 帯へはみ出している");
+        }
+
+        private static void AssertSegment(Transform track, string name, float x, float w)
+        {
+            var rt = track.Find(name) as RectTransform;
+            Assert.IsNotNull(rt, name + " が無い");
+            Assert.AreEqual(x, rt.anchoredPosition.x, 0.5f, name + " の x が帯境界と一致しない");
+            Assert.AreEqual(w, rt.sizeDelta.x, 0.5f, name + " の幅が帯境界と一致しない");
+        }
+
+        /// <summary>
         /// Issue #445: スコア値は 1 文字 = 1 スロットの桁別ストリップ。
         /// 変わらない桁のスロットは文字もアニメーション状態も変えない。
         /// </summary>
@@ -162,19 +242,117 @@ namespace FlashBeat.Tests
         }
 
         /// <summary>
-        /// 「+ COMBO BONUS」「次のボーナス」の block は構築しない (issue-162 B-4 再照合)。
-        /// 表示値 (BonusTotal = combo*50 の近似 / NextBonusReward = milestone*10 の仮式)
-        /// は JudgeScoreboard の配点に存在しない加点で、実スコアと異なる偽値だった。
+        /// Issue #784 / ADR-0035、scoring v6 (ADR-0037): ボーナスは右コラムに
+        /// 実スコア点で常設表示され、miss > 0 で Combo Status が隠れても
+        /// 残る。v6 では獲得済みは追加スコア全体 (品質点 + 節目 +
+        /// フルクリア = GManager.bonusScore、絶対スコア点) をそのまま表示
+        /// する (基礎スコアと別の加点として見せる契約)。
         /// </summary>
         [Test]
-        public void FakeComboBonusBlock_IsNotBuilt()
+        public void ComboBonus_ShowsConvertedScorePoints_AndSurvivesAMiss()
         {
-            GManager.combo = 7;
+            // 追加スコア 5,000 点獲得済み (v6 の絶対スコア点)。
+            GManager.bonusScore = 5000;
+            GManager.milestoneBonus = 5000; // 節目 1 回分 (表示値には使わない)
+            GManager.maxBonusRatio = FlashBeat.Gameplay.Scoring.MaxAdditionalV6(100);
+            GManager.miss = 1;   // NO MISS は消えるが、獲得済みボーナスは残る
+            GManager.combo = 0;  // Miss でコンボは 0 に戻る
+
             view.Refresh();
 
-            Transform bonus = view.GetComponentsInChildren<Transform>(true)
-                .FirstOrDefault(t => t.name == "Combo Bonus");
-            Assert.IsNull(bonus, "実在しないコンボボーナスの表示が戻っています (issue-162 B-4)");
+            var status = view.ComboStatusBlockForAudit;
+            Assert.IsNotNull(status, "Combo Status ブロックが無い");
+            Assert.IsFalse(status.activeSelf, "miss > 0 では Combo Status は非表示");
+
+            var bonus = view.ComboBonusBlockForAudit;
+            Assert.IsNotNull(bonus, "Combo Bonus ブロックが無い");
+            Assert.IsTrue(bonus.activeInHierarchy,
+                "miss > 0 でもコンボボーナスは表示される (Issue #784)");
+            Assert.AreEqual("Right Column", bonus.transform.parent.name,
+                "コンボボーナスは常時アクティブな Right Column の子");
+            Assert.IsNotNull(bonus.transform.Find("Next Bonus Track"),
+                "次の節目までのゲージ (Next Bonus Track) が無い");
+
+            int expected = V6HudLogic.ComboBonusScorePoints(
+                V6HudLogic.EarnedBonusPointsLatest(), GManager.maxBonusRatio);
+            Assert.AreEqual(
+                "+" + expected.ToString("N0", System.Globalization.CultureInfo.InvariantCulture),
+                view.ComboBonusValueForAudit,
+                "表示値は獲得済み追加スコアの絶対スコア点 (v6)");
+        }
+
+        /// <summary>
+        /// Issue #784 / ADR-0035、scoring v6 (ADR-0037): ボーナス未獲得の
+        /// 間はブロックごと隠し、1 回でも加点があれば表示する
+        /// (miss 後も獲得済みは残る)。v6 では品質点が最初の判定で
+        /// 乗るため、節目未到達でも bonusScore > 0 なら表示される。
+        /// </summary>
+        [Test]
+        public void ComboBonus_HiddenUntilBonusIsEarned()
+        {
+            GManager.bonusScore = 0;
+            view.Refresh();
+            Assert.IsFalse(view.ComboBonusBlockForAudit.activeSelf,
+                "加点未獲得ではブロックを出さない");
+
+            GManager.bonusScore = 5000; // 品質点 1 ノーツ分相当 (v6)
+            view.Refresh();
+            Assert.IsTrue(view.ComboBonusBlockForAudit.activeSelf,
+                "加点があればブロックが出る");
+        }
+
+        /// <summary>
+        /// Issue #847: HUD の "BASE N" 併記は実機指摘で撤去した。
+        /// 追加スコア (GManager.bonusScore) は右コラムの BONUS ブロックが
+        /// 引き続き絶対スコア点で表示する。スコア内訳の説明は Result 画面の
+        /// "BASE + BONUS" 行が担うので、HUD 側に BASE ラベルは残さない。
+        /// </summary>
+        [Test]
+        public void Score_HasNoBaseLabel_BonusStillShown()
+        {
+            GManager.baseScore = 933812;
+            GManager.bonusScore = 164800;
+            GManager.score = 933812 + 164800;
+            view.Refresh();
+
+            var texts = view.GetComponentsInChildren<TMPro.TextMeshProUGUI>(true);
+            Assert.IsFalse(texts.Any(t => t.text != null && t.text.StartsWith("BASE")),
+                "HUD に BASE ラベルが残っている");
+            Assert.AreEqual("+164,800", view.ComboBonusValueForAudit,
+                "追加スコアは BONUS ブロックが絶対スコア点で表示する");
+        }
+
+        /// <summary>
+        /// ADR-0035: 到達前のゲージは次の節目までの進捗を示す契約。
+        /// v5 では獲得済みが 0 でも、残りノーツで次の節目へ届く間は
+        /// ブロックを出し「NEXT +N」を表示する。終盤で届かなくなれば
+        /// 獲得予定は消え、獲得済みも無ければブロックごと隠れる。
+        /// </summary>
+        [Test]
+        public void ComboBonus_ShowsNextMilestoneProgress_BeforeFirstCrossing()
+        {
+            GManager.bonusScore = 0;
+            GManager.milestoneBonus = 0;
+            GManager.chartNoteCount = 139;
+            GManager.settledNoteCount = 10;
+            GManager.combo = 10;
+            GManager.maxBonusRatio = FlashBeat.Gameplay.Scoring.MaxBonusRatioV5(139);
+            view.Refresh();
+
+            var bonus = view.ComboBonusBlockForAudit;
+            Assert.IsTrue(bonus.activeSelf,
+                "節目未到達でも次の節目へ届く間は進捗ブロックを出す");
+            StringAssert.StartsWith("NEXT +",
+                view.NextBonusTextForAudit ?? string.Empty,
+                "次の節目の獲得予定点が表示される");
+
+            // 終盤: 残りノーツでは次の節目へ届かない → 獲得予定は消える。
+            GManager.settledNoteCount = 135; // 残り 4 < 必要 40 (combo10 → 必要40)
+            view.Refresh();
+            Assert.IsFalse(bonus.activeSelf,
+                "到達不能かつ未獲得ではブロックを隠す");
+            Assert.AreEqual("", view.NextBonusTextForAudit ?? string.Empty,
+                "到達不能では獲得予定を出さない");
         }
 
         // --- 歌詞 (issue #59) ------------------------------------------------
@@ -311,12 +489,14 @@ namespace FlashBeat.Tests
         }
 
         /// <summary>
-        /// Issue #734: 枠の可視性は設定値のみで決まる。歌詞データが無い譜面でも
-        /// 設定 ON なら枠は曲中ずっと出し、本文は空のままにする。
-        /// 旧仕様 (歌詞データが無いと枠ごと隠す) へ戻るとこのテストは落ちる。
+        /// Issue #734 (v0.2.1 実機レビューで再修正): 枠を出さないのは
+        /// 「譜面に歌詞データが無い」場合だけ。歌詞データが無い譜面では
+        /// 設定 ON でも曲中は枠ごと隠し、本文は空のままにする。
+        /// 旧仕様 (歌詞データが無くても枠を出しっぱなし) へ戻ると
+        /// このテストは落ちる。
         /// </summary>
         [Test]
-        public void Lyrics_KeepTheBoxWhenTheChartHasNoLyrics()
+        public void Lyrics_HideTheBoxWhenTheChartHasNoLyrics()
         {
             originalSongId = GManager.songID;
             originalPlayed = GManager.played;
@@ -335,18 +515,140 @@ namespace FlashBeat.Tests
                 GManager.step_time = 1f;
                 view.Refresh();
                 Assert.AreEqual("", LyricTextOf(view).text, "歌詞の無い譜面では本文は空");
-                Assert.IsTrue(LyricBoxOf(view).activeSelf,
-                    "歌詞の無い譜面でも設定 ON なら枠は出す (Issue #734)");
+                Assert.IsFalse(LyricBoxOf(view).activeSelf,
+                    "歌詞の無い譜面では設定 ON でも枠は出さない (Issue #734)");
 
                 // どの時刻でも枠は変わらない (本文が無い区間・終端を含む)。
                 GManager.step_time = 60f;
                 view.Refresh();
                 Assert.AreEqual("", LyricTextOf(view).text);
-                Assert.IsTrue(LyricBoxOf(view).activeSelf, "歌詞終端後も枠は出す");
+                Assert.IsFalse(LyricBoxOf(view).activeSelf, "歌詞終端後も枠は出さない");
             }
             finally
             {
                 if (sourceGo != null) Object.DestroyImmediate(sourceGo);
+                GManager.songID = originalSongId;
+                GManager.played = originalPlayed;
+                GManager.step_time = originalStepTime;
+            }
+        }
+
+        /// <summary>
+        /// Issue #846: GameSceneManager.Load と同じく <see cref="ChartLyrics.Resolve"/>
+        /// の結果を保持する歌詞ソース。inputJson の直接注入 (LyricsResult なし)
+        /// ではなく、実際の解決経路 (Resolve → LyricsResult → InputJson) を
+        /// 通した状態を再現する。
+        /// </summary>
+        private static GameObject CreateLyricsSource(ChartLyricsResult lyricsResult)
+        {
+            var go = new GameObject("V6GameHudViewTests LyricsSource", typeof(GameSceneManager));
+            var mgr = go.GetComponent<GameSceneManager>();
+            var inputField = typeof(GameSceneManager).GetField("inputJson",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.IsNotNull(inputField, "GameSceneManager.inputJson が見つからない");
+            inputField.SetValue(mgr, lyricsResult.Lyrics);
+            var setter = typeof(GameSceneManager).GetProperty("LyricsResult")
+                .GetSetMethod(true);
+            Assert.IsNotNull(setter, "GameSceneManager.LyricsResult の setter が見つからない");
+            setter.Invoke(mgr, new object[] { lyricsResult });
+            return go;
+        }
+
+        private static SongData RemoteLyricsSong(string remoteId)
+        {
+            return new SongData(1, "歌詞テスト曲", "artist", "abcdefghijk", 120, 5, 100, 60f)
+            {
+                isRemote = true,
+                remoteId = remoteId,
+                chartVersion = 1,
+            };
+        }
+
+        /// <summary>
+        /// Issue #846: ChartLyrics.Resolve を通した歌詞データが「本文を出せる」
+        /// とき、実経路 (LyricsResult → InputJson → LyricsTimeline) で
+        /// 本文と枠が出ること。inputJson 直接注入のテストでは Resolve の
+        /// 判定を通らないため、こちらで通常プレイ経路を担保する。
+        /// </summary>
+        [Test]
+        public void Lyrics_ResolvedChartWithLyrics_ShowsTextAndBox()
+        {
+            originalSongId = GManager.songID;
+            originalPlayed = GManager.played;
+            originalStepTime = GManager.step_time;
+            GameObject sourceGo = null;
+            try
+            {
+                string chartJson = SyntheticCharts.LyricsChartEnvelope("hud-lyrics-song");
+                PlaySessionSnapshot session = PlaySessionSnapshot.Begin(
+                    RemoteLyricsSong("hud-lyrics-song"), 1, chartJson);
+                ChartLyricsResult resolved = ChartLyrics.Resolve(session.Song);
+                Assert.AreEqual(ChartLyricsState.HasLyrics, resolved.State);
+
+                sourceGo = CreateLyricsSource(resolved);
+                GManager.played = true;
+
+                // LyricsChartEnvelope の 1 行目は 0.946-2.3 秒。
+                GManager.step_time = 1.5f;
+                view.Refresh();
+                Assert.AreEqual("僕を連れてって", LyricTextOf(view).text,
+                    "Resolve → Timeline → HUD の経路で歌詞本文が出る");
+                Assert.IsTrue(LyricBoxOf(view).activeSelf);
+            }
+            finally
+            {
+                if (sourceGo != null) Object.DestroyImmediate(sourceGo);
+                PlaySessionSnapshot.Clear();
+                CloudChartHolder.Clear();
+                ChartLyrics.Invalidate();
+                GManager.songID = originalSongId;
+                GManager.played = originalPlayed;
+                GManager.step_time = originalStepTime;
+            }
+        }
+
+        /// <summary>
+        /// Issue #846 (v0.2.5 実機指摘の回帰): mondai はあるが startTime が
+        /// 無いなど「本文を出せる行が 0」の歌詞データは、ChartLyrics.Resolve が
+        /// NoLyrics と確定するため、設定 ON でも枠ごと出さない。
+        /// 旧仕様では HasLyrics → 枠だけが出て本文は永久に空だった。
+        /// </summary>
+        [Test]
+        public void Lyrics_ResolvedChartWithoutDisplayableLines_HidesBox()
+        {
+            originalSongId = GManager.songID;
+            originalPlayed = GManager.played;
+            originalStepTime = GManager.step_time;
+            GameObject sourceGo = null;
+            try
+            {
+                const string chartJson =
+                    "{\"songId\":\"hud-lyrics-song\",\"chartVersion\":1,\"chart\":{" +
+                    "\"name\":\"歌詞テスト曲\",\"maxBlock\":8,\"BPM\":120,\"offset\":0," +
+                    "\"notes\":[{\"type\":1,\"num\":0,\"block\":0,\"LPB\":4,\"endNum\":0}]," +
+                    "\"lyrics\":{\"endTime\":[3.0],\"mondai\":[\"あ\"]}" +
+                    "}}";
+                PlaySessionSnapshot session = PlaySessionSnapshot.Begin(
+                    RemoteLyricsSong("hud-lyrics-song"), 1, chartJson);
+                ChartLyricsResult resolved = ChartLyrics.Resolve(session.Song);
+                Assert.AreEqual(ChartLyricsState.NoLyrics, resolved.State,
+                    "startTime 欠落の歌詞は表示区間を構築できない = なし確定");
+
+                sourceGo = CreateLyricsSource(resolved);
+                GManager.played = true;
+                GManager.step_time = 1f;
+                view.Refresh();
+
+                Assert.AreEqual("", LyricTextOf(view).text);
+                Assert.IsFalse(LyricBoxOf(view).activeSelf,
+                    "本文を出せない歌詞データでは曲中も枠を出さない (Issue #846)");
+            }
+            finally
+            {
+                if (sourceGo != null) Object.DestroyImmediate(sourceGo);
+                PlaySessionSnapshot.Clear();
+                CloudChartHolder.Clear();
+                ChartLyrics.Invalidate();
                 GManager.songID = originalSongId;
                 GManager.played = originalPlayed;
                 GManager.step_time = originalStepTime;
@@ -528,6 +830,67 @@ namespace FlashBeat.Tests
                     if (stateView != null) Object.DestroyImmediate(stateView.gameObject);
                     Object.DestroyImmediate(canvas);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Issue #790 (v0.2.1 実機受入): Start Prompt の KeyCap「Space」と
+        /// ラベル「to start」は独立した横並び要素で、矩形が重ならない。
+        /// かつては非アクティブ階層での TMP 実測が退化し、cap が文字より
+        /// 狭くなって「Space」が cap をはみ出し「to start」と重なって見えた。
+        /// ここでは実レイアウト (Canvas.ForceUpdateCanvases) 後の
+        /// ワールド矩形で非重なりと cap 最小幅を検証する。
+        /// </summary>
+        [Test]
+        public void StartPrompt_KeyCapAndLabel_DoNotOverlap()
+        {
+            var box = LyricBoxOf(view);
+            var prompt = box.transform.Find("Start Prompt");
+            Assert.IsNotNull(prompt, "Start Prompt が無い");
+
+            // 非アクティブなままでは LayoutGroup が走らないので一時的に出す。
+            bool boxWasActive = box.activeSelf;
+            bool promptWasActive = prompt.gameObject.activeSelf;
+            box.SetActive(true);
+            prompt.gameObject.SetActive(true);
+            try
+            {
+                Canvas.ForceUpdateCanvases();
+
+                var capRt = (RectTransform)prompt.Find("KeyCap Space");
+                var labelRt = (RectTransform)prompt.Find("Label");
+                Assert.IsNotNull(capRt, "KeyCap Space が無い");
+                Assert.IsNotNull(labelRt, "Label が無い");
+
+                Vector3[] capCorners = new Vector3[4];
+                Vector3[] labelCorners = new Vector3[4];
+                capRt.GetWorldCorners(capCorners);
+                labelRt.GetWorldCorners(labelCorners);
+
+                // cap の右端が label の左端を越えない (重なり・潜り込みなし)。
+                Assert.LessOrEqual(capCorners[2].x, labelCorners[0].x + 0.5f,
+                    "KeyCap の右端が Label の左端を越えている (重なり)");
+
+                // 高さは共有スロット内で揃っている (cap 高さ = spec.CapHeight)。
+                float capH = capCorners[1].y - capCorners[0].y;
+                float labelH = labelCorners[1].y - labelCorners[0].y;
+                Assert.AreEqual(capH, labelH, 1f,
+                    "KeyCap と Label の高さが揃っていない");
+
+                // cap の内容幅 (cap 幅 - padding) が「Space」の文字幅として
+                // 退化していないこと。実測が 0 に潰れると capW = padding だけになり、
+                // 文字が cap をはみ出して重なって見える (Issue #790 の実機症状)。
+                var spec = V6HudLogic.ReadyPrompt(LyricTextOf(view).fontSize);
+                float capW = capCorners[2].x - capCorners[0].x;
+                float innerW = capW - spec.PaddingX * 2f;
+                float emEstimate = FlashBeat.UI.V6.V6Ui.LabelAdvanceEm("Space") * spec.FontSize;
+                Assert.Greater(innerW, emEstimate * 0.3f,
+                    $"KeyCap の内容幅 {innerW:F1}px が 'Space' の想定幅 {emEstimate:F1}px に対して退化している");
+            }
+            finally
+            {
+                prompt.gameObject.SetActive(promptWasActive);
+                box.SetActive(boxWasActive);
             }
         }
 

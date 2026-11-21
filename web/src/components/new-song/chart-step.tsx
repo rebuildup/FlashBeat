@@ -49,15 +49,15 @@ const verdictBase = css({
 });
 
 const verdictError = css({
-  color: "#ff6b6b",
+  color: "red.9",
 });
 
 const verdictWarn = css({
-  color: "#e2b93b",
+  color: "amber.9",
 });
 
 const verdictOk = css({
-  color: "#8c8c8c",
+  color: "fg.subtle",
 });
 
 const buttons = css({
@@ -66,11 +66,11 @@ const buttons = css({
 });
 
 const raisedButton = css({
-  bg: "#3a3a3a",
-  color: "#ffffff",
+  bg: "gray.8",
+  color: "fg.default",
   borderRadius: "8px",
   borderColor: "transparent",
-  _hover: { bg: "#454545" },
+  _hover: { bg: "gray.9" },
   _disabled: { opacity: 0.4 },
 });
 

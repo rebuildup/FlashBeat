@@ -1,0 +1,18 @@
+[AutoTestV6SongEnd] RESULT pass=33 fail=0
+song=STAY
+songEndState=Completed
+forcedByDeadline=False
+scene=ResultScene
+perfect=1 great=0 bad=0 miss=0
+judged=1
+settled=1
+chartNotes=1 runtimeNotes=1
+score=1026000 combo=1 maxCombo=1 comboPeak=1
+rankingMode=Online
+loadingObserved=True
+loadingVisibleSeconds=0.22
+judgedMatchesChart=True
+videoAuditSamples=41
+videoAuditSuspects=0
+videoAuditMaxRatio=0.00
+videoAuditMaxRatioAt=-1.00

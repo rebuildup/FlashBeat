@@ -18,8 +18,8 @@ import seed from "../db/seed.ts";
 
 const webRoot = fileURLToPath(new URL("..", import.meta.url));
 const migrationsDir = join(webRoot, "db", "migrations");
-const chartFixturePath = join(webRoot, "db", "fixtures", "who.chart.json");
-const songFixturePath = join(webRoot, "db", "fixtures", "who.song.json");
+const chartFixturePath = join(webRoot, "db", "fixtures", "seed.chart.json");
+const songFixturePath = join(webRoot, "db", "fixtures", "seed.song.json");
 const contractChartSchemaPath = join(webRoot, "..", "contracts", "schemas", "chart.v1.schema.json");
 
 const chartText = readFileSync(chartFixturePath, "utf-8");
@@ -71,12 +71,25 @@ test("the chart fixture satisfies the frozen contract schema", () => {
 test("the committed migrations create the contract tables plus the catalog epoch", () => {
   const sqlite = createMigratedDatabase();
   assert.deepEqual(tableNames(sqlite), [
-    // catalog_meta is the internal catalogVersion epoch (issue #656),
-    // not a contract table.
+    // account/session/verification/rateLimit are the Better Auth tables
+    // (issue #799); workspaces/workspace_members/audit_log/rate_limits are
+    // the app ownership tables; catalog_meta is the internal catalogVersion
+    // epoch (issue #656), not a contract table.
+    "account",
+    "audit_log",
     "catalog_meta",
     "chart_versions",
+    "rateLimit",
+    "rate_limits",
     "scores",
+    "session",
+    // song_drafts is the per-account working copy table (issue #800).
+    "song_drafts",
     "songs",
+    "user",
+    "verification",
+    "workspace_members",
+    "workspaces",
   ]);
   assert.deepEqual(columnNames(sqlite, "catalog_meta"), ["id", "epoch"]);
   assert.deepEqual(columnNames(sqlite, "songs"), [
@@ -90,6 +103,15 @@ test("the committed migrations create the contract tables plus the catalog epoch
     "currentVersion",
     "archived",
     "archivedAt",
+    // Nullable ownership columns added by issue #799; staff-seeded rows
+    // stay NULL.
+    "ownerWorkspaceId",
+    "createdByUserId",
+    // Rights declaration columns added by issue #800; staff-seeded rows
+    // stay NULL ("no record" ≠ "attested").
+    "materialSource",
+    "rightsStatus",
+    "license",
   ]);
   assert.deepEqual(columnNames(sqlite, "chart_versions"), [
     "songId",
@@ -143,7 +165,22 @@ test("the seed publishes the chart file verbatim", async () => {
 
   const songRows = sqlite.prepare("SELECT * FROM songs").all();
   assert.equal(songRows.length, 1);
-  assert.deepEqual(songRows[0], song);
+  // The ownership columns (issue #799) and the rights columns (issue
+  // #800) are NULL for staff-seeded rows.
+  const {
+    ownerWorkspaceId,
+    createdByUserId,
+    materialSource,
+    rightsStatus,
+    license,
+    ...seededSong
+  } = songRows[0];
+  assert.equal(ownerWorkspaceId, null);
+  assert.equal(createdByUserId, null);
+  assert.equal(materialSource, null);
+  assert.equal(rightsStatus, null);
+  assert.equal(license, null);
+  assert.deepEqual(seededSong, song);
 
   const chartRows = sqlite.prepare("SELECT * FROM chart_versions").all();
   assert.equal(chartRows.length, 1);
@@ -233,7 +270,7 @@ test("the schema rejects rows the contract would reject", () => {
   );
 });
 
-test("the scores CHECK allows v4 scores up to 2000000 and keeps v1-v3 at 1000000", () => {
+test("the scores CHECK allows v4/v5 scores up to 2000000, v6 up to the chart-maximum sanity ceiling, and keeps v1-v3 at 1000000", () => {
   const sqlite = createMigratedDatabase();
   sqlite
     .prepare(
@@ -247,14 +284,31 @@ test("the scores CHECK allows v4 scores up to 2000000 and keeps v1-v3 at 1000000
   );
   const row = (score, scoringVersion) => ["who", 1, "player", 10, 2, 1, 0, score, scoringVersion];
 
-  // scoring v4 (ADR-0033): base + bonus legitimately exceeds 1,000,000.
+  // scoring v4 (ADR-0033) and v5 (ADR-0035): base + bonus legitimately
+  // exceeds 1,000,000.
   insertScore.run(...row(2000000, 4));
   insertScore.run(...row(1500000, 4));
+  insertScore.run(...row(2000000, 5));
+  insertScore.run(...row(1053481, 5));
   // Versions 1-3 keep the legacy 1,000,000 ceiling.
   insertScore.run(...row(1000000, 3));
   assertRejected("v3 score above the legacy ceiling", () => insertScore.run(...row(1000001, 3)));
   assertRejected("v1 score above the legacy ceiling", () => insertScore.run(...row(1000001, 1)));
-  // Nothing exceeds the v4 maximum.
+  // Nothing exceeds the v4/v5 maximum.
   assertRejected("v4 score above 2000000", () => insertScore.run(...row(2000001, 4)));
-  assert.equal(sqlite.prepare("SELECT COUNT(*) AS c FROM scores").get().c, 3);
+  assertRejected("v5 score above 2000000", () => insertScore.run(...row(2000001, 5)));
+  // scoring v6 (ADR-0037): the chart maximum grows with the note count, so
+  // the CHECK bounds it by 12,025,000 — the largest reachable score
+  // (ScoreMaxV6 of a 10,000-note chart, the published contract cap) — and
+  // the exact per-chart bound is enforced by the API recomputation.
+  insertScore.run(...row(1174000, 6));
+  insertScore.run(...row(12025000, 6));
+  assertRejected("v6 score above the sanity ceiling", () =>
+    insertScore.run(...row(12225001, 6)),
+  );
+  // A v6-range score under an older version is still rejected.
+  assertRejected("v1 score above the legacy ceiling (v6-sized)", () =>
+    insertScore.run(...row(1174000, 1)),
+  );
+  assert.equal(sqlite.prepare("SELECT COUNT(*) AS c FROM scores").get().c, 7);
 });

@@ -159,10 +159,13 @@ namespace FlashBeat.Tests.Editor
             }
         }
 
-        // --- Pause: Sound タブはキー一覧の代わりに同じスライダーを出す ---
+        // --- Pause: Issue #733 フォローアップで Option と同じ共有設定画面
+        // (V6SettingsScreen) を使う。Sound タブにだけスライダーが出て、
+        // 選択行の音量と双方向に同期する (旧実装の「Key List コンテナ +
+        // 常駐スライダー」は廃止 — Pause / Option で同じ構造)。 ---
 
         [Test]
-        public void PauseSoundTab_SwapsTheKeyListForTheSlider_AndEditsTheSelectedRow()
+        public void PauseSoundTab_ShowsTheSameSliderAsOption_AndEditsTheSelectedRow()
         {
             float main = GManager.mainVolume;
             float se = GManager.effectVolume;
@@ -180,23 +183,35 @@ namespace FlashBeat.Tests.Editor
                 view.Open();
                 try
                 {
-                    GameObject slider = FindChild(view.Root.gameObject, "Volume Slider");
-                    GameObject keyList = FindChild(view.Root.gameObject, "Key List");
-                    Assert.IsNotNull(slider, "共有プレビューパネルにスライダーがある");
-                    Assert.IsNotNull(keyList, "キー一覧のコンテナがある");
+                    // Play タブ (初期): スライダーは無く、キー一覧は
+                    // Option と同じ「Key <キー名>」キャップが Preview 直下に並ぶ。
+                    Assert.IsNull(FindChild(view.Root.gameObject, "Volume Slider"),
+                        "Play タブにスライダーは無い (Option と同じ規則)");
+                    Assert.IsNull(FindChild(view.Root.gameObject, "Key List"),
+                        "旧 Pause 固有の Key List コンテナは無い (共有画面へ統一)");
+                    Assert.IsNotNull(FindChild(view.Root.gameObject, "Game Preview"),
+                        "Game Preview well は Option と同じ名前・構造");
 
                     view.SelectTab(2); // Sound
+                    GameObject slider = FindChild(view.Root.gameObject, "Volume Slider");
+                    Assert.IsNotNull(slider, "Sound タブのプレビューに共通スライダーが載る");
                     Assert.IsTrue(slider.activeInHierarchy, "Sound タブはスライダーを出す");
-                    Assert.IsFalse(keyList.activeInHierarchy, "Sound タブはキー一覧を隠す");
-                    Assert.AreEqual("音量", FindText(view.Root.gameObject, "Desc Title").text,
-                        "Sound タブの説明題は「音量」");
+                    // 説明題は選択行の DescTitle (カタログ定義)。Option と同じ出し方。
+                    Assert.AreEqual("Main Volume", FindText(view.Root.gameObject, "Desc Title").text,
+                        "Sound タブの説明題は選択行 (Main Volume) の DescTitle");
 
                     view.SelectTab(0); // Play
-                    Assert.IsFalse(slider.activeInHierarchy, "Play タブはスライダーを隠す");
-                    Assert.IsTrue(keyList.activeInHierarchy, "Play タブはキー一覧を出す");
+                    Assert.IsNull(FindChild(view.Root.gameObject, "Volume Slider"),
+                        "Play タブへ戻るとスライダーは破棄される (Option と同じ規則)");
+                    Assert.IsNotNull(FindChild(view.Root.gameObject, "Game Preview"),
+                        "Play タブでも Game Preview well は同じ構造");
 
                     // Main 行の ←→ がスライダーと GManager の両方へ届く。
+                    // SelectTab(0) → SelectTab(2) で Preview (スライダー含む) は
+                    // 作り直されるため、古い参照は破棄済み — 取り直す。
                     view.SelectTab(2);
+                    slider = FindChild(view.Root.gameObject, "Volume Slider");
+                    Assert.IsNotNull(slider, "Sound タブへ戻るとスライダーが再構築される");
                     GManager.mainVolume = 0.5f;
                     view.Refresh();
                     Assert.AreEqual("50%", FindText(slider, "Value").text, "スライダーは選択行の値を表示する");
@@ -204,9 +219,14 @@ namespace FlashBeat.Tests.Editor
                     Assert.AreEqual(0.51f, GManager.mainVolume, 1e-4f, "←→ は 1% 動かす");
                     Assert.AreEqual("51%", FindText(slider, "Value").text, "スライダー表示が追従する");
 
-                    // SE 行へ移ると同じスライダーが SE の値を表示する。
+                    // Effect 行へ移ると同じスライダーが Effect の値を表示する
+                    // (Issue #851 で Sound タブは Main → Song → BGM → Effect の
+                    // 4 行になった)。行選択の変更でもプレビューは作り直されるため、
+                    // ここでも slider 参照を取り直す。
                     GManager.effectVolume = 0.24f;
-                    view.MoveSelection(1);
+                    view.MoveSelection(3);
+                    slider = FindChild(view.Root.gameObject, "Volume Slider");
+                    Assert.IsNotNull(slider, "行選択の変更後もスライダーは残る");
                     Assert.AreEqual("24%", FindText(slider, "Value").text, "選択行が変わると表示値も変わる");
                 }
                 finally

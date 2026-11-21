@@ -44,15 +44,19 @@ namespace FlashBeat.UI.V6.Result.Tests
         // --- GradeOf (scoringVersion ごとの帯。v4 以降は ADR-0034 / Issue #758) ---
 
         [Test]
-        public void GradeOf_V4_FollowsTheDoubledThresholds()
+        public void GradeOf_V4_FollowsTheIssue788Bands()
         {
-            // v4 の満点は 2,000,000 (基礎 + ボーナス)。帯は v1–v3 の閾値の 2 倍。
-            Assert.AreEqual("SS", V6ResultLogic.GradeOf(2000000));
-            Assert.AreEqual("S", V6ResultLogic.GradeOf(1900000));
-            Assert.AreEqual("A", V6ResultLogic.GradeOf(1800000));
-            Assert.AreEqual("B", V6ResultLogic.GradeOf(1600000));
-            Assert.AreEqual("C", V6ResultLogic.GradeOf(1599999));
-            Assert.AreEqual("C", V6ResultLogic.GradeOf(100));
+            // v4 の満点は 2,000,000 (基礎 + ボーナス)。帯は Issue #788 の
+            // 成績分布ベース: SS = 満点のみ / S ≥ 95% / A ≥ 70% / B ≥ 50%。
+            // LatestVersion は v6 (ADR-0037) なので v4 帯は明示する。
+            Assert.AreEqual("SS", V6ResultLogic.GradeOf(2000000, Scoring.Version4));
+            Assert.AreEqual("S", V6ResultLogic.GradeOf(1900000, Scoring.Version4));
+            Assert.AreEqual("A", V6ResultLogic.GradeOf(1800000, Scoring.Version4));
+            Assert.AreEqual("A", V6ResultLogic.GradeOf(1400000, Scoring.Version4));
+            Assert.AreEqual("B", V6ResultLogic.GradeOf(1399999, Scoring.Version4));
+            Assert.AreEqual("B", V6ResultLogic.GradeOf(1000000, Scoring.Version4));
+            Assert.AreEqual("C", V6ResultLogic.GradeOf(999999, Scoring.Version4));
+            Assert.AreEqual("C", V6ResultLogic.GradeOf(100, Scoring.Version4));
         }
 
         [Test]
@@ -60,9 +64,27 @@ namespace FlashBeat.UI.V6.Result.Tests
         {
             // 「ノーミス = SS」ではない: 2,000,000 未満は全て SS 未満。
             // ノーミスの All-Great フルコンボ (基礎 600,000 + ボーナス
-            // 1,000,000 = 1,600,000) でも B どまり。
-            Assert.AreEqual("S", V6ResultLogic.GradeOf(1999999));
-            Assert.AreEqual("B", V6ResultLogic.GradeOf(1600000));
+            // 1,000,000 = 1,600,000) は A どまり (Issue #788 の帯)。
+            Assert.AreEqual("S", V6ResultLogic.GradeOf(1999999, Scoring.Version4));
+            Assert.AreEqual("A", V6ResultLogic.GradeOf(1600000, Scoring.Version4));
+        }
+
+        [Test]
+        public void GradeOf_V6_FollowsChartMaximumBands()
+        {
+            // v6 (ADR-0037): LatestVersion のグレードは譜面満点
+            // ScoreMaxV6(noteCount) に対する割合。N=139 の満点は 1,174,000。
+            // SS はその譜面の満点のみ、S ≥ 90% / A ≥ 75% / B ≥ 55%。
+            Assert.AreEqual("SS", V6ResultLogic.GradeOf(1174000, Scoring.Version6, 139));
+            Assert.AreEqual("S", V6ResultLogic.GradeOf(1173999, Scoring.Version6, 139));
+            Assert.AreEqual("S", V6ResultLogic.GradeOf(1056600, Scoring.Version6, 139));
+            Assert.AreEqual("A", V6ResultLogic.GradeOf(1056599, Scoring.Version6, 139));
+            Assert.AreEqual("A", V6ResultLogic.GradeOf(880500, Scoring.Version6, 139));
+            Assert.AreEqual("B", V6ResultLogic.GradeOf(880499, Scoring.Version6, 139));
+            Assert.AreEqual("B", V6ResultLogic.GradeOf(645700, Scoring.Version6, 139));
+            Assert.AreEqual("C", V6ResultLogic.GradeOf(645699, Scoring.Version6, 139));
+            // ノーツ数不明 (0) は保守側の C — 満点扱いの誤 SS を出さない。
+            Assert.AreEqual("C", V6ResultLogic.GradeOf(1174000, Scoring.Version6, 0));
         }
 
         [Test]
@@ -97,36 +119,65 @@ namespace FlashBeat.UI.V6.Result.Tests
             Assert.AreEqual(string.Empty, V6ResultLogic.DeltaLabel(500, 500));
         }
 
-        // --- ゲージ幾何 (scoring v4 の満点 2,000,000 への正規化。Issue #758) ---
+        // --- ゲージ幾何 (scoring v6 の譜面満点 ScoreMaxV6 への正規化。
+        //     ADR-0037 / Issue #825) ---
 
         [Test]
         public void GaugeFillWidth_MapsScoreRatioToDesignLength()
         {
-            // v4: 988,513 → 824 * 988513/2000000 = 407.47
-            Assert.AreEqual(824f * 988513f / 2000000f, V6ResultLogic.GaugeFillWidth(988513), 0.01f);
-            Assert.AreEqual(0f, V6ResultLogic.GaugeFillWidth(0));
+            // v6: N=139 の満点は 1,174,000。988,513 → 824 * 988513/1174000。
+            Assert.AreEqual(824f * 988513f / 1174000f,
+                V6ResultLogic.GaugeFillWidth(988513, 139), 0.01f);
+            Assert.AreEqual(0f, V6ResultLogic.GaugeFillWidth(0, 139));
         }
 
         [Test]
-        public void GaugeFillWidth_DoesNotPinAboveLegacyMax()
+        public void GaugeFillWidth_DoesNotPinAboveChartMax()
         {
-            // v3 以前は 1,000,000 で満タンに張り付いた。v4 では 100 万点は
-            // レールの中間 (約 41%) に留まり、満点 2,000,000 で全長になる。
-            Assert.AreEqual(V6ResultLogic.GaugeW * 0.5f, V6ResultLogic.GaugeFillWidth(1000000), 0.01f);
-            Assert.AreEqual(V6ResultLogic.GaugeW, V6ResultLogic.GaugeFillWidth(2000000));
+            // v6: 満点は譜面ごと (N=139 → 1,174,000)。基礎スコア上限
+            // 1,000,000 はレールの途中に留まり、譜面満点で全長になる。
+            Assert.AreEqual(V6ResultLogic.GaugeW * (1000000f / 1174000f),
+                V6ResultLogic.GaugeFillWidth(1000000, 139), 0.01f);
+            Assert.AreEqual(V6ResultLogic.GaugeW,
+                V6ResultLogic.GaugeFillWidth(1174000, 139));
         }
 
         [Test]
         public void GaugeFillWidth_ClampsToTrackLength()
         {
-            Assert.AreEqual(V6ResultLogic.GaugeW, V6ResultLogic.GaugeFillWidth(3000000));
+            Assert.AreEqual(V6ResultLogic.GaugeW, V6ResultLogic.GaugeFillWidth(3000000, 139));
         }
 
         [Test]
         public void GaugeBestX_MatchesDesignSample()
         {
-            // v4: 前回最高 921,880 → x = 824 * 921880/2000000 = 379.81
-            Assert.AreEqual(824f * 921880f / 2000000f, V6ResultLogic.GaugeBestX(921880), 0.01f);
+            // v6: N=139 の満点 1,174,000 → x = 824 * 921880/1174000。
+            Assert.AreEqual(824f * 921880f / 1174000f,
+                V6ResultLogic.GaugeBestX(921880, 139), 0.01f);
+        }
+
+        [Test]
+        public void GaugeFillWidth_GradeBoundaries()
+        {
+            // v6 帯 (ADR-0037): B ≥ 55% / A ≥ 75% / S ≥ 90% / SS = 満点のみ。
+            // N=139 の満点 1,174,000 に対する境界スコアが同じ割合位置に写る。
+            Assert.AreEqual(V6ResultLogic.GaugeW * 0.55f,
+                V6ResultLogic.GaugeFillWidth(645700, 139), 0.01f);
+            Assert.AreEqual(V6ResultLogic.GaugeW * 0.75f,
+                V6ResultLogic.GaugeFillWidth(880500, 139), 0.01f);
+            Assert.AreEqual(V6ResultLogic.GaugeW * 0.90f,
+                V6ResultLogic.GaugeFillWidth(1056600, 139), 0.01f);
+            // SS はその譜面の満点のみ (1,174,000 で全長)。
+            Assert.Less(V6ResultLogic.GaugeFillWidth(1173999, 139) / V6ResultLogic.GaugeW, 1f);
+            Assert.AreEqual(V6ResultLogic.GaugeW,
+                V6ResultLogic.GaugeFillWidth(1174000, 139), 0.01f);
+            // 再現ケース: 700,000 (B 帯 [55%,75%)) の塗り終端は B 帯の内側。
+            float frac = V6ResultLogic.GaugeFillWidth(700000, 139) / V6ResultLogic.GaugeW;
+            Assert.GreaterOrEqual(frac, 0.55f);
+            Assert.Less(frac, 0.75f, "B 評価の塗りが A 帯へはみ出している");
+            Assert.AreEqual(V6ResultLogic.GaugeBestX(700000, 139),
+                V6ResultLogic.GaugeFillWidth(700000, 139), 0.01f,
+                "Best マーカーと塗りが同じ写像に乗っていない");
         }
 
         // --- 曲長表示 ---

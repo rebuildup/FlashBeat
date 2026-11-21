@@ -32,7 +32,7 @@ build scenes は `Assets/Game/Scenes/` の Opening / Title / Select / Game / Res
 
 - song catalog: `SongName`, `Musician`, `SongURL`, `SBPM`, `Slevel`, `Shit`, `SongLong` の parallel array から `Songs` を構築
 - play state: `score`, `combo`, `perfect/great/bad/miss`, `noteSpeed`, `noteTiming`, `Start`, `StartTime`, `played`
-- settings: `mainVolume`, `effectVolume`, `BGMVolume`, `FlashBG`, `Flash`, `FlashT`
+- settings: `mainVolume` (AudioListener 全体), `songVolume` (プレイ楽曲), `BGMVolume` (メニュー背景動画), `effectVolume` (SE), `FlashBG`, `Flash`, `FlashT` (Issue #851 でプレイ楽曲とメニュー BGM を分離)
 - high score: `int[] Hiscore`。`SaveLoadManager` が `PlayerPrefs` の `"Hiscore"` に CSV で保存する
 
 play session の間は `GManager.ResetSession()` で combo / score を戻す（`GameSceneManager.RetryGame` が呼ぶ）。
@@ -50,6 +50,8 @@ play session の間は `GManager.ResetSession()` で combo / score を戻す（`
 - 判定配点は `LongNote.ScoreFor` = Perfect 5 / Great 3 / Bad 1。現在の採点は scoring v3 (ADR-0029): `Scoring.BreakdownV3` が `judgment + maxCombo*5 + (miss==0 ? hits*5 : 0) + comboMilestones*25 + (judgmentsComplete && miss==0 ? 100 : 0)` を ratio として出し、`Scoring.ScoreV3` が `floor(ratio * 1_000_000 / maxScore)` (`maxScore = Scoring.MaxRatioV3(noteCount)` = `15*N + floor(N/50)*25 + 100`) を **整数演算**で計算する (Issue #631: float を介さないため全プラットフォームで一致。v1/v2 は従来どおり float 経路)。`judgmentsComplete` は全ノーツの判定確定 (P+G+B+M == noteCount、`GManager.judgmentsComplete`) で、フルコンボ終了ボーナスはこの条件でのみ曲終了時に一度だけ乗る (Issue #618)。Miss は加点なしでコンボのみ切断し、Bad はコンボを切らない。節目 (50 コンボごと) の到達回数は `JudgeScoreboard.MilestoneCrossings` が数え、コンボ切断後も累積する。
 - 採点 v2 (コンボ継続・ノーミス加点、`scoringVersion = 2`) の式・バージョン互換・記録分離の正本は `docs/adr/ADR-0028.md`。ローカル記録は `ScoreKey` の `songId@chartVersion@scoringVersion` 形式で版を区別する (v1/v2 の旧記録はそのまま残る)。
 - 採点 v3 (コンボ節目ボーナス・フルコンボ最終ボーナス、`scoringVersion = 3`) は ADR-0029 が正本。節目は 50 コンボごとに 25 ratio 点、フルコンボ (miss==0 かつ全ノーツ判定確定) で終了時に 100 ratio 点。節目回数はパス依存のため `comboMilestones` フィールドで申告し、サーバは miss==0 で `floor((P+G+B)/50)` との等値、miss>0 で `min(floor(hits/50), (miss+1)*floor(maxCombo/50))` の上限と `maxCombo <= hits` を検査する (Issue #618)。
+- 採点 v4 (判定由来ベース ≤1M + 加算ボーナス ≤1M、`scoringVersion = 4`) は ADR-0033 が正本。連続コンボボーナス `maxCombo*5` と節目 `comboMilestones*25` を含む。
+- 採点 v5 (節目到達のみがコンボ報酬、`scoringVersion = 5`) は ADR-0035 が正本 (Issue #797)。連続コンボボーナスは廃止し、節目 1 回あたり 250 ratio 点 (`Scoring.MilestoneBonusPointsV5`) が唯一のコンボ報酬。`maxBonusRatio = floor(N/50)*250 + 5N + 100`、スコア上限は v4 と同じ 2,000,000。miss==0 の確定プレイは v4 と同一スコア。
 
 ### 8 lane keymap
 
@@ -62,22 +64,19 @@ Lane 3: 4 5 R T F G V B  Lane 7: 0 - ^ \ P @ [ ; : ] / _ * `
 
 ## 楽曲データ
 
-- chart: `Assets/Game/Resources/<SongName>.json`。`name`, `maxBlock`, `BPM`, `offset`, `notes[]` (`type/num/block/LPB`)、任意の `lyrics`
-- chart の入力境界検証 (Issue #632): `ChartValidator.Validate` が `type ∈ {1,2}`・`num >= 0`・`block ∈ [0,7]`・`LPB ∈ [1,192]`・HOLD の `endNum > num`・`BPM ∈ [1,600]`・`notes <= 10000` を公開スキーマ (`contracts/schemas/chart.v1.schema.json`) と同じ範囲で検査する。ローカル曲は `NotesManager.LoadRoutine` が、リモート曲は `SelectSceneManager` の譜面取得直後が検証点で、違反した譜面はゲーム進行へ流さず拒否する (リモートは開始キャンセル、ローカルは開始不可メッセージのあと選曲へ戻る)。範囲外レーンを含む譜面が「読み込めるが判定が永久に完了しない」状態になることを防ぐ。
-- lyrics: chart 内の `lyrics` が正。`GameSceneManager.LoadTextData` は merged chart を優先し、legacy の `<SongName>_text.json` があっても chart 側を使う
-- 音源: `Assets/Game/Resources/Musics/<SongName>.wav`
-- chart JSON は Resources folder に 1 つだけ置く。同名 chart が 2 つの Resources folder にあると `Resources.Load` がどちらか一方を恣意的に返す。`Assets/Tests/Editor/ResourceChartUniquenessTests.cs` がこれを検査する
+Issue #823 以降、実曲の譜面は **クラウドカタログ経由でのみ供給される**。`Assets/Game/Resources/` に実曲の譜面 JSON は置かない (CI の `script/check-repo-integrity.sh` が拒否する)。権利未確認のローカルフォールバックは存在しない。
+
+- chart の取得経路: 選曲 (`SelectSceneManager.GameScene`) → リモート曲は `StartRemoteSong` が `GET /api/v1/charts/{remoteId}?version={chartVersion}` を 1 回だけ取得 → `ChartValidator.Validate` → `CloudChartHolder.Hold` → `GManager.ResetSession` (`BeginPlaySession`) → `PlaySessionSnapshot` が曲・版・JSON を固定。取得失敗・検証失敗・選択変更時は開始を中止し、選曲画面へ明確なエラーを返す。非リモート行 (カタログ未取得の固定曲) はローカル譜面を持たないため開始できない。
+- chart の読み取り経路: `NotesManager.ParseChart` と `ChartLyrics.Resolve` は同一の優先順 — `PlaySessionSnapshot` の固定 JSON → `CloudChartHolder` の保持 JSON。それ以外は null / Pending で、ローカル Resources へは落ちない。
+- chart JSON の形: `{"songId":…,"chartVersion":…,"chart":{…}}` の封筒 (`CloudCatalog.ParseChartResponse` が読む)。chart 本体は `name`, `maxBlock`, `BPM`, `offset`, `notes[]` (`type/num/block/LPB`, HOLD は `endNum`)、任意の `lyrics` (`startTime/endTime/mondai/furigana/romaji` の並列配列)。
+- chart の入力境界検証 (Issue #632): `ChartValidator.Validate` が `type ∈ {1,2}`・`num >= 0`・`block ∈ [0,7]`・`LPB ∈ [1,192]`・HOLD の `endNum > num`・`BPM ∈ [1,600]`・`notes <= 10000` を公開スキーマ (`contracts/schemas/chart.v1.schema.json`) と同じ範囲で検査する。リモート曲は `SelectSceneManager` の譜面取得直後が検証点で、違反した譜面は開始キャンセル。NotesManager 側も同じ検証を行い、不正譜面はゲーム進行へ流さず拒否する。
+- lyrics: chart 内の `lyrics` が正。`ChartLyrics` が固定譜面から `TextData` を解決し、`Pending` / `NoLyrics` / `HasLyrics` を明示する (Pending はキャッシュしない)。
+- 音源: YouTube ストリームのみ。ローカル WAV フォールバックは Issue #823 で撤去済み。
+- 開発・テスト用の合成 fixture: `SyntheticCharts` (`Assets/Game/Scripts/Common/`) が権利クリアな譜面 JSON を組み立て、`CloudChartHolder` / `PlaySessionSnapshot` 経由で注入する。`remoteId` は `synthetic-` 接頭辞で本番カタログ・ランキングとは混ざらない。`HoldProbeChart` も同じ封筒形式の HOLD 検証用 fixture。
 
 ### 曲の追加
 
-Editor menu `Tools → NoteEditor → Add Song to FlashBeat...` が `SongMetaDialog`, `YouTubeSceneWiring`, `GManagerParallelArrayUpdater` をまとめて実行する。Play Mode 中は `DeferredEditorActions` で書き込みを遅延する。
-
-手作業で行う場合:
-
-1. `Assets/Game/Resources/<SongName>.json` を置く。
-2. `GManager` の 7 つの parallel array と `Hiscore` の長さ、`totalSong` を揃える。
-3. `GameScene.unity` の `YoutubePlayer` と `MusicManager.YPlayer` / `VPlayer` を配線する（通常は Editor tool が行う）。
-4. lyrics は chart JSON 内の `lyrics` が正。別ファイル (`*_text.json`) はもう置かない — 旧形式が残っていても chart 側が優先される (上記「楽曲データ」参照)。
+製品版の曲追加はクラウドカタログ (Web 側の公開パイプライン) で行う。ローカルの `GManager` 並列配列は曲情報のフォールバック (タイトル・アーティスト・動画 ID) であり、譜面は持たない。
 
 ## YouTube 再生
 
@@ -110,11 +109,11 @@ Unity を起動せずに C# の型検査だけ行う補助として `script/comp
 - 4 space indent、LF、UTF-8 BOM。method は block body（`.editorconfig`）。
 - `GManager` は DI ではなく static field を使う。削除時は variable を消さず comment out する方針が `MakeFileSceneManager` にある。
 - `GManager.Songs[0]` は `id=0`, `title="noSong"` の placeholder。実曲は `id=1` から。
-- 7 つの parallel array と chart は positional に結び付く。曲を消す時は全 array と chart を同じ位置で扱う。
+- 7 つの parallel array は曲情報のフォールバック。譜面はクラウドカタログ経由 (上記「楽曲データ」参照)。曲を消す時は全 array を同じ位置で扱う。
 - `Library/`, `Temp/`, `Obj/`, `UserSettings/`, `Logs/`, `Build/`, `Builds/`, `TestResults.xml` は生成物。手で編集しない。
 - `GManager.SongName[27]` / `[28]` はどちらも `ニセモノ` で、cloud catalog の placeholder（chart / wav 無し）。index をずらさないため配列には残し、`GManager.UnplayableTitles`（`noSong` も含む）で選択不可にしている。
 - `GManager` の 7 つの parallel array は 29 entry で lockstep。かつて 30 番目の数値 entry は comment out されており、`ChartDataIntegrityTests` がこの対応を検査する。
-- `MusicManager` は bundled wav を `Resources.LoadAsync<AudioClip>` で非同期に読み、clip が無くても throw せず YouTube media へ fallback する（`PlaybackRecovery.DecideAudioSource`）。
+- `MusicManager` の音源は YouTube ストリームのみ (Issue #823 でローカル WAV フォールバックを撤去)。無音ストリームは `AudioSilent` のハード失敗で、同梱 WAV へは落ちない（`PlaybackRecovery.DecideAudioSource`）。
 - `NoteEditor.Editor` の callback（YouTube import 登録、deferred editor actions）は `[InitializeOnLoad]` の static registrar pattern。cross-asmdef の callback 配線は `Assets/Editor/NoteEditor.Editor/YouTubeImportRegistrar.cs` を参照。
 - 例外を握りつぶして degraded fallback へ進む経路は、原因が分かる警告ログを残す (Issue #613): `MusicManager` (音声トラック有効化失敗)、`MediaCacheManager` / `YouTubeMediaCache` (キャッシュ走査・削除・ダウンロード中断)、`YouTubeStreamResolver` (yt-dlp の exit / stdout 読み取り失敗)、`UpdateChecker` / `OptionSceneManager` / `RankingClient` (fallback の裏にある本当の原因)。
 - プレイフィールドは unlit / 影なしの flat rendering。`docs/architecture/flat-rendering.md` を参照。lit shader に戻すと動画 quad がほぼ黒くなる。

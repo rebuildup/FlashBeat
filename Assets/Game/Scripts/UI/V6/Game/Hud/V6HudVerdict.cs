@@ -17,14 +17,17 @@ namespace FlashBeat.UI.V6.Game.Hud
     /// </summary>
     public sealed partial class V6GameHudView
     {
-        private readonly List<TextMeshProUGUI> verdictTexts = new List<TextMeshProUGUI>();
+        /// <summary>
+        /// 判定ポップの表示インスタンスプール (Issue #793)。判定イベント 1 件に
+        /// つき独立した TMP_Text を割り当て、同一レーンの連打でも前の判定を
+        /// 上書きしない。実行時の Instantiate は発生しない。
+        /// </summary>
+        private V6VerdictPopPool verdictPool;
 
         // --- 毎フレームの状態 (判定行) ---
         private int lastJudged = -1;
-        private readonly string[] laneVerdicts = new string[V6LaneGeometry.LaneCount];
-        private readonly float[] laneVerdictUntil = new float[V6LaneGeometry.LaneCount];
-        /// <summary>判定テキストを出した時刻 (出現アニメーションの基準)。</summary>
-        private readonly float[] laneVerdictStart = new float[V6LaneGeometry.LaneCount];
+        /// <summary>監査用: レーンごとの最新判定ラベル (表示終了後も保持)。</summary>
+        private readonly string[] laneVerdictText = new string[V6LaneGeometry.LaneCount];
         /// <summary>
         /// 判定テキストの行ローカル基準 y (anchoredPosition.y)。
         /// Issue #731: タイムラインの原点 = 判定線の位置。実際の表示位置は
@@ -48,20 +51,26 @@ namespace FlashBeat.UI.V6.Game.Hud
             var row = V5Ui.Node(gameObject, "Verdict Row");
             V5Ui.PinBottom(V6Layout.RectOf(row), m.VerdictH, m.VerdictBottom);
 
-            for (int lane = 0; lane < V6LaneGeometry.LaneCount; lane++)
-            {
-                var text = V5Ui.Text(row, "Verdict " + lane, "", m.VerdictFs, V5Tokens.Text,
-                    TextAlignmentOptions.Center);
-                text.textWrappingMode = TextWrappingModes.NoWrap;
-                var rt = text.rectTransform;
-                rt.anchorMin = new Vector2(0f, 0.5f);
-                rt.anchorMax = new Vector2(0f, 0.5f);
-                rt.pivot = new Vector2(0.5f, 0.5f);
-                rt.anchoredPosition = new Vector2(m.KeyColumnCenter(lane), 0f);
-                rt.sizeDelta = new Vector2(m.VerdictW, m.VerdictH);
-                SetAlpha(text, 0f);
-                verdictTexts.Add(text);
-            }
+            // Issue #793: レーン × スロットの全インスタンスを構築時に生成し、
+            // 以後は有効/無効の切り替えだけで回す (Instantiate/GC を発生させない)。
+            verdictPool = new V6VerdictPopPool(V6LaneGeometry.LaneCount,
+                (lane, slot) =>
+                {
+                    // 監査テストが "Verdict {lane}" 名で先頭スロットを引くため、
+                    // slot 0 は旧来の名前を維持する。
+                    var text = V5Ui.Text(row,
+                        slot == 0 ? "Verdict " + lane : "Verdict " + lane + " " + slot,
+                        "", m.VerdictFs, V5Tokens.Text, TextAlignmentOptions.Center);
+                    text.textWrappingMode = TextWrappingModes.NoWrap;
+                    var rt = text.rectTransform;
+                    rt.anchorMin = new Vector2(0f, 0.5f);
+                    rt.anchorMax = new Vector2(0f, 0.5f);
+                    rt.pivot = new Vector2(0.5f, 0.5f);
+                    rt.anchoredPosition = new Vector2(m.KeyColumnCenter(lane), 0f);
+                    rt.sizeDelta = new Vector2(m.VerdictW, m.VerdictH);
+                    SetAlpha(text, 0f);
+                    return text;
+                });
         }
 
         /// <summary>
@@ -132,7 +141,7 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// </summary>
         private void UpdateVerdictAnchor(Vector2 canvasSize)
         {
-            if (verdictTexts.Count == 0 || m == null)
+            if (verdictPool == null || m == null)
             {
                 return;
             }
@@ -175,10 +184,17 @@ namespace FlashBeat.UI.V6.Game.Hud
             // レイアウトは動かさず y だけを時間で変える。
             float rowCenterFromBottom = m.VerdictBottom + m.VerdictH * 0.5f;
             verdictBaseY = judgeLineFromBottom - rowCenterFromBottom;
-            for (int i = 0; i < verdictTexts.Count; i++)
+            // 表示中エントリの y は毎フレーム VerdictPoseAt で上書きするが、
+            // 非表示スロットの基準位置もここで揃えておく (Issue #793)。
+            for (int lane = 0; lane < V6LaneGeometry.LaneCount; lane++)
             {
-                var rt = verdictTexts[i].rectTransform;
-                rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, verdictBaseY);
+                var entries = verdictPool == null ? null : verdictPool.EntriesOfLane(lane);
+                if (entries == null) continue;
+                for (int i = 0; i < entries.Length; i++)
+                {
+                    var rt = entries[i].Rt;
+                    rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, verdictBaseY);
+                }
             }
         }
 
@@ -275,12 +291,20 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// </summary>
         private void SetLaneGridX(int lane, float canvasX)
         {
-            if (lane < verdictTexts.Count)
+            if (verdictPool != null)
             {
-                var rt = verdictTexts[lane].rectTransform;
-                // Issue #402: 同値代入をしない (判定行の固定位置)。
-                V6LayoutWrites.AnchoredPositionIfChanged(rt,
-                    canvasX - ((RectTransform)rt.parent).offsetMin.x, rt.anchoredPosition.y);
+                var entries = verdictPool.EntriesOfLane(lane);
+                if (entries != null)
+                {
+                    float localX = canvasX - ((RectTransform)entries[0].Rt.parent).offsetMin.x;
+                    for (int i = 0; i < entries.Length; i++)
+                    {
+                        var rt = entries[i].Rt;
+                        // Issue #402: 同値代入をしない (判定行の固定位置)。
+                        V6LayoutWrites.AnchoredPositionIfChanged(rt,
+                            localX, rt.anchoredPosition.y);
+                    }
+                }
             }
             if (lane < keyCaps.Count)
             {
@@ -309,17 +333,16 @@ namespace FlashBeat.UI.V6.Game.Hud
             {
                 if (judged < lastJudged)
                 {
-                    // Retry 等でカウンタが戻った: レーン判定をクリア
-                    for (int lane = 0; lane < laneVerdicts.Length; lane++)
+                    // Retry 等でカウンタが戻った: 表示中の判定を全て解放し、
+                    // 監査用ラベルも初期化する。
+                    if (verdictPool != null)
                     {
-                        laneVerdicts[lane] = null;
-                        laneVerdictUntil[lane] = 0f;
-                        laneVerdictStart[lane] = 0f;
-                        if (lane < verdictTexts.Count)
-                        {
-                            SetAlpha(verdictTexts[lane], 0f);
-                            verdictTexts[lane].rectTransform.localScale = Vector3.one;
-                        }
+                        verdictPool.Clear();
+                    }
+
+                    for (int lane = 0; lane < laneVerdictText.Length; lane++)
+                    {
+                        laneVerdictText[lane] = string.Empty;
                     }
 
                     // 前のプレイで積まれた未消費イベントも捨てる。
@@ -331,70 +354,67 @@ namespace FlashBeat.UI.V6.Game.Hud
 
             DrainPendingVerdicts();
 
-            float now = Time.unscaledTime;
-            for (int lane = 0; lane < verdictTexts.Count; lane++)
+            if (verdictPool == null)
             {
-                float remain = laneVerdictUntil[lane] - now;
-                if (remain <= 0f)
-                {
-                    if (laneVerdicts[lane] != null)
-                    {
-                        laneVerdicts[lane] = null;
-                        SetAlpha(verdictTexts[lane], 0f);
-                        verdictTexts[lane].rectTransform.localScale = Vector3.one;
-                    }
+                return;
+            }
 
-                    continue;
-                }
+            float now = Time.unscaledTime;
+            // 寿命を過ぎたインスタンスをプールへ戻す。
+            verdictPool.Tick(now, V6HudLogic.VerdictTotalSeconds);
 
-                // Issue #731: 判定は判定線の位置 (オフセット 0) に即時出現し、
-                // VerdictPoseAt の純粋タイムラインに従って上昇 → 頂点で保持 →
-                // 判定線を越えて下へ加速落下しながらフェードアウトする。
-                // 本編と Option プレビューは同じ関数・同じ定数を使う。
-                float elapsed = now - laneVerdictStart[lane];
-                V6HudLogic.VerdictPose pose = V6HudLogic.VerdictPoseAt(elapsed, m);
-                SetAlpha(verdictTexts[lane], pose.Alpha);
+            // Issue #793: 判定イベントごとの独立インスタンスへ、共有タイムライン
+            // (VerdictPoseAt) の姿勢を毎フレーム適用する。同一レーンの連打でも
+            // 開始時刻が違うので自然に縦へずれ、重なっても新しい方が前面に出る。
+            var actives = verdictPool.ActiveEntries;
+            for (int i = 0; i < actives.Count; i++)
+            {
+                var entry = actives[i];
+                V6HudLogic.VerdictPose pose =
+                    V6HudLogic.VerdictPoseAt(now - entry.StartTime, m);
+                SetAlpha(entry.Text, pose.Alpha);
 
-                var rt = verdictTexts[lane].rectTransform;
-                // レイアウトは触らず anchoredPosition.y だけを時間で変える。
-                // verdictBaseY は判定線上の原点なので、pose.OffsetPx
-                // (正 = 判定線より上) をそのまま足す。
+                var rt = entry.Rt;
+                // レイアウトは触らず anchoredPosition.y と localScale だけを
+                // 時間で変える。x はレーン格子 (SetLaneGridX) が固定する。
                 V6LayoutWrites.AnchoredPositionIfChanged(rt, rt.anchoredPosition.x,
                     verdictBaseY + pose.OffsetPx);
+                rt.localScale = Vector3.one * pose.Scale;
             }
         }
 
         /// <summary>
-        /// Judge が判定確定時に積んだイベントをすべて取り出してレーン別判定行へ
-        /// 反映する (Issue #680)。キューは確定順なので、同じレーンに同フレームで
-        /// 複数イベント (同時押し・HOLD 中断など) があれば後のものが残る。
+        /// Judge が判定確定時に積んだイベントをすべて取り出して判定ポップへ
+        /// 反映する (Issue #680 / #793)。キューは確定順。同じレーンに同フレームで
+        /// 複数イベント (同時押し・HOLD 中断・高速連打) があっても、各イベントが
+        /// 独立した表示インスタンスを得る (旧来の「後のもので上書き」は廃止)。
         /// </summary>
         private void DrainPendingVerdicts()
         {
             // 判定行が無い (VerdictRow=false) ときは表示先が無いので溜めない。
-            if (verdictTexts.Count != V6LaneGeometry.LaneCount)
+            if (verdictPool == null)
             {
                 Judge.ClearPendingVerdicts();
                 return;
             }
 
+            float now = Time.unscaledTime;
             while (Judge.TryDequeueVerdict(out int judgement, out int lane))
             {
-                if (lane < 0 || lane >= laneVerdicts.Length) continue;
+                if (lane < 0 || lane >= laneVerdictText.Length) continue;
 
                 string label = V6HudLogic.VerdictLabel((LongNote.Judgement)judgement);
                 if (label.Length == 0) continue;
 
-                laneVerdicts[lane] = label;
-                // Issue #731: 判定の見え時間は VerdictTotalSeconds (1.00s)。
-                // 判定線上に出現 → 上昇 → 保持 → 下方退場 (§10.3)。
-                // レーンごとに独立した start/until を持つので、同時押しや
-                // 高速連打で他レーン・同レーンの再判定がタイミングを
-                // 壊さない (同レーンの再判定は新しいイベントで上書き)。
-                laneVerdictUntil[lane] = Time.unscaledTime + V6HudLogic.VerdictTotalSeconds;
-                laneVerdictStart[lane] = Time.unscaledTime;
-                verdictTexts[lane].text = label;
-                verdictTexts[lane].color = V6HudLogic.VerdictColor(label);
+                // Issue #793: イベントごとに独立した表示インスタンスを確保する。
+                // 同一レーンに同フレームで複数イベント (同時押し・HOLD 中断・
+                // 高速連打) があっても、後のイベントが前を上書きしない。
+                var entry = verdictPool.Spawn(lane, label,
+                    V6HudLogic.VerdictColor(label), now);
+                if (entry == null) continue;
+
+                // 監査用にレーンの最新ラベルを保持する (旧 laneVerdicts 相当)。
+                laneVerdictText[lane] = label;
             }
         }
 

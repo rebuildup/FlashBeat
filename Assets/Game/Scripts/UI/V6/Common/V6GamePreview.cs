@@ -46,8 +46,13 @@ namespace FlashBeat.UI.V6.Common
         private GameObject previewLyricBox;
         private TextMeshProUGUI previewLyricText;
         private string previewLastLyric = string.Empty;
-        private readonly TextMeshProUGUI[] previewVerdictTexts = new TextMeshProUGUI[Judge.LaneCount];
-        private readonly string[] previewVerdictShown = new string[Judge.LaneCount];
+        /// <summary>
+        /// 判定ポップのプール (Issue #793)。rig が記録した判定イベントごとに
+        /// 独立インスタンスを Spawn し、本編 V6HudVerdict と同じ寿命・タイムラインで
+        /// 動かす。直近に消費したイベントの Serial を保持する。
+        /// </summary>
+        private V6VerdictPopPool previewVerdictPool;
+        private int previewVerdictCursor;
 
         /// <summary>最後に適用したスケール (Screen 解像度・well サイズの変化検知用)。</summary>
         private Vector2 previewLastScreenSize = Vector2.negativeInfinity;
@@ -141,11 +146,8 @@ namespace FlashBeat.UI.V6.Common
             previewLastLyric = string.Empty;
             previewLastScreenSize = Vector2.negativeInfinity;
             previewLastWellSize = Vector2.negativeInfinity;
-            for (int i = 0; i < previewVerdictTexts.Length; i++)
-            {
-                previewVerdictTexts[i] = null;
-                previewVerdictShown[i] = null;
-            }
+            previewVerdictPool = null;
+            previewVerdictCursor = 0;
 
             var overlay = new GameObject("Preview Overlay", typeof(RectTransform));
             overlay.transform.SetParent(well.transform, false);
@@ -157,10 +159,13 @@ namespace FlashBeat.UI.V6.Common
             previewOverlayRt = ort;
 
             BuildPreviewLyric(overlay);
-            for (int lane = 0; lane < Judge.LaneCount; lane++)
-            {
-                previewVerdictTexts[lane] = MakePreviewText(overlay, "Verdict " + lane);
-            }
+            // Issue #793: 本編 HUD と同じプール方式。イベントごとの独立
+            // インスタンスを持ち、同一レーン連打でも前の判定を消さない。
+            previewVerdictPool = new V6VerdictPopPool(Judge.LaneCount,
+                (lane, slot) => MakePreviewText(overlay,
+                    // 監査テストが "Verdict {lane}" 名で先頭スロットを引くため、
+                    // slot 0 は旧来の名前を維持する。
+                    slot == 0 ? "Verdict " + lane : "Verdict " + lane + " " + slot));
         }
 
         /// <summary>
@@ -300,9 +305,10 @@ namespace FlashBeat.UI.V6.Common
                 }
             }
 
-            // 判定ポップ: rig の JudgeQueue が出した判定を、本編 V6HudVerdict と
-            // 同じ写像 (レーン x = 判定エフェクト投影、y = 判定線投影 +
-            // VerdictPoseAt のオフセット、fs = m.VerdictFs) で well へ配置する。
+            // 判定ポップ: rig の JudgeQueue が出した判定イベントを、本編
+            // V6HudVerdict と同じ写像 (レーン x = 判定エフェクト投影、
+            // y = 判定線投影 + VerdictPoseAt のオフセット、fs = m.VerdictFs)
+            // で well へ配置する。Issue #793: イベントごとに独立インスタンス。
             Camera cam = rig.PreviewCamera;
             // 「判定線」の画面位置は本編 V6HudVerdict.UpdateVerdictAnchor と
             // 同じ投影点 <see cref="V6HudLogic.LegacyJudgeLineAnchor"/>。
@@ -313,28 +319,54 @@ namespace FlashBeat.UI.V6.Common
                 : Vector3.zero;
             float screenH = Mathf.Max(1f, Screen.height);
             V6HudMetrics hudMetrics = PreviewHudMetrics();
-            for (int lane = 0; lane < Judge.LaneCount; lane++)
+            if (previewVerdictPool != null)
             {
-                var tmp = previewVerdictTexts[lane];
-                if (tmp == null)
+                ConsumeRigVerdictEvents();
+                previewVerdictPool.Tick(Time.unscaledTime, V6HudLogic.VerdictTotalSeconds);
+                ApplyPreviewVerdicts(cam, judgeScreen, wellSize, screenH, hudMetrics);
+            }
+        }
+
+        /// <summary>
+        /// rig が新たに記録した判定イベントをプールへ Spawn する
+        /// (Serial カーソルで未消費分だけを取り込む)。
+        /// </summary>
+        private void ConsumeRigVerdictEvents()
+        {
+            var events = rig.VerdictEvents;
+            for (int i = 0; i < events.Count; i++)
+            {
+                var e = events[i];
+                if (e.Serial <= previewVerdictCursor)
                 {
                     continue;
                 }
 
-                if (cam == null || judgeScreen.z <= 0f
-                    || !rig.TryGetVerdict(lane, out string label, out float startTime))
-                {
-                    V6LayoutWrites.ActiveIfChanged(tmp.gameObject, false);
-                    continue;
-                }
+                previewVerdictCursor = e.Serial;
+                previewVerdictPool.Spawn(e.Lane, e.Label,
+                    V6HudLogic.VerdictColor(e.Label), e.StartTime);
+            }
+        }
+
+        /// <summary>表示中の判定ポップへ本編と同じタイムラインを適用する。</summary>
+        private void ApplyPreviewVerdicts(Camera cam, Vector3 judgeScreen,
+            Vector2 wellSize, float screenH, V6HudMetrics hudMetrics)
+        {
+            var actives = previewVerdictPool.ActiveEntries;
+            float now = Time.unscaledTime;
+            for (int i = 0; i < actives.Count; i++)
+            {
+                var entry = actives[i];
+                var tmp = entry.Text;
+                int lane = entry.Lane;
 
                 // 本編 UpdateLaneGrids (レガシー 3D 経路) と同じ点
                 // (Judge.EffectPosition 相当 (LaneWorldX, 0.76, 0.15)) を
                 // プレビューカメラでビューポートへ写す。
                 Vector3 world = rig.RigLocalToWorld(
                     new Vector3(Judge.LaneWorldX(lane), 0.76f, 0.15f));
-                Vector3 vp = cam.WorldToViewportPoint(world);
-                if (vp.z <= 0f)
+                Vector3 vp = cam != null ? cam.WorldToViewportPoint(world) : Vector3.zero;
+                if (cam == null || judgeScreen.z <= 0f || vp.z <= 0f)
                 {
                     V6LayoutWrites.ActiveIfChanged(tmp.gameObject, false);
                     continue;
@@ -342,23 +374,15 @@ namespace FlashBeat.UI.V6.Common
 
                 // 本編 V6HudVerdict と同じ純粋タイムライン
                 // (V6HudLogic.VerdictPoseAt) を使う。
-                float elapsed = Time.unscaledTime - startTime;
                 V6HudLogic.VerdictPose pose =
-                    V6HudLogic.VerdictPoseAt(elapsed, hudMetrics);
+                    V6HudLogic.VerdictPoseAt(now - entry.StartTime, hudMetrics);
                 float posFrac = judgeScreen.y + pose.OffsetPx / screenH;
-                float alpha = pose.Alpha;
 
-                var rt = tmp.rectTransform;
+                var rt = entry.Rt;
                 V6LayoutWrites.AnchoredPositionIfChanged(rt,
                     (vp.x - 0.5f) * wellSize.x, (posFrac - 0.5f) * wellSize.y);
-
-                if (previewVerdictShown[lane] != label)
-                {
-                    previewVerdictShown[lane] = label;
-                    tmp.text = label;
-                    tmp.color = V6HudLogic.VerdictColor(label);
-                }
-                V6LayoutWrites.AlphaIfChanged(tmp, alpha);
+                rt.localScale = Vector3.one * pose.Scale;
+                V6LayoutWrites.AlphaIfChanged(tmp, pose.Alpha);
                 V6LayoutWrites.ActiveIfChanged(tmp.gameObject, true);
             }
         }
@@ -398,15 +422,13 @@ namespace FlashBeat.UI.V6.Common
             float verdictW = m.VerdictW * content;
             float verdictH = m.VerdictH * content;
             float verdictFs = m.VerdictFs * content;
-            for (int lane = 0; lane < previewVerdictTexts.Length; lane++)
+            if (previewVerdictPool != null)
             {
-                var tmp = previewVerdictTexts[lane];
-                if (tmp == null)
+                foreach (var entry in previewVerdictPool.AllEntries)
                 {
-                    continue;
+                    entry.Rt.sizeDelta = new Vector2(verdictW, verdictH);
+                    entry.Text.fontSize = verdictFs;
                 }
-                tmp.rectTransform.sizeDelta = new Vector2(verdictW, verdictH);
-                tmp.fontSize = verdictFs;
             }
         }
 
@@ -463,18 +485,25 @@ namespace FlashBeat.UI.V6.Common
             get { return previewLyricText; }
         }
 
-        /// <summary>判定ポップの RectTransform (配置検証用)。無ければ null。</summary>
+        /// <summary>
+        /// 判定ポップの RectTransform (配置検証用)。表示中の最新イベントが
+        /// あればその Rect、無ければレーン先頭スロットの Rect を返す。
+        /// </summary>
         public RectTransform VerdictRectForAudit(int lane)
         {
-            return lane >= 0 && lane < previewVerdictTexts.Length && previewVerdictTexts[lane] != null
-                ? previewVerdictTexts[lane].rectTransform
-                : null;
+            if (previewVerdictPool == null || lane < 0) return null;
+            var latest = previewVerdictPool.LatestActiveOnLane(lane);
+            if (latest != null) return latest.Rt;
+            var entries = previewVerdictPool.EntriesOfLane(lane);
+            return entries != null && entries.Length > 0 ? entries[0].Rt : null;
         }
 
         /// <summary>判定ポップの TMP (フォントサイズ検証用)。無ければ null。</summary>
         public TextMeshProUGUI VerdictTextForAudit(int lane)
         {
-            return lane >= 0 && lane < previewVerdictTexts.Length ? previewVerdictTexts[lane] : null;
+            if (previewVerdictPool == null || lane < 0) return null;
+            var entries = previewVerdictPool.EntriesOfLane(lane);
+            return entries != null && entries.Length > 0 ? entries[0].Text : null;
         }
 
         /// <summary>

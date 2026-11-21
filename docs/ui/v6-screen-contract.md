@@ -141,6 +141,8 @@
 | Stats | (12,452) | 512×196 | `$k1` r8, 2×2 (各 256×98, gap8 padding[0,16]): BPM / NOTES (上段), LEVEL / BEST (下段), Label fs22 `$text-dim` + Value fs32 w500。Divider 縦 (256,0) 1×196 / 横 (0,98) 512×1 `#FFFFFF1F` |
 | Controls | (12,668) | 512×88 | gap20 中央: skip-back 56×56 `$k4` r28 (icon 32) / play 72×72 `#EDEDED` r36 (icon 36 `#1B1B1B`) / skip-forward 56×56 `$k4` r28 |
 
+ジャケットの cover は実装側の規則として `V6JacketFit.CoverSprite` が担う (Issue #848): 原画像 (hqdefault = 4:3) から `V6BackdropFit.CoverUV` と同じ中央クロップ矩形で切り抜いた Sprite を `Image` (Simple + preserveAspect) に敷く。プレート (角丸・$k2/$k3) は画像未到着のあいだのプレースホルダ。リスト行 Thumb 96×54・バッジ Thumb・Pause 64×36 も同じ規則。
+
 ## 8. ゲーム HUD — 3 解像度
 
 背景: `assets/song-video-frame.jpg` (cover) + Video Dim `#00000080` (全画面)。3 フレームとも 13 子で構成同じ。
@@ -223,7 +225,9 @@ FHD は y=278、2K は y=370、Mac は y=428。以前の固定値 (170 / 227 / 2
 
 ### スコアゲージ (`PyPE1` / `cNEBa`, 600×36)
 
-Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,120) S(366,120) SS(488,40) +(530,70) `#3A3220`**、Fill 524×14 `$text` r2、Best マーカー (553,0) 4×18 `$warn`。ラベル (y18, fs16 `$text-muted` 中央): C/B/A/S/SS/+。
+Track 600×18 `$k0` r2 (y0)、セグメント (y2, h14)、Fill 14 `$text` r2、Best マーカー 4×18 `$warn`。ラベル (y18, fs16 `$text-muted`)。
+
+**実装の目盛りはグレード帯の正本から導出する (Issue #788)。** design の固定座標 (C 0/120, B 122/120, A 244/120, S 366/120, SS 488/40, + 530/70) は参照値であり、閾値と一致しないため採用しない。`V6GradeLogic.GradeBandsOf(scoringVersion)` が返す帯 (v4+: C[0,50%) B[50%,70%) A[70%,95%) S[95%,100%)、SS は満点のみの点帯) をトラック幅へ写し、セグメント境界・ラベル・塗り幅 (`ScoreFractionOf(score) × GaugeW`)・Best マーカーを全て同じ割合空間から計算する。SS 点帯はトラック右端に接する細いキャップ (アクセント `#3A3220` 系) として描き、Fill/Best の後に重ねて満点時も見えるようにする。v1–v3 の履歴スコアを表示する経路では legacy 帯 (B 70% / A 90% / S 95%) が同じ仕組みで使われる。
 
 ## 9. ポーズ (`uDNC0`) / 曲ローディング (`g4Q3F`) — P1 (簡易)
 
@@ -268,8 +272,14 @@ Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,
 
 ## 12. 一次抽出との差分 (確定事項)
 
-- スコアゲージは**セグメント式** (C/B/A/S/SS/+ + Best マーカー)。一次抽出では「(ref cNEBa)」のみだった。
-- Combo Bonus と Combo Status は**同座標 (1512,460)・排他**。
+- スコアゲージは**セグメント式** (C/B/A/S/SS + Best マーカー)。一次抽出では「(ref cNEBa)」のみだった。design の "+" セグメントは Issue #788 で廃止 — 満点のみの SS 点帯キャップへ置き換え、全セグメント境界は `V6GradeLogic.GradeBandsOf` のグレード閾値から導出する (design 固定座標は閾値と一致しないため不採用)。
+- Combo Bonus と Combo Status は design 上**同座標 (1512,460)・排他**だった。
+  Issue #784 で Combo Bonus を scoring v4 の実データ表示として復活させ、
+  排他ではなく併存に変更: 右コラム上段 (1512,460) の 360×90 に
+  「COMBO BONUS +獲得スコア点」(GManager.comboBonus を
+  Scoring.ComponentScoreV4 で換算、miss 後も残る) と次の節目 (50 コンボ)
+  までのゲージ (ComboFillFraction) を常設し、Combo Status の行 (y96) は
+  従来どおり miss > 0 で非表示。
 - 節目ボーナスの獲得表示 (scoring v3 / Issue #602) は Combo Status 行の直下に
   "+獲得点" を一時表示する。Issue #673 で親を Combo Status ブロックから
   常時アクティブな Right Column へ移し、miss > 0 でステータスが隠れても
@@ -322,9 +332,8 @@ Track 600×18 `$k0` r2、セグメント (y2, h14): **C(0,120) B(122,120) A(244,
 
 | 素材 | リポジトリ位置 | LFS | 権利 | Unity での読み込み |
 |---|---|---|---|---|
-| ジャケット (26 枚) | `Assets/Game/Resources/V6/select/jacket/<index>-<slug>.jpg` | ✅ (`*.jpg` は全件 LFS) | 出版社・権利者からの許諾済み Ramen 素材 | `Resources.Load("V6/select/jacket/<file>")`。index は `GManager.SongName` の並びと一致 (`V6SelectDataSource.V6JacketFileOf`)。**画像が無い部署は空文字を返し、固定画像で代用しない** |
-| 旧ジャケット (v5) | `Assets/Game/Resources/V5/select/jacket/` | ✅ | 同上 | `V6SelectDataSource.JacketResourceNames` によるフォールバック。v6 用が無い曲だけが使う |
-| 曲ローディング動画 | `Assets/Game/Resources/Videos/loading.mp4` (8,742,742 bytes / MP4 v2 `ftypmp42`) | ✅ | 自社制作 | `VideoPlayer` で実再生する。**静止画像で実動画再生の代わりにしない** (Task 5 の明示要求) |
+| ジャケット | リポジトリに同梱しない (Issue #823/#794 で削除) | — | — | `V6JacketProvider.RequestRemote*` が `videoId` から YouTube サムネイル (`hqdefault.jpg` 等) を実行時取得。**ローカル画像・固定代替画像は使わない**。ジャケットは曲の識別表示専用で、背景・ローディング面には使わない (Issue #845) |
+| 曲ローディング動画 | `Assets/Game/Resources/Videos/loading.mp4` (8,742,742 bytes / MP4 v2 `ftypmp42`) | ✅ | 自社制作 | `VideoPlayer` で実再生する。**静止画像で実動画再生の代わりにしない** (Task 5 の明示要求)。ローディング画面の背景はこの動画 (失敗時はグラデーション) であり、楽曲サムネイルは使わない (Issue #845) |
 | 背景アニメーション | `Assets/Game/Resources/Videos/背景アニメーション3.mp4` (Title/Select/Option/Result の背景)・`opening1.mp4` (Opening シーン) | ✅ | 自社制作 | シーンの `VideoPlayer.clip` / `Resources.Load("Videos/<file>")`。`背景アニメーションタイトル.mp4` は build scenes 外の TypingScene 専用で `BuildScript.MediaExcludePaths` によりビルド同梱から除外 (Issue #653) |
 | UI フォント | `Assets/Game/Fonts/Japanese/NotoSansJP-Medium SDF.asset` (+ `NotoSansJP-Dynamic SDF.asset`) | ✅ (`.asset` は個別 LFS 規則) | Noto Sans JP (SIL OFL 1.1) | TMP の SDF アセットとして直接割当。**静的アトラス** (620 glyphs) のため、新しい漢字・かなを含む歌詞を追加したら `Tools → FlashBeat → Rebuild NotoSansJP SDF Asset` で再生成する (`JapaneseFontAssetBuilder.RebuildNotoSansJpSdf`) |
 

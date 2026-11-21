@@ -22,10 +22,9 @@ using FlashBeat.Gameplay;
 ///      <c>Perfect + Great + Bad + Miss == 譜面のノーツ数</c>。
 ///      さらに「押下で確定した数 == 押下了回数」「Miss == 押されなかった数」
 ///      も見て、同一ノーツの二重判定や取りこぼしがないことを確認する。
-///   2. **スコア API との整合** (scoring v2, ADR-0028 / Issue #577):
-///      <c>GManager.maxScore == noteCount x 15</c>、
-///      <c>GManager.ratioScore == 判定 + maxCombo*5 + (miss==0 ? hits*5 : 0)</c>、
-///      <c>GManager.score == Judge.ComputeScore(ratioScore, maxScore)</c>、
+///   2. **スコア API との整合** (scoring v6, ADR-0037 / Issue #825):
+///      <c>GManager.score == Scoring.ScoreV6(...)</c> (基礎点 + 絶対追加点)、
+///      <c>GManager.scoreMaxV6 == Scoring.ScoreMaxV6(noteCount)</c>、
 ///      さらに曲終了判定に使う <c>GManager.settledNoteCount</c> が
 ///      「確定したノーツ数」と一致すること (HOLD 中断の差し替えで二重に
 ///      数えないこと)。
@@ -110,6 +109,9 @@ public class JudgeSettlementInvariantTests
         GManager.baseScore = 0;
         GManager.bonusScore = 0;
         GManager.maxBonusRatio = 0f;
+        GManager.maxAdditionalScore = 0;
+        GManager.scoreMaxV6 = 0;
+        GManager.chartNoteCount = 0;
         GManager.judgmentsComplete = false;
         // MusicManager は曲開始時に nextNotes = 1 にする (MusicManager.cs:172)。
         //  Judge は「1 + 確定ノーツ数」を書くので、ここでも 1 から始める。
@@ -161,6 +163,9 @@ public class JudgeSettlementInvariantTests
         GManager.baseScore = 0;
         GManager.bonusScore = 0;
         GManager.maxBonusRatio = 0f;
+        GManager.maxAdditionalScore = 0;
+        GManager.scoreMaxV6 = 0;
+        GManager.chartNoteCount = 0;
         GManager.judgmentsComplete = false;
         GManager.nextNotes = 0;
         GManager.settledNoteCount = 0;
@@ -348,11 +353,10 @@ public class JudgeSettlementInvariantTests
     // ------------------------------------------------------------------
 
     /// <summary>
-    /// GManager のスコア API が判定内容と矛盾しないこと (scoring v2):
-    /// maxScore = noteCount x 15、ratioScore = 判定 + コンボ + ノーミスの
-    /// 合計 (ADR-0028)、score = ComputeScore(ratioScore, maxScore)、
-    /// そして結果画面が読む perfect/great/bad/miss/combo がスコアボードと
-    /// 一致すること。
+    /// GManager のスコア API が判定内容と矛盾しないこと (scoring v6,
+    /// ADR-0037): score = baseScore + bonusScore (判定由来の基礎点 +
+    /// 絶対追加点)、そして結果画面が読む perfect/great/bad/miss/combo が
+    /// スコアボードと一致すること。
     /// </summary>
     [Test]
     public void ScoreApi_MatchesJudgements_AndResultScreenFields()
@@ -378,38 +382,44 @@ public class JudgeSettlementInvariantTests
         int judged = GManager.perfect + GManager.great + GManager.bad + GManager.miss;
         Assert.AreEqual(MixedChartNoteCount, judged);
 
-        // v4 の内訳 (ADR-0033): 判定由来の基礎スコア + コンボ継続
-        // (maxCombo*5) + ノーミス (miss==0 なら命中数*5) + 節目 (到達回数*25)
-        // + フルコンボ終了 (miss==0 なら 100) を、それぞれ独立した
-        // 1,000,000 の天井でスコア点へ換算して合計する。
-        // このプレイは Miss があるのでノーミスと終了ボーナスは 0。
-        Scoring.V4Breakdown expected = Scoring.BreakdownV4(
+        // v6 の内訳 (ADR-0037): 判定由来の基礎スコア (上限 1,000,000) +
+        // 絶対追加スコア (ノーツ品質点 P*1000/G*600/B*200 + 節目到達回数
+        // *5000 + フルクリア 25000)。連続コンボ・ノーミスのボーナスは
+        // v6 に存在しない。追加スコアは譜面最大で正規化されない。
+        // このプレイは Miss があるのでフルクリアボーナスは 0。
+        Scoring.V6Breakdown expected = Scoring.BreakdownV6(
             GManager.perfect, GManager.great, GManager.bad, GManager.miss,
             GManager.maxCombo, GManager.comboMilestones, MixedChartNoteCount, true);
-        Assert.AreEqual(expected.RatioScore, GManager.ratioScore, 0.0001f,
-            "ratioScore が v4 の内訳と食い違う");
-        Assert.AreEqual(expected.ComboBonus, GManager.comboBonus, "comboBonus が違う");
-        Assert.AreEqual(expected.NoMissBonus, GManager.noMissBonus, "noMissBonus が違う");
-        Assert.AreEqual(expected.MilestoneBonus, GManager.milestoneBonus, "milestoneBonus が違う");
-        Assert.AreEqual(expected.FinalBonus, GManager.finalBonus, "finalBonus が違う");
-        Assert.AreEqual(GManager.comboMilestones * Scoring.MilestoneBonusPoints, GManager.milestoneBonus,
+        Assert.AreEqual(expected.Judgment, GManager.ratioScore, 0.0001f,
+            "ratioScore が v6 の判定内訳と食い違う");
+        Assert.AreEqual(0, GManager.comboBonus, "v6 に連続コンボボーナスは無い (ADR-0037)");
+        Assert.AreEqual(0, GManager.noMissBonus, "v6 にノーミスボーナスは無い (ADR-0037)");
+        Assert.AreEqual(expected.MilestoneScore, GManager.milestoneBonus, "milestoneBonus が違う");
+        Assert.AreEqual(expected.ClearScore, GManager.finalBonus, "finalBonus が違う");
+        Assert.AreEqual(GManager.comboMilestones * Scoring.MilestoneScoreV6, GManager.milestoneBonus,
             "節目到達回数と節目ボーナスが一致しない");
-        Assert.AreEqual(Scoring.MaxBonusRatioV4(MixedChartNoteCount), GManager.maxBonusRatio, 0.0001f,
-            "maxBonusRatio != MaxBonusRatioV4(noteCount)");
+        Assert.AreEqual(Scoring.MaxAdditionalV6(MixedChartNoteCount), GManager.maxBonusRatio, 0.0001f,
+            "maxBonusRatio != MaxAdditionalV6(noteCount)");
+        Assert.AreEqual(expected.MaxAdditional, GManager.maxAdditionalScore,
+            "maxAdditionalScore が違う");
+        Assert.AreEqual(expected.MaxScore, GManager.scoreMaxV6, "scoreMaxV6 が違う");
+        Assert.AreEqual(MixedChartNoteCount, GManager.chartNoteCount,
+            "chartNoteCount が譜面ノーツ数と一致しない");
         Assert.AreEqual(expected.BaseScore, GManager.baseScore, "baseScore が違う");
-        Assert.AreEqual(expected.BonusScore, GManager.bonusScore, "bonusScore が違う");
+        Assert.AreEqual(expected.AdditionalScore, GManager.bonusScore, "bonusScore が違う");
         Assert.LessOrEqual(GManager.baseScore, 1000000, "基礎スコアが 1,000,000 を超えた");
-        Assert.LessOrEqual(GManager.bonusScore, 1000000, "ボーナススコアが 1,000,000 を超えた");
+        Assert.LessOrEqual(GManager.bonusScore, Scoring.MaxAdditionalV6(MixedChartNoteCount),
+            "追加スコアが譜面の最大追加点を超えた");
 
-        // スコアは v4 の決定的な整数演算と一致する (Issue #631 と同じ)。
+        // スコアは v6 の決定的な整数演算と一致する (Issue #631 と同じ)。
         Assert.AreEqual(
-            Scoring.ScoreV4(GManager.perfect, GManager.great, GManager.bad, GManager.miss,
+            Scoring.ScoreV6(GManager.perfect, GManager.great, GManager.bad, GManager.miss,
                 GManager.maxCombo, GManager.comboMilestones, MixedChartNoteCount, true),
             GManager.score);
         Assert.AreEqual(GManager.baseScore + GManager.bonusScore, GManager.score,
             "score != baseScore + bonusScore");
         Assert.GreaterOrEqual(GManager.score, 0);
-        Assert.LessOrEqual(GManager.score, Scoring.ScoreMaxV4);
+        Assert.LessOrEqual(GManager.score, Scoring.ScoreMaxV6(MixedChartNoteCount));
 
         // 結果画面が読むフィールドが 0 のまま (判定が反映されていない) でないこと。
         Assert.Greater(GManager.score, 0, "スコアが 0 のまま (Judge が GManager に反映していない)");
@@ -418,11 +428,12 @@ public class JudgeSettlementInvariantTests
     }
 
     /// <summary>
-    /// 全ノーツ Perfect のフルコンボならスコアは v4 の満点
-    /// (基礎 1,000,000 + ボーナス 1,000,000 = 2,000,000、ADR-0033)。
+    /// 全ノーツ Perfect のフルコンボならスコアは v6 の譜面満点
+    /// ScoreMaxV6(noteCount) (基礎 1,000,000 + 品質点 + フルクリア
+    /// 25,000、ADR-0037)。
     /// </summary>
     [Test]
-    public void AllPerfect_ScoreIsExactlyTwoMillion()
+    public void AllPerfect_ScoreIsChartMaximumV6()
     {
         Rig rig = BuildRig(MixedChartJson, MixedChartNoteCount);
         Player player = new Player(rig);
@@ -439,13 +450,19 @@ public class JudgeSettlementInvariantTests
         player.Run(Frames(0f, 4f, 0.05f));
 
         Assert.AreEqual(MixedChartNoteCount, GManager.perfect);
-        // v4: 判定由来の基礎スコアは 1,000,000 (judgment = 5N の上限)、
-        // ボーナス側も全項目が上限なので bonusScore も 1,000,000。
-        // ratioScore は v3 と同じ ratio points 合計 (情報用)。
+        // v6: 判定由来の基礎スコアは 1,000,000 (judgment = 5N の上限)、
+        // 追加スコアは品質点 N*1000 + フルクリア 25,000 (N=12 < 50 で
+        // 節目 0 回) = 37,000。
         Assert.AreEqual(1000000, GManager.baseScore, "全 Perfect なのに基礎スコアが満点でない");
-        Assert.AreEqual(1000000, GManager.bonusScore, "全 Perfect なのにボーナスが満点でない");
-        Assert.AreEqual(Scoring.MaxRatioV3(MixedChartNoteCount), GManager.ratioScore, 0.0001f);
-        Assert.AreEqual(2000000, GManager.score, "全 Perfect フルコンボが 2,000,000 になっていない");
+        Assert.AreEqual(
+            MixedChartNoteCount * Scoring.PerfectScoreV6 + Scoring.FullClearScoreV6,
+            GManager.bonusScore, "全 Perfect なのに追加スコアが品質点+フルクリアの上限でない");
+        // 全 Perfect 確定プレイの v6 ratioScore = 判定 judgment (5N)。
+        // v6 の ratioScore は判定由来の情報値で、追加スコアは絶対点として
+        // GManager.milestoneBonus / bonusScore 側が保持する。
+        Assert.AreEqual(5f * MixedChartNoteCount, GManager.ratioScore, 0.0001f);
+        Assert.AreEqual(Scoring.ScoreMaxV6(MixedChartNoteCount), GManager.score,
+            "全 Perfect フルコンボが譜面満点 ScoreMaxV6 になっていない");
     }
 
     /// <summary>
@@ -486,15 +503,16 @@ public class JudgeSettlementInvariantTests
             else
             {
                 sawComplete = true;
-                Assert.AreEqual(Scoring.FullComboBonusPoints, GManager.finalBonus,
-                    $"frame {frameTime}: 全ノーツ確定後に終了ボーナスが乗っていない");
+                Assert.AreEqual(Scoring.FullClearScoreV6, GManager.finalBonus,
+                    $"frame {frameTime}: 全ノーツ確定後にフルクリアボーナスが乗っていない");
                 Assert.IsTrue(GManager.judgmentsComplete);
             }
         });
 
         Assert.IsTrue(sawIncomplete, "途中経過のフレームが観測できていない");
         Assert.IsTrue(sawComplete, "全ノーツ確定のフレームが観測できていない");
-        Assert.AreEqual(2000000, GManager.score, "全 Perfect フルコンボが 2,000,000 になっていない");
+        Assert.AreEqual(Scoring.ScoreMaxV6(MixedChartNoteCount), GManager.score,
+            "全 Perfect フルコンボが譜面満点 ScoreMaxV6 になっていない");
         Assert.Less(scoreAtLastIncompleteFrame, GManager.score,
             "確定フレームで終了ボーナス分のスコアが加算されていない");
     }

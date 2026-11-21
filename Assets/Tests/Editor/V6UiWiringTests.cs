@@ -48,7 +48,8 @@ public class V6UiWiringTests
     {
         // ポーズ行の「キー設定」は v6 のモーダル (design vo4kB) を開く (Issue #376)。
         // Issue #733: 行はカタログの「キー設定」(isAction) で、決定はホストの
-        // OpenKeyConfig → keyConfigModal.Show()。値欄は「開く」+ chevron アイコンで、
+        // OpenKeyConfig → keyConfigModal.Show()。値欄は「開く」の小型
+        // アクションボタン (Issue #798) で、
         // F2 は表示も監視もしない (決定 §4.1)。
         string catalog = ReadSource("Game/Scripts/UI/V6/Common/V6SettingsCatalog.cs");
         Assert.IsTrue(catalog.Contains("host.OpenKeyConfig"),
@@ -80,13 +81,25 @@ public class V6UiWiringTests
     // --- issue-162 §8 再照合 (2026-11-10) ---
 
     [Test]
-    public void PauseView_DoesNotKeepTheDeadBgmVolumeRow()
+    public void PauseView_KeepsTheVolumeRows_AndSongReachesTheGameAudio()
     {
-        // 動画音声は MainVolume に従い、BGMVolume の実行時消費者は GameScene に居ない
-        // (VideoTime は配置されていない)。押しても効かない行は描画しない (B-11)。
-        string src = ReadSource("Game/Scripts/UI/V6/Game/Pause/V6PauseView.cs");
-        Assert.IsFalse(src.Contains("\"BGMVolume\""),
-            "ポーズに効かない BGMVolume 行が戻っています。動画音声は MainVolume に従います。");
+        // Issue #851: 音量は 4 チャンネル。プレイ楽曲は GManager.songVolume
+        // を MusicManager.ApplySongVolume が演奏音源 (audioS /
+        // streamAudioSource) へ適用し、メニュー BGM は GManager.BGMVolume
+        // を VideoTime が消費する。両方の行を Option / Pause で一致させる。
+        string pauseSrc = ReadSource("Game/Scripts/UI/V6/Game/Pause/V6PauseView.cs");
+        string catalogSrc = ReadSource("Game/Scripts/UI/V6/Common/V6SettingsCatalog.cs");
+        string musicSrc = ReadSource("Game/Scripts/Gameplay/MusicManager.cs");
+        Assert.IsTrue(catalogSrc.Contains("\"BGM Volume\""),
+            "Sound タブに BGM Volume 行が無い");
+        Assert.IsTrue(catalogSrc.Contains("\"Song Volume\""),
+            "Sound タブに Song Volume 行が無い (Issue #851)");
+        Assert.IsTrue(musicSrc.Contains("GManager.songVolume"),
+            "MusicManager が songVolume を演奏音源へ適用していない");
+        Assert.IsTrue(musicSrc.Contains("ApplySongVolume"),
+            "MusicManager.ApplySongVolume が無い");
+        Assert.IsFalse(pauseSrc.Contains("\"BGMVolume\""),
+            "行ラベルはカタログ側が持つ (Pause 側に重複定義しない)");
     }
 
     [Test]

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,6 +14,10 @@ namespace FlashBeat.UI.V6.Option
     /// Tick (キー → V6OptionAction → 行選択/タブ/モーダル) と、選択行の値変更・
     /// 決定・タブ切替の内部操作を持つ。partial class のため
     /// フィールド・メソッドは V6OptionView 本体と共有する。
+    ///
+    /// Issue #733 フォローアップ: 行選択・タブ切替・値変更・決定の規則は
+    /// 共有部品 <see cref="V6SettingsScreen"/> へ移した (Pause と同一実装)。
+    /// ここに残るのは Option 固有のモーダル処理と監査 API だけ。
     /// </summary>
     public sealed partial class V6OptionView
     {
@@ -38,9 +42,9 @@ namespace FlashBeat.UI.V6.Option
             // キーが別の意味を持つ仕様上の競合であり、メニュー側の
             // ナビゲーション割当 (↑↓/WASD) を変えると本編の操作感と
             // ずれるため、ここでは意図的に両方を許容する (文書化のみ)。
-            if (gamePreview != null)
+            if (settingsScreen != null && settingsScreen.GamePreview != null)
             {
-                gamePreview.Tick();
+                settingsScreen.GamePreview.Tick();
             }
 
             // キー設定モーダルが前面のときは背後の操作を止める (Issue #376)。
@@ -100,89 +104,110 @@ namespace FlashBeat.UI.V6.Option
                         ConfirmCurrent();
                         return;
                     }
-                    ActivateRow();
+                    ActivateSelected();
                     return;
                 case V6OptionAction.None:
                     return;
             }
 
-            if (currentRows.Count == 0)
+            if (settingsScreen == null || settingsScreen.CurrentRows.Count == 0)
             {
                 return;
             }
 
-            switch (action)
-            {
-                case V6OptionAction.MoveUp:
-                    selectedRow = V6OptionLogic.WrapIndex(selectedRow, currentRows.Count, -1);
-                    Rebuild();
-                    return;
-                case V6OptionAction.MoveDown:
-                    selectedRow = V6OptionLogic.WrapIndex(selectedRow, currentRows.Count, 1);
-                    Rebuild();
-                    return;
-                case V6OptionAction.AdjustPrev:
-                    AdjustSelected(-1, shift);
-                    return;
-                case V6OptionAction.AdjustNext:
-                    AdjustSelected(1, shift);
-                    return;
-                case V6OptionAction.NextTab:
-                    SelectTab(selectedTab + 1);
-                    return;
-                case V6OptionAction.PrevTab:
-                    SelectTab(selectedTab - 1);
-                    return;
-            }
-        }
-
-        private void AdjustSelected(int delta, bool shift = false)
-        {
-            if (currentRows.Count == 0)
-            {
-                return;
-            }
-
-            var row = currentRows[selectedRow];
-
+            // 行選択・タブ切替・値変更は共有部品 (Pause と同一規則)。
             // 音量行はスライダーと同じ値モデルを編集する (Issue #375 §3.2)。
             // Rebuild せずスライダーと値テキストだけを更新し、保存は 0.5 秒後にまとめる。
             // Issue #733: 値モデルは Pause と同じ <see cref="V6VolumeSettings"/>。
-            if (row.VolumeIndex >= 0)
+            switch (action)
             {
-                volumeSettings.Nudge(row.VolumeIndex, delta, shift);
-                UpdateVolumeVisuals();
-                return;
-            }
-
-            if (row.Adjust != null)
-            {
-                row.Adjust(delta, shift);
-            }
-
-            Rebuild();
-        }
-
-        private void ActivateRow()
-        {
-            if (currentRows.Count == 0)
-            {
-                return;
-            }
-
-            var row = currentRows[selectedRow];
-            if (row.Activate != null)
-            {
-                row.Activate();
-                Rebuild();
+                case V6OptionAction.MoveUp:
+                    settingsScreen.MoveSelection(-1);
+                    return;
+                case V6OptionAction.MoveDown:
+                    settingsScreen.MoveSelection(1);
+                    return;
+                case V6OptionAction.AdjustPrev:
+                    settingsScreen.AdjustSelected(-1, shift);
+                    return;
+                case V6OptionAction.AdjustNext:
+                    settingsScreen.AdjustSelected(1, shift);
+                    return;
+                case V6OptionAction.NextTab:
+                    settingsScreen.SelectTab(settingsScreen.SelectedTab + 1);
+                    return;
+                case V6OptionAction.PrevTab:
+                    settingsScreen.SelectTab(settingsScreen.SelectedTab - 1);
+                    return;
             }
         }
 
-        private void SelectTab(int index)
+        /// <summary>選択中の行を決定する (Enter / Space。行の Activate を呼ぶ)。</summary>
+        private void ActivateSelected()
         {
-            selectedTab = V6OptionLogic.ClampTabIndex(index);
-            selectedRow = 0;
-            Rebuild();
+            if (settingsScreen != null)
+            {
+                settingsScreen.ActivateSelected();
+            }
+        }
+
+        // --- 検証ハーネス用の読み取り API (製品動作は変えない) ---
+        // Issue #733 フォローアップ: 状態は共有部品 V6SettingsScreen が持つ。
+
+        /// <summary>選択中タブの行数。</summary>
+        public int RowCountForAudit
+        {
+            get { return settingsScreen != null ? settingsScreen.CurrentRows.Count : 0; }
+        }
+
+        /// <summary>行のラベル (例: "キー設定")。</summary>
+        public string RowLabelForAudit(int index)
+        {
+            var rows = settingsScreen != null ? settingsScreen.CurrentRows : null;
+            return rows != null && index >= 0 && index < rows.Count ? rows[index].Label : null;
+        }
+
+        /// <summary>行の現在値 (Value をその場で評価)。</summary>
+        public string RowValueForAudit(int index)
+        {
+            var rows = settingsScreen != null ? settingsScreen.CurrentRows : null;
+            return rows != null && index >= 0 && index < rows.Count ? rows[index].Value?.Invoke() : null;
+        }
+
+        /// <summary>行に実際に描画されている値テキスト (描画が止まっても検出できる)。</summary>
+        public string RenderedRowValueForAudit(int index)
+        {
+            return settingsScreen != null ? settingsScreen.RenderedRowValue(index) : null;
+        }
+
+        /// <summary>行を選択する (↑↓ と同じ WrapIndex + Refresh 経路)。</summary>
+        public void SelectRowForAudit(int index)
+        {
+            if (settingsScreen != null)
+            {
+                settingsScreen.SelectRow(index);
+            }
+        }
+
+        /// <summary>選択中の行を値変更する (←→ と同じ AdjustSelected 経路)。</summary>
+        public void AdjustSelectedRowForAudit(int delta, bool shift = false)
+        {
+            if (settingsScreen != null)
+            {
+                settingsScreen.AdjustSelected(delta, shift);
+            }
+        }
+
+        /// <summary>選択中の行を決定する (Enter と同じ ActivateSelected 経路)。</summary>
+        public void ActivateSelectedRowForAudit()
+        {
+            ActivateSelected();
+        }
+
+        /// <summary>選択中タブの番号 (Play=0)。</summary>
+        public int SelectedTabForAudit
+        {
+            get { return settingsScreen != null ? settingsScreen.SelectedTab : 0; }
         }
 
         /// <summary>
@@ -191,80 +216,22 @@ namespace FlashBeat.UI.V6.Option
         /// </summary>
         public void SelectTabForAudit(int index)
         {
-            SelectTab(index);
+            if (settingsScreen != null)
+            {
+                settingsScreen.SelectTab(index);
+            }
         }
 
         /// <summary>
         /// churn 計測 (Issue #415) が行選択を往復させるための操作 API。
-        /// ↑↓ キーと同じ WrapIndex + Rebuild 経路を呼ぶ。
+        /// ↑↓ キーと同じ WrapIndex + Refresh 経路を呼ぶ。
         /// </summary>
         public void MoveSelectionForAudit(int delta)
         {
-            if (currentRows.Count == 0)
+            if (settingsScreen != null)
             {
-                return;
+                settingsScreen.MoveSelection(delta);
             }
-
-            selectedRow = V6OptionLogic.WrapIndex(selectedRow, currentRows.Count, delta);
-            Rebuild();
-        }
-
-        // --- 検証ハーネス用の読み取り API (製品動作は変えない) ---
-
-        /// <summary>選択中タブの行数。</summary>
-        public int RowCountForAudit
-        {
-            get { return currentRows.Count; }
-        }
-
-        /// <summary>行のラベル (例: "キー設定")。</summary>
-        public string RowLabelForAudit(int index)
-        {
-            return index >= 0 && index < currentRows.Count ? currentRows[index].Label : null;
-        }
-
-        /// <summary>行の現在値 (Value をその場で評価)。</summary>
-        public string RowValueForAudit(int index)
-        {
-            return index >= 0 && index < currentRows.Count ? currentRows[index].Value?.Invoke() : null;
-        }
-
-        /// <summary>行に実際に描画されている値テキスト (描画が止まっても検出できる)。</summary>
-        public string RenderedRowValueForAudit(int index)
-        {
-            return index >= 0 && index < rowValueTexts.Count && rowValueTexts[index] != null
-                ? rowValueTexts[index].text
-                : null;
-        }
-
-        /// <summary>行を選択する (↑↓ と同じ WrapIndex + Rebuild 経路)。</summary>
-        public void SelectRowForAudit(int index)
-        {
-            if (currentRows.Count == 0)
-            {
-                return;
-            }
-
-            selectedRow = V6OptionLogic.WrapIndex(index, currentRows.Count, 0);
-            Rebuild();
-        }
-
-        /// <summary>選択中の行を値変更する (←→ と同じ AdjustSelected 経路)。</summary>
-        public void AdjustSelectedRowForAudit(int delta, bool shift = false)
-        {
-            AdjustSelected(delta, shift);
-        }
-
-        /// <summary>選択中の行を決定する (Enter と同じ ActivateRow 経路)。</summary>
-        public void ActivateSelectedRowForAudit()
-        {
-            ActivateRow();
-        }
-
-        /// <summary>選択中タブの番号 (Play=0)。</summary>
-        public int SelectedTabForAudit
-        {
-            get { return selectedTab; }
         }
 
         /// <summary>キー設定モーダル (開いていなければ IsOpen=false)。</summary>

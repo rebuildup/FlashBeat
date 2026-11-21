@@ -238,8 +238,8 @@ describe("validating holds", () => {
     expect(issues[0].message).toContain("譜面の長さ");
   });
 
-  it("still accepts the tap charts of the Unity project", () => {
-    const imported = importChartJson(readRepositoryChart("Who.json"));
+  it("still accepts the tap fixture charts", () => {
+    const imported = importChartJson(readRepositoryChart("sample-chart.json"));
 
     expect(imported.ok).toBe(true);
     if (!imported.ok) {
@@ -281,8 +281,8 @@ describe("the JSON round trip of a hold", () => {
     expect(written).toContain('"endNum":12');
   });
 
-  it("keeps the hold when a real chart is edited and written back", () => {
-    const imported = importChartJson(readRepositoryChart("Who.json"));
+  it("keeps the hold when a fixture chart is edited and written back", () => {
+    const imported = importChartJson(readRepositoryChart("sample-chart.json"));
     expect(imported.ok).toBe(true);
     if (!imported.ok) {
       return;
@@ -332,8 +332,8 @@ describe("the JSON round trip of a hold", () => {
     expect(reimported.chart.notes).toEqual(chart.notes);
   });
 
-  it("leaves the tap charts of the Unity project unchanged", () => {
-    const original = readRepositoryChart("Who.json");
+  it("leaves the tap fixture charts unchanged", () => {
+    const original = readRepositoryChart("sample-chart.json");
 
     const imported = importChartJson(original);
     expect(imported.ok).toBe(true);

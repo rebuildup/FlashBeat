@@ -32,7 +32,13 @@
 #      failure and dispatch could not run).
 #   7. files under `.gitattributes` `linguist-vendored` paths still match
 #      config/linguist-vendored.sha256 (Issue #636: vendored marking is only
-#      honest while the marked tree stays identical to upstream).
+#      honest while the marked tree stays identical to upstream);
+#   8. no tracked file reappears under `Resources/Videos/UnityYoutube/`,
+#      `Resources/Musics/` or the local jacket dirs `V6/select/jacket/` /
+#      `V5/select/jacket/` (Issues #823/#794: third-party song videos,
+#      wavs and jacket images were removed from HEAD; playback resolves
+#      stream URLs and YouTube thumbnails at runtime, so the local media
+#      must not return).
 #
 # This is NOT a substitute for the Unity EditMode run. A PR that passes this
 # can still fail to compile; the compile gate is the maintainer's local Unity
@@ -311,6 +317,32 @@ for rel in tracked:
     if base == ".dev.vars" or (base.startswith(".env") and not base.endswith(".example")):
         secret_looking.append(rel)
 
+# --- Third-party media reintroduction (Issue #823 / #794) ------------------
+# Assets/Game/Resources/Videos/UnityYoutube/ held 27 YouTube song videos.
+# Playback always resolves the stream URL at runtime (VideoPlayer.source = Url),
+# so the local clips were dead weight; they were removed from HEAD so the repo
+# no longer carries third-party media. Re-adding anything under that path is a
+# license regression, so the gate rejects it outright.
+banned_media = [
+    rel for rel in tracked
+    if rel.startswith("Assets/Game/Resources/Videos/UnityYoutube/")
+    or rel.startswith("Assets/Game/Resources/Musics/")
+    or rel.startswith("Assets/Game/Resources/V6/select/jacket/")
+    or rel.startswith("Assets/Game/Resources/V5/select/jacket/")
+]
+
+# Issue #823: 実曲譜面 JSON (歌詞・ノーツを含む第三者コンテンツ) も HEAD から
+# 撤去した。Resources 直下の *.json は CloudCatalogConfig.json (接続設定) のみ
+# 許可する。曲 JSON の再混入はライセンス退行なのでゲートで拒否する。
+ALLOWED_RESOURCES_JSON = {"Assets/Game/Resources/CloudCatalogConfig.json"}
+song_json = [
+    rel for rel in tracked
+    if rel.startswith("Assets/Game/Resources/")
+    and rel.endswith(".json")
+    and "/" not in rel[len("Assets/Game/Resources/"):]
+    and rel not in ALLOWED_RESOURCES_JSON
+]
+
 failures = 0
 failures += report("asset without .meta", missing_meta)
 # Orphan metas FAIL, except under `Assets/Packages` and
@@ -342,6 +374,8 @@ failures += report("tab indentation in .cs", tabs)
 failures += report("Player.log path does not use ProjectSettings companyName", log_path_scan)
 failures += report("heavy CI gate accidentally enabled", ci_gate_errors)
 failures += report("tracked secret-looking file (.env*/.dev.vars)", secret_looking)
+failures += report("third-party media reintroduced under Resources/Videos/UnityYoutube, Resources/Musics or local jacket dirs", banned_media)
+failures += report("song chart JSON reintroduced under Resources/ (only CloudCatalogConfig.json is allowed)", song_json)
 
 if failures:
     print("")

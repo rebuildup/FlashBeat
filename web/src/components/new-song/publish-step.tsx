@@ -31,7 +31,7 @@ const layout = css({
 });
 
 const card = css({
-  bg: "#2d2d2d",
+  bg: "gray.6",
   borderRadius: "16px",
   display: "flex",
   flexDirection: "column",
@@ -40,7 +40,7 @@ const card = css({
 });
 
 const cardTitle = css({
-  color: "#ffffff",
+  color: "fg.default",
   fontSize: "sm",
   fontWeight: "semibold",
   margin: "0",
@@ -55,13 +55,13 @@ const summaryList = css({
 });
 
 const summaryKey = css({
-  color: "#8c8c8c",
+  color: "fg.subtle",
   fontSize: "2xs",
   margin: "0",
 });
 
 const summaryValue = css({
-  color: "#ffffff",
+  color: "fg.default",
   fontSize: "2xs",
   margin: "0",
   overflowWrap: "anywhere",
@@ -75,11 +75,11 @@ const actions = css({
 });
 
 const raisedButton = css({
-  bg: "#3a3a3a",
-  color: "#ffffff",
+  bg: "gray.8",
+  color: "fg.default",
   borderRadius: "8px",
   borderColor: "transparent",
-  _hover: { bg: "#454545" },
+  _hover: { bg: "gray.9" },
   _disabled: { opacity: 0.4 },
 });
 
@@ -111,6 +111,27 @@ const failureList = css({
   listStyle: "none",
   margin: "0",
   padding: "0",
+});
+
+/** Warning line above the publish card (chart issues count). */
+const warningLine = css({
+  color: "red.9",
+  fontSize: "xs",
+  margin: "0",
+});
+
+/** Heading / body lines inside the failure card (were inline styles). */
+const failureTitle = css({
+  alignItems: "center",
+  display: "flex",
+  fontWeight: "semibold",
+  gap: "1",
+  margin: "0",
+});
+
+const failureText = css({
+  fontSize: "xs",
+  margin: "0",
 });
 
 export interface PublishStepProps {
@@ -223,7 +244,7 @@ export function PublishStep({
           ))}
         </dl>
         {chartIssues.length > 0 ? (
-          <p className={`${failureList}`} style={{ color: "#ff6b6b" }}>
+          <p className={warningLine}>
             譜面に問題が{chartIssues.length}件あります。戻って修正してください。
           </p>
         ) : null}
@@ -255,11 +276,11 @@ export function PublishStep({
 
         {result !== null && !result.ok ? (
           <section className={failure} data-testid="publish-error">
-            <p style={{ fontWeight: "semibold", margin: "0" }}>
+            <p className={failureTitle}>
               <CircleX className={buttonIcon} size={14} aria-hidden="true" />
               公開できませんでした
             </p>
-            <p style={{ fontSize: "2xs", margin: "0" }}>{result.failure.message}</p>
+            <p className={failureText}>{result.failure.message}</p>
             {result.failure.details && result.failure.details.length > 0 ? (
               <ul className={failureList}>
                 {result.failure.details.map((detail, index) => (
@@ -267,7 +288,7 @@ export function PublishStep({
                 ))}
               </ul>
             ) : null}
-            <p style={{ fontSize: "2xs", margin: "0" }}>入力と譜面はすべて保持されています。</p>
+            <p className={failureText}>入力と譜面はすべて保持されています。</p>
           </section>
         ) : null}
 

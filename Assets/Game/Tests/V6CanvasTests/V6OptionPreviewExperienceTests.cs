@@ -39,7 +39,20 @@ namespace FlashBeat.V6CanvasTests
             savedFlash = GManager.Flash;
             savedFlashBg = GManager.FlashBG;
             savedFlashT = GManager.FlashT;
-            GManager.songID = 1; // ロストアンブレラ (歌詞データあり)
+
+            // Issue #823: 実曲譜面はクラウド正本。ロストアンブレラ (songID=1)
+            // を合成 fixture のリモート曲としてカタログへ重ね、歌詞つき
+            // 譜面を CloudChartHolder に保持した状態でテストする
+            // (権利クリア・カタログ非登録の "synthetic-" ID)。
+            GManager.songID = 1;
+            SongData local = GManager.GetSong(1);
+            Assert.IsNotNull(local, "選択曲がカタログに無い");
+            SyntheticCharts.ApplyRemoteOverlay(local, "synthetic-preview",
+                SyntheticCharts.ChartVersion, SyntheticCharts.LyricsChartNoteCount);
+            SyntheticCharts.Hold("synthetic-preview", SyntheticCharts.ChartVersion,
+                SyntheticCharts.LyricsChartEnvelope("synthetic-preview"));
+            ChartLyrics.Invalidate();
+
             PlaySession.SetLyricsEnabled(true);
         }
 
@@ -53,6 +66,7 @@ namespace FlashBeat.V6CanvasTests
             GManager.Flash = savedFlash;
             GManager.FlashBG = savedFlashBg;
             GManager.FlashT = savedFlashT;
+            SyntheticCharts.Reset();
 
             var view = V6OptionView.Current;
             if (view != null)

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.IO;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -15,13 +14,11 @@ using UnityEngine;
 ///   (b) GManager.Songs が並列配列と対応する (id / title)
 ///   (c) 選択できる曲 (演奏可能な曲) が 1 つ以上あり、
 ///       演奏不可なタイトルはプレースホルダだけ
-///   (d) 演奏可能な曲には正本の Resources フォルダに譜面 JSON がある
+///   (d) Issue #823: 実曲の譜面 JSON は Resources に残っていない
+///       (譜面はクラウドカタログ経由でのみ供給される)
 /// </summary>
 public class SongCatalogSelectionTests
 {
-    /// <summary>譜面 JSON が置いてある唯一の Resources フォルダ。</summary>
-    const string CanonicalResources = "Game/Resources";
-
     static List<SongData> PlayableSongs()
     {
         var playable = new List<SongData>();
@@ -103,16 +100,19 @@ public class SongCatalogSelectionTests
     }
 
     [Test]
-    public void EverySelectableSongHasAChartInTheCanonicalResourcesFolder()
+    public void NoPlayableSongHasALocalChartJSON()
     {
-        var missing = new List<string>();
+        // Issue #823: 譜面はクラウドカタログ経由でのみ供給される。
+        // 選択可能な曲にローカル譜面が残っていると、クラウド未取得の
+        // 環境で権利未確認の譜面が再生されてしまう。再混入をここで検出する
+        // (CI の check-repo-integrity.sh も Resources 直下の *.json を拒否する)。
+        var remaining = new List<string>();
         foreach (var song in PlayableSongs())
         {
-            string path = Path.Combine(Application.dataPath, CanonicalResources, song.title + ".json");
-            if (!File.Exists(path)) missing.Add(song.title);
+            if (Resources.Load<TextAsset>(song.title) != null) remaining.Add(song.title);
         }
 
-        Assert.IsEmpty(missing, "正本の Resources フォルダに譜面が無い曲: " + string.Join(", ", missing));
+        Assert.IsEmpty(remaining, "ローカル譜面が残っている曲: " + string.Join(", ", remaining));
     }
 
     [Test]

@@ -16,7 +16,7 @@ namespace FlashBeat.UI
     /// 入力は MusicManager (Gameplay) を変更せずに観測できる値だけ:
     /// VideoPlayer のエラー、GManager.played、ロード用インジケータの Active 状態。
     /// 4 引数の Evaluate は、パイプラインが「この曲は再生できない」と判定した
-    /// こと (MusicManager.SelectReturnPending) も観測して 5 引数版に渡す。
+    /// こと (MusicManager.PlaybackFailed) も観測して 5 引数版に渡す。
     /// </summary>
     public static class HudPlayState
     {
@@ -29,14 +29,14 @@ namespace FlashBeat.UI
 
         public static HudPlayPhase Evaluate(bool videoError, bool playbackStarted, bool mediaLoading, float loadingSeconds)
         {
-            return Evaluate(videoError, playbackStarted, mediaLoading, loadingSeconds, MusicManager.SelectReturnPending);
+            return Evaluate(videoError, playbackStarted, mediaLoading, loadingSeconds, MusicManager.PlaybackFailed);
         }
 
         /// <summary>
         /// 純粋な判定 (テスト可能な入力だけを取る)。
         /// pipelineFailed は「パイプラインが曲を再生不能と判定した」こと:
-        /// MusicManager が選曲画面への自動復帰を予定している状態なので、
-        /// ロード中でもすぐに失敗として表示する (タイムアウトを待たない)。
+        /// ローディング画面のエラー表示 (理由 + 再試行 / 戻る、Issue #792) が
+        /// 出るので、ロード中でもすぐに失敗として表示する (タイムアウトを待たない)。
         /// ただし Space で開始済みなら曲は壁時計で完走するので非表示のまま。
         /// </summary>
         public static HudPlayPhase Evaluate(bool videoError, bool playbackStarted, bool mediaLoading, float loadingSeconds, bool pipelineFailed)
@@ -67,7 +67,7 @@ namespace FlashBeat.UI
                 case HudPlayPhase.Preparing:
                     return "準備中…\n動画と音声を読み込んでいます";
                 case HudPlayPhase.Failed:
-                    return "読み込み / 再生に失敗しました\nEsc キーか下のボタンで選曲画面へ戻れます";
+                    return "読み込み / 再生に失敗しました\n再試行するか、選曲画面へ戻ってください";
                 default:
                     return "";
             }

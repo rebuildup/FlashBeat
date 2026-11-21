@@ -9,9 +9,9 @@ namespace FlashBeat.UI.V6.Option
     ///
     /// 本編と同じ部品だけを使う (プレビュー専用の歌詞仕様は作らない):
     ///
-    /// - 読み込みは <see cref="GameSceneManager.LoadTextData"/> (本編
-    ///   GameSceneManager と同一経路。マージ済み譜面 JSON → 旧形式
-    ///   *_text.json のフォールバック、リモート曲は空)。
+    /// - 読み込みは <see cref="ChartLyrics.Resolve"/> (本編
+    ///   GameSceneManager と同一経路。Issue #823 でローカル Resources
+    ///   経路は撤去済み)。
     /// - 行への変換は <see cref="LyricsTimeline.Build"/>、時刻判定は
     ///   <see cref="LyricsTimeline.IndexAt"/> (本編 V6GameHudView /
     ///   GameSceneManager と同じ)。
@@ -21,38 +21,42 @@ namespace FlashBeat.UI.V6.Option
     ///
     /// 疑似メディア時刻は <see cref="V6OptionPreviewChart.LoopSeconds"/>
     /// 秒周期なので、ループ内 (先頭 40 秒) にある歌詞行だけが繰り返し出る。
-    /// 歌詞データが無い曲・リモート曲では空を返し、UI は何も出さない。
+    /// 歌詞データが無い曲・譜面未取得の曲では空を返し、UI は何も出さない。
     /// </summary>
     public static class V6OptionPreviewLyrics
     {
-        private static string loadedTitle;
+        private static SongData loadedSong;
         private static List<LyricLine> lines = new List<LyricLine>();
 
         /// <summary>
         /// 選択中の曲の歌詞行 (メディアタイムライン上の表示区間)。
-        /// 曲が替わったときだけ読み直す (Resources.Load を毎フレームしない)。
+        /// 曲 (インスタンス) が替わったときだけ読み直す。Issue #823 で
+        /// ローカル Resources 経路は撤去し、クラウド譜面の保持状態が
+        /// 変わり得るため、タイトルではなく SongData の参照でキャッシュする
+        /// (同名の別版・別曲へ歌詞が混ざらない)。
         /// 歌詞データが無い・曲が無い場合は空リスト。
         /// </summary>
         public static List<LyricLine> LinesForCurrentSong()
         {
-            string title = CurrentSongTitle();
-            if (title == null)
+            SongData song = CurrentSong();
+            if (song == null)
             {
-                if (loadedTitle != null)
+                if (loadedSong != null)
                 {
-                    loadedTitle = null;
+                    loadedSong = null;
                     lines = new List<LyricLine>();
                 }
                 return lines;
             }
 
-            if (title == loadedTitle)
+            if (song == loadedSong)
             {
                 return lines;
             }
 
-            loadedTitle = title;
-            TextData data = GameSceneManager.LoadTextData(title);
+            loadedSong = song;
+            ChartLyricsResult result = ChartLyrics.Resolve(song);
+            TextData data = result != null ? result.Lyrics : null;
             lines = LyricsTimeline.Build(
                 data != null ? data.StartTime : null,
                 data != null ? data.EndTime : null,
@@ -86,8 +90,8 @@ namespace FlashBeat.UI.V6.Option
             return line.HasText ? line.Text : null;
         }
 
-        /// <summary>選択中の曲タイトル (無ければ null)。読み取りのみ。</summary>
-        private static string CurrentSongTitle()
+        /// <summary>選択中の曲 (無ければ null)。読み取りのみ。</summary>
+        private static SongData CurrentSong()
         {
             SongData[] songs = GManager.ActiveSongs;
             int id = GManager.songID;
@@ -96,8 +100,7 @@ namespace FlashBeat.UI.V6.Option
                 return null;
             }
 
-            SongData song = songs[id];
-            return song != null ? song.title : null;
+            return songs[id];
         }
     }
 }

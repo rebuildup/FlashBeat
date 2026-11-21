@@ -40,15 +40,13 @@ namespace FlashBeat.UI.V6.Select.Data
         readonly List<V6SongEntry> allSongs = new List<V6SongEntry>();
         readonly List<V6SongEntry> filteredSongs = new List<V6SongEntry>();
         readonly Dictionary<string, List<V6RankingRow>> rankingCache = new Dictionary<string, List<V6RankingRow>>();
-        static readonly Dictionary<string, ChartMeta> chartMetaCache = new Dictionary<string, ChartMeta>();
-
-        // 譜面の有無は Resources (ビルドに焼き込まれたテキスト) だけで決まり、
+        // 譜面メタは保持中のクラウド譜面 (CloudChartHolder) からしか読めず、
         // 実行中に変わらない。シーンを跨いで使い回す (Issue #377)。
-        static readonly Dictionary<string, bool> chartExistsCache = new Dictionary<string, bool>();
+        static readonly Dictionary<string, ChartMeta> chartMetaCache = new Dictionary<string, ChartMeta>();
         readonly List<V6RankingRow> emptyRanking = new List<V6RankingRow>();
 
-        // ジャケットの対応表は V6JacketResources (Common) が唯一の正本。
-        // Select 側に写しを置かない (Result / Loading と拡張子の扱いが食い違う原因だった)。
+        // Issue #823: ジャケットは遠隔 (YouTube サムネイル) のみ。
+        // ローカルの対応表は撤去した (V6SongBadge.ApplyJacket が videoId から解決)。
 
         string query = "";
         int selectedSongId = -1;
@@ -177,9 +175,12 @@ namespace FlashBeat.UI.V6.Select.Data
                 // GManager.ResetSession → BeginPlaySession が CloudChartHolder の
                 // 保持版とともに固定するので、ここで二重に固定しない。
             }
-            else if (!LocalChartExists(row.title))
+            else
             {
-                SetError("譜面が見つからないため開始できません (" + row.title + ")");
+                // Issue #823: 譜面はクラウドカタログ経由でのみ供給される。
+                // リモート化されていない行 (カタログ未取得の固定曲) は
+                // ローカル譜面を持たないため開始できない。
+                SetError("クラウドカタログから取得できないため開始できません (" + row.title + ")");
                 return;
             }
 
@@ -233,6 +234,7 @@ namespace FlashBeat.UI.V6.Select.Data
         static V6SongEntry BuildEntry(SongData song)
         {
             int best = GManager.BestScoreOf(song.id);
+            int noteCount = NoteCountOf(song);
             return new V6SongEntry
             {
                 SongId = song.id,
@@ -240,11 +242,17 @@ namespace FlashBeat.UI.V6.Select.Data
                 Artist = song.musician ?? "",
                 Level = song.level,
                 Bpm = BpmOf(song),
-                NoteCount = NoteCountOf(song),
+                NoteCount = noteCount,
                 BestScore = best > 0 ? best : -1,
-                BestGrade = V6SelectDataLogic.GradeOf(best),
+                // v6 のグレードは譜面満点 ScoreMaxV6(noteCount) に対する
+                // 割合なので、この曲のノーツ数を渡す (ADR-0037 / Issue #825)。
+                BestGrade = V6SelectDataLogic.GradeOf(best,
+                    FlashBeat.Gameplay.Scoring.LatestVersion, noteCount),
                 IsCloud = song.isRemote,
-                JacketResourcePath = JacketResourcePathOf(song.id, song.title),
+                // Issue #823: ローカル (Resources) ジャケットは撤去済み。
+                // 遠隔 (YouTube サムネイル) は V6SongBadge.ApplyJacket が
+                // 曲の videoId から解決するため、ここではパスを持たない。
+                JacketResourcePath = "",
             };
         }
 
@@ -333,35 +341,27 @@ namespace FlashBeat.UI.V6.Select.Data
         }
 
         /// <summary>
-        /// 譜面の実ファイル (保持中のクラウド譜面 or Resources/&lt;曲名&gt;.json) から
-        /// BPM とノーツ数を読む。読めなければ null。
+        /// 保持中のクラウド譜面から BPM とノーツ数を読む。読めなければ null。
+        /// Issue #823: ローカル Resources の譜面 JSON は撤去した。
+        /// カタログ行の値 (song.bpm / song.noteCount) が呼び出し側の
+        /// フォールバックになる。
         /// </summary>
         static ChartMeta ReadChartMeta(SongData song)
         {
-            if (song.isRemote && !string.IsNullOrEmpty(song.remoteId))
+            if (!song.isRemote || string.IsNullOrEmpty(song.remoteId))
             {
-                int heldVersion;
-                string heldJson;
-                if (CloudChartHolder.TryGetForSong(song.remoteId, out heldVersion, out heldJson))
-                {
-                    // ParseChartResponse は譜面本体 (Data) を返す。失敗時は null。
-                    ChartData chart = CloudCatalog.ParseChartResponse(heldJson);
-                    if (chart != null) return ToMeta(chart);
-                }
-            }
-
-            TextAsset asset = string.IsNullOrEmpty(song.title) ? null : Resources.Load<TextAsset>(song.title);
-            if (asset == null) return null;
-            try
-            {
-                ChartData chart = JsonUtility.FromJson<ChartData>(asset.text);
-                return chart == null ? null : ToMeta(chart);
-            }
-            catch (Exception e)
-            {
-                Debug.LogWarning($"[V6SelectData] chart parse failed for '{song.title}': {e.Message}");
                 return null;
             }
+
+            int heldVersion;
+            string heldJson;
+            if (CloudChartHolder.TryGetForSong(song.remoteId, out heldVersion, out heldJson))
+            {
+                // ParseChartResponse は譜面本体 (Data) を返す。失敗時は null。
+                ChartData chart = CloudCatalog.ParseChartResponse(heldJson);
+                if (chart != null) return ToMeta(chart);
+            }
+            return null;
         }
 
         static ChartMeta ToMeta(ChartData chart)
@@ -382,20 +382,6 @@ namespace FlashBeat.UI.V6.Select.Data
             if (meta != null && meta.NoteCount > 0) return meta.NoteCount;
             if (song.noteCount > 0) return song.noteCount; // クラウド曲: API の実ノーツ数
             return song.totalHits;                          // ローカル曲: カタログの総ヒット数
-        }
-
-        /// <summary>
-        /// ジャケットの Resources パス (拡張子なし)。
-        ///
-        /// v6 では全曲のジャケットを Resources/V6/select/jacket/ に置いてある
-        /// (Pencil 設計の正式データ。ファイル名は "&lt;カタログ index&gt;-&lt;slug&gt;.jpg"、
-        /// index は GManager.SongName の並びと一致する。1..26 はすべて画像あり
-        /// (22 = 灰Φ倶楽部も含む)。表に無い index は空文字を返し、固定画像を流用しない。
-        /// 解決は <see cref="V6JacketResources"/> に一本化している。
-        /// </summary>
-        static string JacketResourcePathOf(int songId, string title)
-        {
-            return V6JacketResources.PathOf(songId, title);
         }
 
         // --- ランキング -----------------------------------------------------------
@@ -430,12 +416,14 @@ namespace FlashBeat.UI.V6.Select.Data
             {
                 if (rankingFetchKey != key && !QueueContains(key))
                 {
-                    rankingQueue.Enqueue(new RankingRequest(key, row.remoteId, row.chartVersion));
+                    rankingQueue.Enqueue(new RankingRequest(key, row.remoteId, row.chartVersion,
+                        song.NoteCount));
                 }
                 return;
             }
 
-            BeginRankingFetch(new RankingRequest(key, row.remoteId, row.chartVersion));
+            BeginRankingFetch(new RankingRequest(key, row.remoteId, row.chartVersion,
+                song.NoteCount));
         }
 
         /// <summary>キューに同じキーの要求が既にないか。</summary>
@@ -455,7 +443,8 @@ namespace FlashBeat.UI.V6.Select.Data
             hasError = false;
             statusMessage = "ランキングを取得しています…";
             FireChanged();
-            RunCoroutine(FetchRanking(request.Key, request.RemoteId, request.ChartVersion));
+            RunCoroutine(FetchRanking(request.Key, request.RemoteId, request.ChartVersion,
+                request.NoteCount));
         }
 
         struct RankingRequest
@@ -463,16 +452,22 @@ namespace FlashBeat.UI.V6.Select.Data
             public readonly string Key;
             public readonly string RemoteId;
             public readonly int ChartVersion;
+            /// <summary>
+            /// その曲の譜面ノーツ数。scoring v6 のグレード
+            /// (ScoreMaxV6(noteCount) に対する割合) に使う (ADR-0037)。
+            /// </summary>
+            public readonly int NoteCount;
 
-            public RankingRequest(string key, string remoteId, int chartVersion)
+            public RankingRequest(string key, string remoteId, int chartVersion, int noteCount)
             {
                 Key = key;
                 RemoteId = remoteId;
                 ChartVersion = chartVersion;
+                NoteCount = noteCount;
             }
         }
 
-        IEnumerator FetchRanking(string key, string remoteId, int chartVersion)
+        IEnumerator FetchRanking(string key, string remoteId, int chartVersion, int noteCount)
         {
             RankingClient.Result result = null;
             yield return RankingClient.GetLeaderboard(remoteId, chartVersion, r => { result = r; });
@@ -481,7 +476,8 @@ namespace FlashBeat.UI.V6.Select.Data
             rankingFetchKey = null;
             if (result != null && result.ok && result.leaderboard != null && result.leaderboard.entries != null)
             {
-                rankingCache[key] = RankingRowsOf(result.leaderboard.entries);
+                rankingCache[key] = V6SelectDataLogic.RankingRows(
+                    result.leaderboard.entries, noteCount, RankingClient.LoadNickname());
                 hasError = false;
                 statusMessage = "";
             }
@@ -497,26 +493,6 @@ namespace FlashBeat.UI.V6.Select.Data
             {
                 BeginRankingFetch(rankingQueue.Dequeue());
             }
-        }
-
-        static List<V6RankingRow> RankingRowsOf(RankingClient.LeaderboardEntry[] entries)
-        {
-            var rows = new List<V6RankingRow>();
-            string nickname = RankingClient.LoadNickname();
-            for (int i = 0; i < entries.Length; i++)
-            {
-                RankingClient.LeaderboardEntry entry = entries[i];
-                if (entry == null) continue;
-                rows.Add(new V6RankingRow
-                {
-                    Position = entry.rank,
-                    PlayerName = entry.nickname ?? "",
-                    Score = entry.score,
-                    Grade = V6SelectDataLogic.GradeOf(entry.score),
-                    IsYou = !string.IsNullOrEmpty(nickname) && entry.nickname == nickname,
-                });
-            }
-            return rows;
         }
 
         static string RankingFailureMessage(RankingClient.Result result)
@@ -590,19 +566,6 @@ namespace FlashBeat.UI.V6.Select.Data
             FireChanged();
         }
 
-        // --- Ready 確定 ------------------------------------------------------------
-
-        bool LocalChartExists(string title)
-        {
-            if (string.IsNullOrEmpty(title)) return false;
-            bool exists;
-            if (chartExistsCache.TryGetValue(title, out exists)) return exists;
-            exists = Resources.Load<TextAsset>(title) != null;
-            ChartExistsLoadCount++;
-            chartExistsCache[title] = exists;
-            return exists;
-        }
-
         // --- キャッシュの状態 (Issue #377 の計測と無効化) ------------------------
 
         /// <summary>譜面メタのキャッシュ件数。</summary>
@@ -611,30 +574,18 @@ namespace FlashBeat.UI.V6.Select.Data
             get { return chartMetaCache.Count; }
         }
 
-        /// <summary>譜面の有無のキャッシュ件数。</summary>
-        public static int ChartExistsCacheCount
-        {
-            get { return chartExistsCache.Count; }
-        }
-
         /// <summary>
         /// 譜面メタを実際に読んだ回数 (キャッシュ ヒットは含まない)。
         /// </summary>
         public static int ChartMetaLoadCount { get; private set; }
 
         /// <summary>
-        /// 譜面の有無を実際に <see cref="Resources.Load{T}"/> で確かめた回数。
-        /// </summary>
-        public static int ChartExistsLoadCount { get; private set; }
-
-        /// <summary>
-        /// 譜面メタと譜面の有無のキャッシュを捨てる。無効化の入口は
+        /// 譜面メタのキャッシュを捨てる。無効化の入口は
         /// <see cref="V6ContentCaches.InvalidateAll"/> に一本化する。
         /// </summary>
         internal static void ClearContentCaches()
         {
             chartMetaCache.Clear();
-            chartExistsCache.Clear();
         }
 
         /// <summary>

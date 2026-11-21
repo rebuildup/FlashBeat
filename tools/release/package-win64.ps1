@@ -300,6 +300,42 @@ function Assert-MediaPolicy {
     }
 }
 
+function Install-BundledMediaTools {
+    <#
+    .SYNOPSIS
+        yt-dlp / deno / ffmpeg / ffprobe を FlashBeat_Data/StreamingAssets/tools/windows-x64/ へ同梱する (issue #795 / #796)。
+
+    .DESCRIPTION
+        配布 ZIP だけを入手した利用者の環境には yt-dlp / deno / ffmpeg が存在しないため、
+        YouTube からの楽曲取得が全曲失敗していた (v0.2.2 実機受入不合格)。
+        さらに ffmpeg / ffprobe が無いと MediaNormalizer (issue #796) が
+        time_base の壊れた動画を修復できず、Who 等が ~1/6 速で再生される。
+        バイナリは script/fetch-media-tools.sh が tools/media/ (gitignore) へ
+        version + SHA-256 pin で取得し、この関数がビルド出力へコピーする。
+        ffplay.exe は同梱しない (再生には使わない)。
+    #>
+    param([string]$Dir)
+
+    $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+    $src = Join-Path $repoRoot 'tools\media\windows-x64'
+    foreach ($name in @('yt-dlp.exe', 'deno.exe', 'ffmpeg.exe', 'ffprobe.exe')) {
+        $file = Join-Path $src $name
+        if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
+            throw "同梱メディアツールがありません: $file (script/fetch-media-tools.sh を実行してください)"
+        }
+        if ((Get-Item -LiteralPath $file).Length -lt 1MB) {
+            throw "同梱メディアツールが小さすぎます (破損の可能性): $file"
+        }
+    }
+
+    $dst = Join-PathSegments -Base $Dir -Segments @('FlashBeat_Data', 'StreamingAssets', 'tools', 'windows-x64')
+    New-Item -ItemType Directory -Path $dst -Force | Out-Null
+    foreach ($name in @('yt-dlp.exe', 'deno.exe', 'ffmpeg.exe', 'ffprobe.exe')) {
+        Copy-Item -LiteralPath (Join-Path $src $name) -Destination (Join-Path $dst $name) -Force
+    }
+    Write-Host '[media-tools] bundled yt-dlp.exe + deno.exe + ffmpeg.exe + ffprobe.exe into FlashBeat_Data/StreamingAssets/tools/windows-x64'
+}
+
 function New-BuildZip {
     param(
         [string]$Dir,
@@ -509,6 +545,7 @@ $SourceDir = (Resolve-Path -LiteralPath $SourceDir).Path
 Assert-Win64BuildLayout -Dir $SourceDir
 Assert-NoLooseMedia -Dir $SourceDir
 Assert-MediaPolicy -Dir $SourceDir
+Install-BundledMediaTools -Dir $SourceDir
 
 if (-not (Test-Path -LiteralPath $OutDir -PathType Container)) {
     New-Item -ItemType Directory -Path $OutDir -Force | Out-Null

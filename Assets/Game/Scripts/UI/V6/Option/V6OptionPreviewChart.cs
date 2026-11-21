@@ -88,10 +88,11 @@ namespace FlashBeat.UI.V6.Option
         /// → <see cref="ChartTiming.BeatOffset"/>、HOLD 終端は
         /// <see cref="LongNote.EndSeconds"/>。
         ///
-        /// ループ長は「最後のノーツ/歌詞の終端 + 2 秒」。実チャートが無い曲・
-        /// 読み込めない曲では従来の疑似チャート (<see cref="LoopSeconds"/>)
-        /// へフォールバックする。戻り値の loopSeconds は必ず全ノーツ時刻より
-        /// 大きい (時刻畳み込みの前提)。
+        /// ループ長は「最後のノーツ/ロングノーツの終端 + 2 秒」(v0.2.1: 歌詞終端は
+        /// 含めない — 含めるとノーツ終了後に長い空白が毎ループ発生する)。
+        /// 実チャートが無い曲・読み込めない曲では従来の疑似チャート
+        /// (<see cref="LoopSeconds"/>) へフォールバックする。戻り値の
+        /// loopSeconds は必ず全ノーツ時刻より大きい (時刻畳み込みの前提)。
         /// </summary>
         public static Note[] BuildForCurrentSong(out float loopSeconds)
         {
@@ -161,16 +162,47 @@ namespace FlashBeat.UI.V6.Option
                 return Build();
             }
 
-            // ループ末尾の余白: 最後の音が完全に抜けるまで + 歌詞の終端まで。
-            float lyricEnd = 0f;
-            var lines = V6OptionPreviewLyrics.LinesForCurrentSong();
-            for (int i = 0; i < lines.Count; i++)
-            {
-                lyricEnd = Mathf.Max(lyricEnd, lines[i].End);
-            }
-
-            loopSeconds = Mathf.Max(lastEnd, lyricEnd) + 2f;
+            // ループ末尾の余白: 最後のノーツ/ロングノーツが完全に抜けるまで。
+            // v0.2.1 実機レビュー (#783): かつては歌詞終端 (ほぼ曲の終端) まで
+            // ループを伸ばしていたため、ノーツが終わった後に数十秒〜2 分超の
+            // 空白が毎ループ発生し「ループが無い」状態に見えていた。
+            // プレビューの主役はノーツの流れなので、ループはノーツ終端 + 2 秒に
+            // 畳む。歌詞終端がこれより後の行はプレビューでは表示されない
+            // (雰囲気用の歌詞であり、ノーツとの同期を崩すほどの犠牲は許容する)。
+            //
+            // ただし時刻畳み込み (DeltaToNearest) の折り返し点が可視範囲に
+            // 入ると、ループ境界でノーツが画面途中にポップインする
+            // (PR #787 review)。畳み込み範囲 (-L/2, L/2] が最遅ノーツ速度での
+            // 可視アプローチ時間を必ず上回るよう、ループ長に下限を設ける。
+            // 実曲はノーツが曲長いっぱいに続くので lastEnd+2 が下限を
+            // 上回り、実害が出るのはごく短い譜面だけ (その場合は
+            // 空白が伸びるが、ポップインより正しい)。
+            loopSeconds = Mathf.Max(lastEnd + 2f, MinLoopSeconds());
             return notes.ToArray();
+        }
+
+        /// <summary>NoteSpeed の下限 (OptionSettings.NoteSpeedMin と同じ 1.0)。</summary>
+        private const float MinNoteSpeed = 1f;
+
+        /// <summary>
+        /// プレビューのループ長の下限 (秒)。
+        ///
+        /// ノーツは z = (noteTime - mediaTime) * zScale で置かれ、可視範囲は
+        /// z ∈ [frontZ - 0.5, GuideDepth + 0.5] (V6OptionPreviewRig の ShowMargin)。
+        /// 時刻差の畳み込みは (-L/2, L/2] なので、L/2 が「最遅速度での
+        /// 見え端までの時間」より大きくないと、折り返しの +L/2 側が
+        /// まだ画面内にあり、ノーツが途中出現する。
+        /// 最遅速度 (1.0) では zScale = VisibleDepthZ/16 なので、
+        /// 見え端 (VisibleDepthZ + 余白 1.0) まで約 17.7 秒。
+        /// その 2 倍 + 余白 2 秒で約 37 秒を下限とする
+        /// (疑似チャートの <see cref="LoopSeconds"/> = 40 秒もこれを満たす)。
+        /// </summary>
+        public static float MinLoopSeconds()
+        {
+            float zScaleAtMinSpeed = MediaTimeline.ZScaleFor(MinNoteSpeed);
+            float visibleDeltaSeconds =
+                (MediaTimeline.VisibleDepthZ + 1.0f) / zScaleAtMinSpeed;
+            return visibleDeltaSeconds * 2f + 2f;
         }
 
         /// <summary>

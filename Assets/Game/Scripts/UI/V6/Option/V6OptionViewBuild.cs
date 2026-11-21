@@ -90,14 +90,14 @@ namespace FlashBeat.UI.V6.Option
             // 共通フレームのゾーン (Header/Main/Footer) のうち、状態が変わるのは
             // Main の中身 (タブ選択・行選択・値表示) だけ。Header/Footer は静的なので
             // 初回だけ作る (Issue #415: 全再構築をやめる)。
-            bool tabChanged = scaffoldTab != selectedTab;
-            if (!scaffoldBuilt)
+            bool firstBuild = !scaffoldBuilt;
+            if (firstBuild)
             {
                 // 初回: ゾーンごと作り直す (従来と同じ)。
                 V6Hierarchy.ClearChildren(Zone("Main"));
                 V6Hierarchy.ClearChildren(Zone("Header"));
                 V6Hierarchy.ClearChildren(Zone("Footer"));
-                ClearScaffoldRefs();
+                scaffoldBuilt = true;
                 RebuildCountForAudit++;
             }
             else
@@ -105,33 +105,27 @@ namespace FlashBeat.UI.V6.Option
                 IncrementalUpdateCountForAudit++;
             }
 
-            if (scaffoldBuilt)
+            // Issue #733 フォローアップ: 設定画面の中身 (タブ帯・設定パネル・
+            // プレビュー) は共有部品 <see cref="V6SettingsScreen"/> が組み立て、
+            // Pause と同一実装を使う。Option 固有なのは Header/Footer と
+            // 確認モーダルだけ。
+            if (settingsScreen == null)
             {
-                UpdateHeader();
-                UpdateTabs();
+                settingsScreen = new V6SettingsScreen(Zone("Main").gameObject, this,
+                    V6OptionLogic.TabLabels, RowsForTab);
             }
-            else
+
+            settingsScreen.Refresh();
+
+            if (firstBuild)
             {
                 BuildHeader();
                 BuildFooter();
-                BuildTabs();
-            }
-
-            if (tabChanged)
-            {
-                RebuildMainPanels();
-            }
-            else if (scaffoldBuilt)
-            {
-                UpdateSettings();
-                UpdatePreview();
             }
             else
             {
-                RebuildMainPanels();
+                UpdateHeader();
             }
-
-            scaffoldBuilt = true;
 
             var modal = V6Frame.GetModal(frame.gameObject);
             if (modal != null)
@@ -164,40 +158,6 @@ namespace FlashBeat.UI.V6.Option
                     confirmPanActive = false;
                 }
             }
-        }
-
-        /// <summary>
-        /// Settings / Preview だけを作り直す (タブ切替 = 行定義が丸ごと変わるタイミング)。
-        /// タブ帯 (Zone Tabs) は保持する。
-        /// </summary>
-        private void RebuildMainPanels()
-        {
-            currentRows = RowsForTab(selectedTab);
-            if (selectedRow >= currentRows.Count)
-            {
-                selectedRow = 0;
-            }
-
-            // 子を作り直すため、旧オブジェクトへの参照は捨てる (Build* が再設定する)。
-            volumeSlider = null;
-            selectedRowValueText = null;
-            volumeSliderRowIndex = -1;
-
-            // Main のうち Tabs だけを残し、Settings / Preview だけを作り直す。
-            V6Hierarchy.DetachAndDestroy(Zone("Main").Find("Settings")?.gameObject);
-            V6Hierarchy.DetachAndDestroy(Zone("Main").Find("Preview")?.gameObject);
-            rowObjects.Clear();
-            rowBackgrounds.Clear();
-            rowValueTexts.Clear();
-            settingsHeadTitle = null;
-            previewPanelGo = null;
-            previewHeadTitle = null;
-            descTitleText = null;
-            descBodyText = null;
-
-            BuildSettings();
-            BuildPreview();
-            scaffoldTab = selectedTab;
         }
 
         private Transform Zone(string zoneName)
@@ -266,79 +226,5 @@ namespace FlashBeat.UI.V6.Option
             V6Legend.Item(footer.gameObject, x, V6Legend.Y, "Enter", "決定");
         }
 
-        // --- タブ (design C0piZz: メイン (438,0) 824x48, タブ 200x48 gap8) ---
-        // 選択タブ: fill $k6 / Label fs24 w500 $text。非選択: $k2 / fs24 $text-muted。
-
-        /// <summary>
-        /// Issue #415: タブ帯は骨格 (4 タブ) を保持し、選択状態の色・ラベルだけを
-        /// 既存 Image/TMP に適用する。参照が壊れているときだけ作り直す。
-        /// </summary>
-        private void UpdateTabs()
-        {
-            if (tabBackgrounds.Count != V6OptionLogic.TabCount)
-            {
-                // 参照が壊れている (タブ帯が消えた) ときだけ作り直す。
-                V6Hierarchy.DetachAndDestroy(Zone("Main").Find("Zone Tabs")?.gameObject);
-                BuildTabs();
-                return;
-            }
-
-            for (int i = 0; i < V6OptionLogic.TabCount; i++)
-            {
-                bool selected = i == selectedTab;
-                if (tabBackgrounds[i] != null)
-                {
-                    tabBackgrounds[i].color = selected ? V6Tokens.Key6 : V6Tokens.Key2;
-                }
-
-                if (i < tabLabels.Count && tabLabels[i] != null)
-                {
-                    tabLabels[i].color = selected ? V6Tokens.Text : V6Tokens.TextMuted;
-                    tabLabels[i].fontStyle = selected ? FontStyles.Bold : FontStyles.Normal;
-                }
-            }
-        }
-
-        private void BuildTabs()
-        {
-            tabObjects.Clear();
-            tabBackgrounds.Clear();
-            tabLabels.Clear();
-            var main = Zone("Main");
-            var strip = V6Layout.Row(main.gameObject, "Zone Tabs",
-                new Vector2(TabsX, TabsY), new Vector2(TabsW, TabsH), TabGap);
-
-            var tabs = new Component[V6OptionLogic.TabCount];
-            for (int i = 0; i < V6OptionLogic.TabCount; i++)
-            {
-                int index = i;
-                bool selected = i == selectedTab;
-                var tab = V6Controls.Panel(strip, "Tab " + V6OptionLogic.TabLabels[i],
-                    new Vector2((TabW + TabGap) * i, 0f), new Vector2(TabW, TabsH),
-                    selected ? V6Tokens.Key6 : V6Tokens.Key2, V6Tokens.RadiusMedium);
-                var button = tab.AddComponent<Button>();
-                button.transition = Selectable.Transition.None;
-                var nav = button.navigation;
-                nav.mode = Navigation.Mode.None;
-                button.navigation = nav;
-                V6ButtonPressFeedback.Attach(tab);
-                button.onClick.AddListener(() => SelectTab(index));
-                var label = V6Controls.Text(tab, "Label", V6OptionLogic.TabLabels[i],
-                    new Vector2(0f, 0f), new Vector2(TabW, TabsH), 24f,
-                    selected ? V6Tokens.Text : V6Tokens.TextMuted, TextAlignmentOptions.Center,
-                    selected ? FontStyles.Bold : FontStyles.Normal);
-                var labelRt = label.rectTransform;
-                labelRt.anchorMin = Vector2.zero;
-                labelRt.anchorMax = Vector2.one;
-                labelRt.offsetMin = Vector2.zero;
-                labelRt.offsetMax = Vector2.zero;
-                tabs[i] = tab.transform;
-                tabObjects.Add(tab);
-                tabBackgrounds.Add(tab.GetComponent<Image>());
-                tabLabels.Add(label);
-            }
-
-            V6Layout.StackHorizontal(strip.GetComponent<RectTransform>(), TabGap, tabs);
-        }
     }
 }

@@ -58,9 +58,13 @@ afterEach(() => {
 });
 
 describe("CatalogPanel table row (issue #61)", () => {
+  // The publish-requirement note (issue #802) sits between the header and the
+  // first row, so rows are selected by their `row` class, not sibling order.
+  const rowSelector = '[data-testid="catalog-list"] .row';
+
   it("renders exactly one row body per row", () => {
     const container = renderPanel();
-    const row = container.querySelector('[data-testid="catalog-list"] > div + div') as HTMLElement;
+    const row = container.querySelector(rowSelector) as HTMLElement;
     expect(row).not.toBeNull();
     const bodies = row.querySelectorAll('[data-testid="catalog-row-body"]');
     expect(bodies).toHaveLength(1);
@@ -68,7 +72,7 @@ describe("CatalogPanel table row (issue #61)", () => {
 
   it("shows the title once per row outside the row link", () => {
     const container = renderPanel();
-    const row = container.querySelector('[data-testid="catalog-list"] > div + div') as HTMLElement;
+    const row = container.querySelector(rowSelector) as HTMLElement;
     // 行内のタイトル表示は 1 回 (rowLink の visuallyHidden は行名の読み上げ用)。
     const titles = Array.from(row.querySelectorAll("span")).filter(
       (span) => span.childElementCount === 0 && span.textContent === song.title,
@@ -78,7 +82,7 @@ describe("CatalogPanel table row (issue #61)", () => {
 
   it("fills one cell per header column", () => {
     const container = renderPanel();
-    const row = container.querySelector('[data-testid="catalog-list"] > div + div') as HTMLElement;
+    const row = container.querySelector(rowSelector) as HTMLElement;
     // 行リンクは position:absolute でグリッド流れから外れるため列を消費しない。
     const cells = Array.from(row.children).filter(
       (child) => !(child instanceof HTMLElement) || !child.matches("a[data-row-link]"),
@@ -88,7 +92,7 @@ describe("CatalogPanel table row (issue #61)", () => {
 
   it("keeps every value under its own header column", () => {
     const container = renderPanel();
-    const row = container.querySelector('[data-testid="catalog-list"] > div + div') as HTMLElement;
+    const row = container.querySelector(rowSelector) as HTMLElement;
     const cells = Array.from(row.children).filter(
       (child): child is HTMLElement =>
         child instanceof HTMLElement && !child.matches("a[data-row-link]"),
@@ -102,16 +106,27 @@ describe("CatalogPanel table row (issue #61)", () => {
 
   it("keeps the action links of the row in the last cell", () => {
     const container = renderPanel();
-    const row = container.querySelector('[data-testid="catalog-list"] > div + div') as HTMLElement;
+    const row = container.querySelector(rowSelector) as HTMLElement;
     const cells = Array.from(row.children).filter(
       (child): child is HTMLElement =>
         child instanceof HTMLElement && !child.matches("a[data-row-link]"),
     );
     const last = cells[cells.length - 1];
-    // Issue #215 review: the row states the publish requirement as a
-    // non-interactive badge; only the chart link and YouTube stay clickable.
+    // Issue #802 review: the publish requirement moved out of the rows into a
+    // single note above the list; the row keeps only the YouTube link.
     expect(last?.querySelector("a[href^='/publish']")).toBeNull();
-    expect(last?.querySelector('[data-testid="publish-requirement"]')).not.toBeNull();
+    expect(last?.querySelector('[data-testid="publish-requirement"]')).toBeNull();
     expect(last?.querySelector("a[href^='https://youtu.be/']")).not.toBeNull();
+  });
+
+  it("states the publish requirement once per layout, not per row", () => {
+    const container = renderPanel();
+    // Card layout + table layout each render one note (CSS shows one).
+    const notes = container.querySelectorAll('[data-testid="publish-requirement"]');
+    expect(notes).toHaveLength(2);
+    for (const note of notes) {
+      expect(note.textContent).toBe("公開はスタッフ（要トークン）");
+      expect(note.querySelector("a,button")).toBeNull();
+    }
   });
 });

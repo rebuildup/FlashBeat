@@ -107,6 +107,8 @@ namespace FlashBeat.Gameplay
         static bool denoPathResolved;
         static string cachedFfmpegPath;
         static bool ffmpegPathResolved;
+        static string cachedFfprobePath;
+        static bool ffprobePathResolved;
 
         /// <summary>
         /// Serializes the lazy tool resolution: the first caller starts the
@@ -117,6 +119,7 @@ namespace FlashBeat.Gameplay
         static Task<string> ytDlpPathTask;
         static Task<string> denoPathTask;
         static Task<string> ffmpegPathTask;
+        static Task<string> ffprobePathTask;
 
         /// <summary>
         /// Timeout of the per-candidate "--version" probe. A binary that does
@@ -170,12 +173,15 @@ namespace FlashBeat.Gameplay
                 ytDlpPathTask = null;
                 denoPathTask = null;
                 ffmpegPathTask = null;
+                ffprobePathTask = null;
                 ytDlpPathResolved = false;
                 cachedYtDlpPath = null;
                 denoPathResolved = false;
                 cachedDenoPath = null;
                 ffmpegPathResolved = false;
                 cachedFfmpegPath = null;
+                ffprobePathResolved = false;
+                cachedFfprobePath = null;
             }
         }
 
@@ -214,6 +220,18 @@ namespace FlashBeat.Gameplay
             if (!string.IsNullOrEmpty(pref) && File.Exists(pref))
             {
                 cachedYtDlpPath = pref;
+                return cachedYtDlpPath;
+            }
+
+            // 1.5. 同梱ツール (issue #795): 配布 ZIP にだけ存在する製品管理下の
+            //      バイナリ。利用者の PATH や開発環境に依存しないため最優先で使う。
+            //      FLASHBEAT_*_PATH の明示指定だけがこれより優先される。
+            EnsureBundledToolsRunnable(streamingAssetsPath);
+            EnsureBundledToolsRunnable(Path.Combine(dataPath, "StreamingAssets"));
+            var bundledHit = FirstUsable(BundledToolCandidates(streamingAssetsPath, dataPath, YtDlpBundledNames()), "--version");
+            if (bundledHit != null)
+            {
+                cachedYtDlpPath = bundledHit;
                 return cachedYtDlpPath;
             }
 
@@ -269,13 +287,17 @@ namespace FlashBeat.Gameplay
             {
                 if (denoPathTask == null)
                 {
-                    denoPathTask = RunResolution(ResolveDenoPathCore);
+                    // Application.* は呼び出しスレッドでしか読めないため、
+                    // プールへ移す前にここで捕捉する (yt-dlp と同じ契約)。
+                    string streamingAssetsPath = Application.streamingAssetsPath;
+                    string dataPath = Application.dataPath;
+                    denoPathTask = RunResolution(() => ResolveDenoPathCore(streamingAssetsPath, dataPath));
                 }
                 return denoPathTask;
             }
         }
 
-        static string ResolveDenoPathCore()
+        static string ResolveDenoPathCore(string streamingAssetsPath, string dataPath)
         {
             if (denoPathResolved) return cachedDenoPath;
             denoPathResolved = true;
@@ -284,6 +306,16 @@ namespace FlashBeat.Gameplay
             if (!string.IsNullOrEmpty(pref) && File.Exists(pref))
             {
                 cachedDenoPath = pref;
+                return cachedDenoPath;
+            }
+
+            // 同梱ツール (issue #795): yt-dlp と同じく製品管理下のバイナリを優先する。
+            EnsureBundledToolsRunnable(streamingAssetsPath);
+            EnsureBundledToolsRunnable(Path.Combine(dataPath, "StreamingAssets"));
+            var bundledHit = FirstUsable(BundledToolCandidates(streamingAssetsPath, dataPath, DenoBundledNames()), "--version");
+            if (bundledHit != null)
+            {
+                cachedDenoPath = bundledHit;
                 return cachedDenoPath;
             }
 
@@ -382,6 +414,8 @@ namespace FlashBeat.Gameplay
         /// audio-only stream of YouTube into one mp4 - that merged file is the
         /// only way the YouTube sound reaches Unity's VideoPlayer (a separate
         /// audio-only m4a is refused: "Failed to recognize video file format").
+        /// The release ZIP bundles ffmpeg under StreamingAssets/tools (issue
+        /// #796), so a clean machine resolves the bundled binary first.
         /// Override with FLASHBEAT_FFMPEG_PATH.
         /// </summary>
         public static Task<string> ResolveFfmpegPathAsync()
@@ -390,13 +424,17 @@ namespace FlashBeat.Gameplay
             {
                 if (ffmpegPathTask == null)
                 {
-                    ffmpegPathTask = RunResolution(ResolveFfmpegPathCore);
+                    // Application.* は呼び出しスレッドでしか読めないため、
+                    // プールへ移す前にここで捕捉する (yt-dlp / deno と同じ契約)。
+                    string streamingAssetsPath = Application.streamingAssetsPath;
+                    string dataPath = Application.dataPath;
+                    ffmpegPathTask = RunResolution(() => ResolveFfmpegPathCore(streamingAssetsPath, dataPath));
                 }
                 return ffmpegPathTask;
             }
         }
 
-        static string ResolveFfmpegPathCore()
+        static string ResolveFfmpegPathCore(string streamingAssetsPath, string dataPath)
         {
             if (ffmpegPathResolved) return cachedFfmpegPath;
             ffmpegPathResolved = true;
@@ -405,6 +443,19 @@ namespace FlashBeat.Gameplay
             if (!string.IsNullOrEmpty(pref) && File.Exists(pref))
             {
                 cachedFfmpegPath = pref;
+                return cachedFfmpegPath;
+            }
+
+            // 同梱ツール (issue #796): ffmpeg / ffprobe はリリース ZIP に
+            // 同梱される。クリーンな環境では PATH に ffmpeg が無く、
+            // MediaNormalizer の time_base 修復 (issue #796) が発動しない
+            // ため、yt-dlp / deno と同じく製品管理下のバイナリを優先する。
+            EnsureBundledToolsRunnable(streamingAssetsPath);
+            EnsureBundledToolsRunnable(Path.Combine(dataPath, "StreamingAssets"));
+            var bundledHit = FirstUsable(BundledToolCandidates(streamingAssetsPath, dataPath, FfmpegBundledNames()), "-version");
+            if (bundledHit != null)
+            {
+                cachedFfmpegPath = bundledHit;
                 return cachedFfmpegPath;
             }
 
@@ -446,6 +497,87 @@ namespace FlashBeat.Gameplay
         }
 
         /// <summary>
+        /// Locates ffprobe (issue #796). ffmpeg と同じ配布物に入っているのが
+        /// 普通なので、ffmpeg が見つかったディレクトリを最初に試し、
+        /// 次に PATH / mise を探す。MediaNormalizer が映像ストリームの
+        /// time_base を調べるのに使う。
+        /// </summary>
+        public static Task<string> ResolveFfprobePathAsync()
+        {
+            lock (resolutionGate)
+            {
+                if (ffprobePathTask == null)
+                {
+                    // Application.* は呼び出しスレッドでしか読めないため、
+                    // プールへ移す前にここで捕捉する (yt-dlp / deno と同じ契約)。
+                    string streamingAssetsPath = Application.streamingAssetsPath;
+                    string dataPath = Application.dataPath;
+                    ffprobePathTask = RunResolution(() => ResolveFfprobePathCore(streamingAssetsPath, dataPath));
+                }
+                return ffprobePathTask;
+            }
+        }
+
+        static string ResolveFfprobePathCore(string streamingAssetsPath, string dataPath)
+        {
+            if (ffprobePathResolved) return cachedFfprobePath;
+            ffprobePathResolved = true;
+
+            var pref = Environment.GetEnvironmentVariable("FLASHBEAT_FFPROBE_PATH");
+            if (!string.IsNullOrEmpty(pref) && File.Exists(pref))
+            {
+                cachedFfprobePath = pref;
+                return cachedFfprobePath;
+            }
+
+            // 同梱ツール (issue #796): ffmpeg と同じ tools ツリーに ffprobe も
+            // 入っている。env override の次、PATH / システム探索より先に使う。
+            EnsureBundledToolsRunnable(streamingAssetsPath);
+            EnsureBundledToolsRunnable(Path.Combine(dataPath, "StreamingAssets"));
+            var bundledHit = FirstUsable(BundledToolCandidates(streamingAssetsPath, dataPath, FfprobeBundledNames()), "-version");
+            if (bundledHit != null)
+            {
+                cachedFfprobePath = bundledHit;
+                return cachedFfprobePath;
+            }
+
+            // ffmpeg と同じディレクトリにあるのが最も確実 (homebrew / gyan 共通)。
+            var ffmpeg = ResolveFfmpegPathCore(streamingAssetsPath, dataPath);
+            if (!string.IsNullOrEmpty(ffmpeg))
+            {
+                var sibling = Path.Combine(Path.GetDirectoryName(ffmpeg) ?? "", IsWindows ? "ffprobe.exe" : "ffprobe");
+                if (File.Exists(sibling) && ProbeCandidate(sibling, "-version"))
+                {
+                    cachedFfprobePath = sibling;
+                    return cachedFfprobePath;
+                }
+            }
+
+            var pathHit = FirstUsable(WhereOnPathAll(IsWindows ? "ffprobe.exe" : "ffprobe"), "-version");
+            if (pathHit != null)
+            {
+                cachedFfprobePath = pathHit;
+                return cachedFfprobePath;
+            }
+
+            var miseHit = FindInVersionedDir("mise", "installs", "ffmpeg", "bin", IsWindows ? "ffprobe.exe" : "ffprobe");
+            if (miseHit != null)
+            {
+                cachedFfprobePath = miseHit;
+                return cachedFfprobePath;
+            }
+
+            string[] unixCandidates = { "/usr/local/bin/ffprobe", "/opt/homebrew/bin/ffprobe" };
+            foreach (var c in unixCandidates)
+            {
+                try { if (File.Exists(c) && ProbeCandidate(c, "-version")) { cachedFfprobePath = c; return cachedFfprobePath; } }
+                catch { }
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Returns the first candidate that exists and answers to <paramref name="versionArgs"/>.
         /// A launcher that exists but does not work (the mise shims) is skipped.
         /// </summary>
@@ -469,6 +601,110 @@ namespace FlashBeat.Gameplay
         {
             var normalized = path.Replace('\\', '/').ToLowerInvariant();
             return normalized.Contains("/mise/shims/") || normalized.Contains("/.mise/shims/");
+        }
+
+        // ---------------------------------------------------------------
+        // Bundled tools (issue #795)
+        // ---------------------------------------------------------------
+
+        static bool IsMacOS =>
+            System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                System.Runtime.InteropServices.OSPlatform.OSX);
+
+        /// <summary>
+        /// Expands bundled-tool relative paths under StreamingAssets. The release
+        /// packaging scripts (tools/release/package-macos.sh / package-win64.ps1)
+        /// copy script/fetch-media-tools.sh output into
+        /// &lt;build&gt;/StreamingAssets/tools/&lt;relative path&gt;. Shipping targets
+        /// are macOS (universal) and Windows x64 only; other platforms get an empty
+        /// list and fall through to the PATH / mise / system search as before.
+        /// </summary>
+        static IEnumerable<string> BundledToolCandidates(string streamingAssetsPath, string dataPath, string[] relativePaths)
+        {
+            if (relativePaths == null) yield break;
+            foreach (var rel in relativePaths)
+            {
+                yield return Path.Combine(streamingAssetsPath, "tools", rel);
+                yield return Path.Combine(dataPath, "StreamingAssets", "tools", rel);
+            }
+        }
+
+        /// <summary>yt-dlp_macos is a universal Mach-O; Windows ships yt-dlp.exe.</summary>
+        static string[] YtDlpBundledNames()
+        {
+            if (IsWindows) return new[] { "windows-x64/yt-dlp.exe" };
+            if (IsMacOS) return new[] { "macos/yt-dlp" };
+            return new string[0];
+        }
+
+        /// <summary>Deno ships per-arch; the macOS build is universal so the arch key is required.</summary>
+        static string[] DenoBundledNames()
+        {
+            if (IsWindows) return new[] { "windows-x64/deno.exe" };
+            if (IsMacOS) return new[] { MacArchKey() + "/deno" };
+            return new string[0];
+        }
+
+        /// <summary>ffmpeg ships per-arch (issue #796); same arch key rule as deno.</summary>
+        static string[] FfmpegBundledNames()
+        {
+            if (IsWindows) return new[] { "windows-x64/ffmpeg.exe" };
+            if (IsMacOS) return new[] { MacArchKey() + "/ffmpeg" };
+            return new string[0];
+        }
+
+        /// <summary>ffprobe ships next to ffmpeg in every bundled ffmpeg build.</summary>
+        static string[] FfprobeBundledNames()
+        {
+            if (IsWindows) return new[] { "windows-x64/ffprobe.exe" };
+            if (IsMacOS) return new[] { MacArchKey() + "/ffprobe" };
+            return new string[0];
+        }
+
+        /// <summary>macOS per-arch tool directory key (deno / ffmpeg / ffprobe 共通)。</summary>
+        static string MacArchKey()
+        {
+            var arch = System.Runtime.InteropServices.RuntimeInformation.OSArchitecture;
+            return arch == System.Runtime.InteropServices.Architecture.Arm64 ? "macos-arm64" : "macos-x86_64";
+        }
+
+        /// <summary>
+        /// macOS: removes the quarantine xattr from the bundled tools tree so
+        /// Gatekeeper does not kill the child binaries (issue #795). A ZIP
+        /// downloaded in a browser propagates com.apple.quarantine to every
+        /// extracted file - including binaries nested inside FlashBeat.app -
+        /// and a quarantined unsigned/adhoc-signed Mach-O is killed (SIGKILL)
+        /// on exec even when the parent app is already running. Stripping the
+        /// attribute from our own shipped tools inside our own bundle is the
+        /// distributor-side fix; /usr/bin/xattr is a system binary and always
+        /// runs. Best effort: a read-only (translocated) bundle simply keeps
+        /// the old behaviour.
+        /// </summary>
+        static void EnsureBundledToolsRunnable(string streamingAssetsPath)
+        {
+            if (!IsMacOS || string.IsNullOrEmpty(streamingAssetsPath)) return;
+            var toolsDir = Path.Combine(streamingAssetsPath, "tools");
+            try { if (!Directory.Exists(toolsDir)) return; } catch { return; }
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "/usr/bin/xattr",
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                };
+                psi.ArgumentList.Add("-dr");
+                psi.ArgumentList.Add("com.apple.quarantine");
+                psi.ArgumentList.Add(toolsDir);
+                using (var p = Process.Start(psi))
+                {
+                    if (p == null) return;
+                    if (!p.WaitForExit(5000)) { try { p.Kill(); } catch { } return; }
+                }
+            }
+            catch { /* best effort: the version probe simply fails as before */ }
         }
 
         /// <summary>

@@ -8,6 +8,8 @@
  *
  * This tool measures the DOM. It does NOT perform a pixel/design review; the
  * index.json separates `measured` facts from `needsHumanVisualReview` items.
+ * The review pass itself is mechanized by `REVIEW.md` next to this file —
+ * the checklist a reviewer (human or model) applies to the PNGs (issue #802).
  *
  * Usage:
  *   npm run visual                     # seeds local D1, starts dev server on :5199
@@ -31,14 +33,20 @@ const ROUTES = [
   { name: "chart", path: "/chart?songId=who&version=1", waitFor: "canvas" },
   { name: "new-song", path: "/new-song" },
   { name: "publish", path: "/publish" },
+  { name: "dashboard", path: "/dashboard" },
+  { name: "songs", path: "/songs" },
 ];
 
-// The five viewports of issue #74 (spec.md §1): three desktop sizes, one phone
-// and 200% browser zoom (1440×900 at 200% = a 720×450 CSS-pixel viewport).
+// The viewports of issue #74 (spec.md §1) plus the widths issue #802 names
+// explicitly (390 / 768 / 1440 / 1920): three desktop sizes, one tablet,
+// one phone and 200% browser zoom (1440×900 at 200% = a 720×450 CSS-pixel
+// viewport).
 const VIEWPORTS = [
+  { label: "1920x1080", width: 1920, height: 1080, deviceScaleFactor: 1 },
   { label: "1440x900", width: 1440, height: 900, deviceScaleFactor: 1 },
   { label: "1280x720", width: 1280, height: 720, deviceScaleFactor: 1 },
   { label: "1024x768", width: 1024, height: 768, deviceScaleFactor: 1 },
+  { label: "768x1024", width: 768, height: 1024, deviceScaleFactor: 1 },
   {
     label: "390x844",
     width: 390,
@@ -186,7 +194,15 @@ async function main() {
         if (route.waitFor) {
           await page.waitForSelector(route.waitFor, { timeout: 15_000 }).catch(() => {});
         }
-        await sleep(1_200);
+        // Issue #802 review: screenshots used to be taken while the catalog
+        // still showed "カタログを読み込み中". Wait until no loading text
+        // remains so captures distinguish loaded / empty / error states.
+        await page
+          .waitForFunction(() => !document.body.innerText.includes("読み込み中"), {
+            timeout: 30_000,
+          })
+          .catch(() => {});
+        await sleep(400);
 
         const measured = await page.evaluate(measurePage);
         const baseName = `${route.name}_${vp.label.replace(/[^0-9x]/g, "")}`;
@@ -263,7 +279,7 @@ async function main() {
       exitCode: failed ? 1 : 0,
     },
     needsHumanVisualReview: {
-      note: "The flags above are DOM measurements, NOT a pixel/design review. Spacing, visual hierarchy, information density, interaction states, copy and brand match (design-skills + unslop signs) must be judged by a human or model looking at the actual PNGs (use *.full.png for below-fold areas).",
+      note: "The flags above are DOM measurements, NOT a pixel/design review. Apply the checklist in REVIEW.md (same directory) to the PNGs — it is the independent image-review step of issue #802.",
       perCapture: captures.map(
         (c) => `${c.route} @ ${c.viewport}: ${c.file} (+ ${c.fullPageFile})`,
       ),

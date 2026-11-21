@@ -41,15 +41,16 @@ namespace FlashBeat.Tests
         }
 
         /// <summary>1 周分の「画面遷移で触る」生成経路を再現する。</summary>
-        private void SimulateOneRound(int round, Texture2D logo)
+        private void SimulateOneRound(int round, Texture2D logo, Texture2D jacket)
         {
             // Title: ロゴ (FromTexture 共有) と角丸パーツ。
             V6Sprites.FromTexture(logo, "reentry-logo");
             V6Sprites.Rounded(8);
             V6Sprites.Rounded(16);
 
-            // Select: 26 曲分のジャケット (Resources) と角丸セル。v6 の総数に相当。
-            V6JacketProvider.Local(10, "チュートリアル");
+            // Select: ジャケットの crop (Issue #823 で遠隔 YouTube のみ。
+            // ここでは遠隔エントリにシードした Texture の SquareCrop で再現)。
+            V6JacketProvider.SquareCrop(jacket, "reentry-jacket");
             V6Sprites.Rounded(24);
 
             // Game: 角丸 HUD パーツとアイコン参照。
@@ -64,7 +65,7 @@ namespace FlashBeat.Tests
             // Retry: 同じ経路をもう一度 (ここで 2 周目の Retry)。
             V6Sprites.Rounded(8);
             V6Sprites.Rounded(16);
-            V6JacketProvider.Local(10, "チュートリアル");
+            V6JacketProvider.SquareCrop(jacket, "reentry-jacket");
         }
 
         [Test]
@@ -75,19 +76,22 @@ namespace FlashBeat.Tests
             V6JacketProvider.ResetCountersForAudit();
 
             Texture2D logo = NewTexture(16);
+            Texture2D jacket = NewTexture(32);
+            // 遠隔ジャケット経路を再現するため、監査シードで remoteCache に載せる。
+            V6JacketProvider.SeedRemoteEntryForAudit("reentry-video", jacket, 0f);
 
             int[] sharedCount = new int[3];
             int[] createCount = new int[3];
             int[] iconCount = new int[3];
-            int[] localJacketSprites = new int[3];
+            int[] remoteJacketSprites = new int[3];
 
             for (int round = 0; round < 3; round++)
             {
-                SimulateOneRound(round, logo);
+                SimulateOneRound(round, logo, jacket);
                 sharedCount[round] = V6Sprites.SharedCount;
                 createCount[round] = V6Sprites.CreateCount;
                 iconCount[round] = V6Sprites.IconCacheCount;
-                localJacketSprites[round] = V6JacketProvider.CachedSpriteCount;
+                remoteJacketSprites[round] = V6JacketProvider.RemoteCachedSpriteCount;
             }
 
             Assert.AreEqual(sharedCount[0], sharedCount[1],
@@ -102,12 +106,12 @@ namespace FlashBeat.Tests
 
             Assert.AreEqual(iconCount[0], iconCount[2],
                 "アイコンの参照キャッシュが往復ごとに増えている");
-            Assert.AreEqual(localJacketSprites[0], localJacketSprites[2],
-                "ローカルジャケットのキャッシュが往復ごとに増えている");
+            Assert.AreEqual(remoteJacketSprites[0], remoteJacketSprites[2],
+                "ジャケット crop のキャッシュが往復ごとに増えている");
         }
 
         [Test]
-        public void InvalidateAll_DropsLocalCaches_KeepsSharedOwnershipIntact()
+        public void InvalidateAll_KeepsSharedOwnershipIntact()
         {
             V6AssetOwner.DestroyShared();
             V6JacketProvider.DestroyAll();
@@ -116,13 +120,13 @@ namespace FlashBeat.Tests
             Texture2D logo = NewTexture(16);
             Sprite rounded = V6Sprites.Rounded(8);
             Sprite fromLogo = V6Sprites.FromTexture(logo, "reentry-logo");
-            V6JacketProvider.Local(10, "チュートリアル");
             int sharedBefore = V6Sprites.SharedCount;
+            int remoteEntriesBefore = V6JacketProvider.RemoteCacheEntryCount;
 
             V6ContentCaches.InvalidateAll();
 
-            Assert.AreEqual(0, V6JacketProvider.CachedSpriteCount,
-                "InvalidateAll 後もローカルジャケットのキャッシュが残っている");
+            Assert.AreEqual(remoteEntriesBefore, V6JacketProvider.RemoteCacheEntryCount,
+                "InvalidateAll が遠隔ジャケットキャッシュ (LRU 管理) を巻き込んでいる");
             Assert.AreEqual(sharedBefore, V6Sprites.SharedCount,
                 "InvalidateAll が共有アセット (プロセス寿命) を巻き込んで破棄した");
             Assert.IsFalse(rounded == null, "破棄されたはずのない角丸が破棄されている");

@@ -15,25 +15,32 @@ namespace FlashBeat.UI.V6.Result
         /// <summary>登録名の最大文字数 (v5 と同じ 8)。</summary>
         public const int PlayerNameMax = 8;
 
+        // v1–v3 のグレード閾値 (ScoreMaxLegacy = 1,000,000 に対するスコア)。
+        // <see cref="V6GradeLogic.GradeBandsOf"/> のゲージ帯もこの値から導出する。
+        public const int RankLegacyB = 700000;
+        public const int RankLegacyA = 900000;
+        public const int RankLegacyS = 950000;
+        public const int RankLegacyMax = 1000000;
+
         /// <summary>既存の Assessment 判定と同一の閾値 (1:1 維持)。</summary>
         public static string RankFor(int score)
         {
-            if (score == 1000000)
+            if (score == RankLegacyMax)
             {
                 return "SS";
             }
 
-            if (score >= 950000)
+            if (score >= RankLegacyS)
             {
                 return "S";
             }
 
-            if (score >= 900000)
+            if (score >= RankLegacyA)
             {
                 return "A";
             }
 
-            if (score >= 700000)
+            if (score >= RankLegacyB)
             {
                 return "B";
             }

@@ -11,7 +11,7 @@ namespace FlashBeat.V5CanvasTests
     /// Issue #222: v6 選曲データの純ロジックと実データ結線の EditMode テスト。
     /// - 検索フィルタ / グレード判定 (V5 と同じ閾値)
     /// - 実カタログ (GManager.ActiveSongs) からの曲リスト構築 (noSong / unplayable の除外)
-    /// - 譜面メタを実ファイル (Resources/&lt;曲名&gt;.json) から読むこと
+    /// - 譜面メタをカタログ行 / 保持中のクラウド譜面から読むこと (Issue #823)
     /// - 選択 / 移動の端挙動と CommitReady の確定 (遷移はしない)
     /// 通信 (RefreshAsync のクラウド取得) は EditMode では動かないので対象外。
     /// </summary>
@@ -76,15 +76,34 @@ namespace FlashBeat.V5CanvasTests
         public void GradeOf_V4_FollowsTheV4Thresholds()
         {
             // v4 の満点は 2,000,000。SS は全 Perfect + フルコンボのみ。
-            Assert.AreEqual("SS", V6SelectDataLogic.GradeOf(V6SelectDataLogic.ScoreMax));
-            Assert.AreEqual("SS", V6SelectDataLogic.GradeOf(2000000));
-            Assert.AreEqual("S", V6SelectDataLogic.GradeOf(1900000));
-            Assert.AreEqual("A", V6SelectDataLogic.GradeOf(1800000));
-            Assert.AreEqual("B", V6SelectDataLogic.GradeOf(1600000));
-            Assert.AreEqual("C", V6SelectDataLogic.GradeOf(1599999));
-            Assert.AreEqual("C", V6SelectDataLogic.GradeOf(742000));
-            Assert.AreEqual("", V6SelectDataLogic.GradeOf(0));
-            Assert.AreEqual("", V6SelectDataLogic.GradeOf(-1));
+            // 帯は Issue #788: S ≥ 95% / A ≥ 70% / B ≥ 50%。
+            // LatestVersion は v6 (ADR-0037) なので v4 帯は明示する。
+            Assert.AreEqual("SS", V6SelectDataLogic.GradeOf(V6SelectDataLogic.ScoreMax, Scoring.Version4));
+            Assert.AreEqual("SS", V6SelectDataLogic.GradeOf(2000000, Scoring.Version4));
+            Assert.AreEqual("S", V6SelectDataLogic.GradeOf(1900000, Scoring.Version4));
+            Assert.AreEqual("A", V6SelectDataLogic.GradeOf(1800000, Scoring.Version4));
+            Assert.AreEqual("A", V6SelectDataLogic.GradeOf(1400000, Scoring.Version4));
+            Assert.AreEqual("B", V6SelectDataLogic.GradeOf(1000000, Scoring.Version4));
+            Assert.AreEqual("C", V6SelectDataLogic.GradeOf(999999, Scoring.Version4));
+            Assert.AreEqual("C", V6SelectDataLogic.GradeOf(742000, Scoring.Version4));
+            Assert.AreEqual("", V6SelectDataLogic.GradeOf(0, Scoring.Version4));
+            Assert.AreEqual("", V6SelectDataLogic.GradeOf(-1, Scoring.Version4));
+        }
+
+        [Test]
+        public void GradeOf_V6_FollowsChartMaximumThresholds()
+        {
+            // v6 (ADR-0037): 満点は譜面ごとの ScoreMaxV6(noteCount)。
+            // N=139 → 1,174,000。SS はその譜面の満点のみ、
+            // S ≥ 90% / A ≥ 75% / B ≥ 55%。ノーツ数不明は保守側の "C"。
+            Assert.AreEqual("SS", V6SelectDataLogic.GradeOf(1174000, Scoring.Version6, 139));
+            Assert.AreEqual("S", V6SelectDataLogic.GradeOf(1100000, Scoring.Version6, 139));
+            Assert.AreEqual("A", V6SelectDataLogic.GradeOf(900000, Scoring.Version6, 139));
+            Assert.AreEqual("B", V6SelectDataLogic.GradeOf(700000, Scoring.Version6, 139));
+            Assert.AreEqual("C", V6SelectDataLogic.GradeOf(100, Scoring.Version6, 139));
+            Assert.AreEqual("C", V6SelectDataLogic.GradeOf(1174000, Scoring.Version6, 0));
+            Assert.AreEqual("", V6SelectDataLogic.GradeOf(0, Scoring.Version6, 139));
+            Assert.AreEqual("", V6SelectDataLogic.GradeOf(-1, Scoring.Version6, 139));
         }
 
         [Test]
@@ -122,23 +141,21 @@ namespace FlashBeat.V5CanvasTests
         }
 
         [Test]
-        public void AllSongs_RepairsChartMetaFromTheRealChartFile()
+        public void AllSongs_RepairsChartMetaFromCatalogAndHeldChart()
         {
             var source = new V6SelectDataSource();
 
-            // 終焉逃避行 (index 5): 実譜面ファイル Resources/終焉逃避行.json は
-            // BPM 147 / notes 296。デザインの統計 (dRztp) も 147 / 296。
+            // 終焉逃避行 (index 5): カタログ行の BPM 147 / notes 296
+            // (旧実譜面ファイルと同じ値がカタログへ移った)。
             V6SongEntry entry = source.AllSongs.Single(s => s.Title == "終焉逃避行");
             Assert.AreEqual(147.0, entry.Bpm);
             Assert.AreEqual(296, entry.NoteCount);
 
-            // ジャケットは v6 で全曲分を Resources/V6/select/jacket/ に置いている
-            // (Pencil 設計の正式データ。ファイル名はカタログ index 順)。
-            // Resources.Load は拡張子付きパスを受け付けないため、パスは拡張子なし。
-            Assert.AreEqual("V6/select/jacket/05-shuumatsu", entry.JacketResourcePath);
-            // 22 = 灰Φ倶楽部 も 22-haihai.jpg に対応する (サムネイル空欄の再発防止)。
+            // Issue #823: ローカル (Resources) ジャケットは撤去済み。
+            // 遠隔 (YouTube サムネイル) は V6SongBadge.ApplyJacket が解決する。
+            Assert.AreEqual("", entry.JacketResourcePath);
             V6SongEntry hai = source.AllSongs.Single(s => s.Title == "灰Φ倶楽部");
-            Assert.AreEqual("V6/select/jacket/22-haihai", hai.JacketResourcePath);
+            Assert.AreEqual("", hai.JacketResourcePath);
         }
 
         // --- 選択 / 移動 ------------------------------------------------------------
@@ -213,16 +230,47 @@ namespace FlashBeat.V5CanvasTests
         }
 
         [Test]
-        public void CommitReady_WithLocalSongSelected_FixesSongIdWithoutTransition()
+        public void CommitReady_WithRemoteSongSelected_FixesSongIdWithoutTransition()
         {
+            // Issue #823: 譜面はクラウドカタログ経由でのみ供給される。
+            // CommitReady が通るのはリモート化された行だけなので、
+            // 合成 fixture のリモート曲として終焉逃避行をカタログへ重ねる。
             var source = new V6SelectDataSource();
-            source.Select(5); // 終焉逃避行 (ローカル譜面あり)
+            SongData local = GManager.GetSong(5);
+            Assert.IsNotNull(local);
+            SyntheticCharts.ApplyRemoteOverlay(local, "synthetic-select",
+                SyntheticCharts.ChartVersion, SyntheticCharts.LyricsChartNoteCount);
+            try
+            {
+                source.Select(5); // 終焉逃避行 (リモート化済み)
+                GManager.songID = 1;
+
+                source.CommitReady();
+
+                Assert.IsFalse(source.HasError, source.StatusMessage);
+                Assert.AreEqual(5, GManager.songID);
+            }
+            finally
+            {
+                SyntheticCharts.Reset();
+            }
+        }
+
+        [Test]
+        public void CommitReady_WithNonRemoteSongSelected_ReportsCloudError()
+        {
+            // Issue #823: クラウドカタログ未取得 (非リモート) の行は
+            // ローカル譜面を持たないため開始できない。明確なエラーを返し、
+            // 選曲の確定もしない。
+            var source = new V6SelectDataSource();
+            source.Select(5); // 終焉逃避行 (固定カタログ = 非リモート)
             GManager.songID = 1;
 
             source.CommitReady();
 
-            Assert.IsFalse(source.HasError, source.StatusMessage);
-            Assert.AreEqual(5, GManager.songID);
+            Assert.IsTrue(source.HasError);
+            Assert.IsFalse(string.IsNullOrEmpty(source.StatusMessage));
+            Assert.AreEqual(1, GManager.songID, "開始できない曲で遷移を確定しない");
         }
 
         [Test]
@@ -263,6 +311,73 @@ namespace FlashBeat.V5CanvasTests
             source.SetAuditCatalogFetching(false);
             Assert.IsFalse(source.IsLoading);
             Assert.GreaterOrEqual(changes, 2, "取得中フラグの変化は Changed で通知する");
+        }
+
+        // --- オンラインランキング行のマッピング (Issue #847) ----------------------
+
+        /// <summary>
+        /// 実 API の leaderboard entry は rank を持たない (常に 0)。
+        /// 表示順位はボード内の位置 (1 始まり) から導出する。
+        /// </summary>
+        [Test]
+        public void RankingRows_RanklessEntries_PositionsStartAtOne()
+        {
+            var entries = new[]
+            {
+                new RankingClient.LeaderboardEntry { nickname = "one", score = 900000 },
+                new RankingClient.LeaderboardEntry { nickname = "two", score = 500000 },
+                new RankingClient.LeaderboardEntry { nickname = "three", score = 100 },
+            };
+
+            var rows = V6SelectDataLogic.RankingRows(entries, 100, null);
+
+            Assert.AreEqual(3, rows.Count);
+            Assert.AreEqual(1, rows[0].Position);
+            Assert.AreEqual(2, rows[1].Position);
+            Assert.AreEqual(3, rows[2].Position);
+            Assert.AreEqual("one", rows[0].PlayerName);
+            Assert.AreEqual(900000, rows[0].Score);
+        }
+
+        [Test]
+        public void RankingRows_EntryWithRank_PrefersServerRank()
+        {
+            // 万一 API が rank を返す場合はそれを優先する
+            // (旧 RankingPanel.ShowBoard と同じ規則)。
+            var entries = new[]
+            {
+                new RankingClient.LeaderboardEntry { rank = 5, nickname = "one", score = 900000 },
+                new RankingClient.LeaderboardEntry { nickname = "two", score = 100 },
+            };
+
+            var rows = V6SelectDataLogic.RankingRows(entries, 100, null);
+
+            Assert.AreEqual(5, rows[0].Position);
+            Assert.AreEqual(2, rows[1].Position, "rank 無しの行はボード位置へフォールバック");
+        }
+
+        [Test]
+        public void RankingRows_NicknameMatch_MarksIsYou()
+        {
+            var entries = new[]
+            {
+                new RankingClient.LeaderboardEntry { nickname = "one", score = 900000 },
+                new RankingClient.LeaderboardEntry { nickname = "me", score = 500000 },
+                new RankingClient.LeaderboardEntry { nickname = "three", score = 100 },
+            };
+
+            var rows = V6SelectDataLogic.RankingRows(entries, 100, "me");
+
+            Assert.IsFalse(rows[0].IsYou);
+            Assert.IsTrue(rows[1].IsYou, "ニックネーム一致の行が自分");
+            Assert.IsFalse(rows[2].IsYou);
+        }
+
+        [Test]
+        public void RankingRows_EmptyOrNull_ReturnsEmpty()
+        {
+            Assert.AreEqual(0, V6SelectDataLogic.RankingRows(null, 100, "me").Count);
+            Assert.AreEqual(0, V6SelectDataLogic.RankingRows(new RankingClient.LeaderboardEntry[0], 100, "me").Count);
         }
     }
 }

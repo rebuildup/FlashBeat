@@ -6,9 +6,9 @@ using FlashBeat.UI.V6.Common;
 /// Issue #733: Option / Pause が共有する設定カタログ
 /// (<see cref="V6SettingsCatalog"/>) の行スキーマを検証する。
 ///
-/// - Play / Display タブはホスト (Option / Pause) に関係なく同一の行・同一順序。
-/// - Sound タブは同一スキーマだが、ゲーム進行中の画面 (Pause) では
-///   実行時消費者の無い BGM Volume を出さない (IsGameplayHost ポリシー)。
+/// - Play / Display / Sound の全タブはホスト (Option / Pause) に関係なく
+///   同一の行・同一順序 (v0.2.1: BGM Volume は VideoTime.Update が
+///   GameScene で消費するため Pause にも出す)。
 /// - Play タブの行順は正本 uDNC0 (NoteSpeed / NoteTiming / Key Layout / キー設定)。
 /// </summary>
 public class V6SettingsCatalogTests
@@ -72,15 +72,16 @@ public class V6SettingsCatalogTests
     }
 
     [Test]
-    public void SoundRows_PauseOmitsOnlyTheBgmVolume()
+    public void SoundRows_AreIdenticalBetweenOptionAndPause()
     {
         var option = LabelsOf(2, OptionHost());
         var pause = LabelsOf(2, PauseHost());
 
-        Assert.AreEqual(new[] { "Main Volume", "Effect Volume", "BGM Volume" }, option,
-            "Option の Sound タブは Main / Effect / BGM の 3 行");
-        Assert.AreEqual(new[] { "Main Volume", "Effect Volume" }, pause,
-            "Pause の Sound タブは BGM Volume を出さない (実行時消費者が無い)");
+        // Issue #851: プレイ楽曲 (Song Volume) をメニュー BGM と別行にする。
+        Assert.AreEqual(new[] { "Main Volume", "Song Volume", "BGM Volume", "Effect Volume" }, option,
+            "Option の Sound タブは Main / Song / BGM / Effect の 4 行");
+        Assert.AreEqual(option, pause,
+            "Pause の Sound タブも同一行 (BGM Volume はメニュー背景動画、Song Volume はプレイ楽曲)");
     }
 
     [Test]
@@ -98,8 +99,12 @@ public class V6SettingsCatalogTests
 
         Assert.IsNotNull(row, "キー設定 行が無い");
         Assert.IsTrue(row.IsAction, "キー設定 はステッパーを持たないアクション行");
-        Assert.AreEqual("開く", row.Value(), "値欄は「開く」+ 導線アイコン (› のスプライト化)");
-        Assert.AreEqual("chevron-right", row.ValueIcon, "› は chevron-right アイコンで示す");
+        Assert.AreEqual("開く", row.Value(), "値欄は「開く」");
+        // Issue #798: 「開く」は値テキスト+導線アイコンではなく、行右端の
+        // 小型共通ボタン (arrow-right アイコン付き) として描画する。
+        Assert.AreEqual("開く", row.ActionButtonLabel,
+            "「開く」は ActionButtonLabel を持つアクションボタンとして描く");
+        Assert.IsNull(row.ValueIcon, "アクションボタン化した行に導線アイコンは残さない");
 
         row.Activate();
         Assert.AreEqual(1, host.OpenKeyConfigCalls,
@@ -114,8 +119,11 @@ public class V6SettingsCatalogTests
         // ホストの Volumes.Nudge へ届くことを、値モデルの共有で確認する。
         var host = PauseHost();
         var rows = V6SettingsCatalog.RowsForTab(2, host);
+        Assert.AreEqual(4, rows.Count, "Sound タブは 4 行");
         Assert.AreEqual(0, rows[0].VolumeIndex, "Main Volume");
-        Assert.AreEqual(1, rows[1].VolumeIndex, "Effect Volume");
+        Assert.AreEqual(3, rows[1].VolumeIndex, "Song Volume (Issue #851)");
+        Assert.AreEqual(2, rows[2].VolumeIndex, "BGM Volume");
+        Assert.AreEqual(1, rows[3].VolumeIndex, "Effect Volume");
         Assert.IsNotNull(rows[0].Adjust, "音量行は ←→ / ステッパーで調整できる");
     }
 }

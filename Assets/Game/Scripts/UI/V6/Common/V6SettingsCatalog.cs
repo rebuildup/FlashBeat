@@ -15,7 +15,8 @@ namespace FlashBeat.UI.V6.Common
     {
         /// <summary>
         /// ゲーム進行中の画面 (Pause) から host されているか。
-        /// GameScene には実行時消費者の無い行 (BGM Volume) の出し分けに使う。
+        /// 現在は行スキーマの出し分けには使っていない (v0.2.1 で Sound タブは
+        /// 両画面同一になった)。ホスト固有の将来の出し分け用に契約として残す。
         /// </summary>
         bool IsGameplayHost { get; }
 
@@ -61,11 +62,18 @@ namespace FlashBeat.UI.V6.Common
         public readonly int VolumeIndex;
         /// <summary>値の右に出す導線アイコン (<c>Resources/Icons</c> の名前。不要なら null)。</summary>
         public readonly string ValueIcon;
+        /// <summary>
+        /// アクション行の右端に出す小型ボタンのラベル (例: "開く")。
+        /// 設定すると値テキストの代わりに、共通ボタンと同じ面・アイコン・
+        /// 押下フィードバックを持つボタンとして描画する (Issue #798)。
+        /// null なら従来どおり値テキスト (+ <see cref="ValueIcon"/>) を出す。
+        /// </summary>
+        public readonly string ActionButtonLabel;
 
         public V6SettingRow(string label, Func<string> value, Action<int, bool> adjust,
             Action activate, string descTitle, string desc,
             bool danger = false, bool isAction = false, int volumeIndex = -1,
-            string valueIcon = null)
+            string valueIcon = null, string actionButtonLabel = null)
         {
             Label = label;
             Value = value;
@@ -77,6 +85,7 @@ namespace FlashBeat.UI.V6.Common
             IsAction = isAction;
             VolumeIndex = volumeIndex;
             ValueIcon = valueIcon;
+            ActionButtonLabel = actionButtonLabel;
         }
     }
 
@@ -146,7 +155,7 @@ namespace FlashBeat.UI.V6.Common
                     "キー設定",
                     "8 レーンの代表キーを変更します。行を選んで Enter を押し、次に押したキーが割り当てられます。",
                     isAction: true,
-                    valueIcon: "chevron-right"),
+                    actionButtonLabel: "開く"),
             };
         }
 
@@ -220,18 +229,21 @@ namespace FlashBeat.UI.V6.Common
             {
                 VolumeRow(host, 0, "Main Volume",
                     "全体の音量。スライダーをドラッグするか左右キーで調整します (Shift で 10% 刻み)。"),
+                // Issue #851: プレイ楽曲はメニュー BGM と別チャンネル。
+                // リズムゲームの主体なので既定は十分に聞こえる値。
+                VolumeRow(host, 3, "Song Volume",
+                    "プレイ中の楽曲の音量。スライダーをドラッグするか左右キーで調整します (Shift で 10% 刻み)。"),
+                // v0.2.1 (#733 実機レビュー + PR #787 review): BGM Volume は
+                // Pause にも出す。消費者はメニュー画面 (Title/Select/Option/
+                // Result) の背景動画音声 (VideoTime → GManager.BGMVolume)。
+                // プレイ楽曲は Song Volume 側 (MusicManager →
+                // GManager.songVolume) で、こちらとは独立。
+                // Pause と Option で Sound タブの項目を一致させる。
+                VolumeRow(host, 2, "BGM Volume",
+                    "メニュー画面の背景動画の音量。スライダーをドラッグするか左右キーで調整します (Shift で 10% 刻み)。"),
                 VolumeRow(host, 1, "Effect Volume",
                     "効果音の音量。スライダーをドラッグするか左右キーで調整します (Shift で 10% 刻み)。"),
             };
-
-            // BGM Volume はゲーム進行中の画面 (Pause) では出さない。
-            // GameScene に実行時消費者が無く、押しても効かない行は描画しない
-            // (旧 Pause Sound タブの BGMVolume 廃止と同じ規律、issue-162 B-11)。
-            if (!host.IsGameplayHost)
-            {
-                rows.Add(VolumeRow(host, 2, "BGM Volume",
-                    "BGM の音量。スライダーをドラッグするか左右キーで調整します (Shift で 10% 刻み)。"));
-            }
 
             return rows;
         }

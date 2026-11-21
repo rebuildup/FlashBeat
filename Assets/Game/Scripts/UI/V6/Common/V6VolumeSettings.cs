@@ -6,7 +6,8 @@ namespace FlashBeat.UI.V6.Common
     /// <summary>
     /// 音量設定の値モデル (Issue #733)。Option / Pause の Sound タブが共有する。
     ///
-    /// - 値の実体は <see cref="GManager"/> (mainVolume / effectVolume / BGMVolume)。
+    /// - 値の実体は <see cref="GManager"/> (mainVolume / effectVolume /
+    ///   songVolume / BGMVolume。index 対応は <see cref="V6SettingRow.VolumeIndex"/>)。
     /// - 変更は即時に音出力へ反映する (<see cref="ApplyToOutputs"/>)。
     /// - 保存 (<see cref="OptionSettings.Save"/>) はキー操作では 0.5 秒まとめて
     ///   行い (連打で PlayerPrefs を書かない)、スライダーのドラッグ確定
@@ -29,6 +30,7 @@ namespace FlashBeat.UI.V6.Common
                 case 0: return GManager.mainVolume;
                 case 1: return GManager.effectVolume;
                 case 2: return GManager.BGMVolume;
+                case 3: return GManager.songVolume;
                 default: return 0f;
             }
         }
@@ -57,6 +59,9 @@ namespace FlashBeat.UI.V6.Common
                     break;
                 case 2:
                     GManager.BGMVolume = clamped;
+                    break;
+                case 3:
+                    GManager.songVolume = clamped;
                     break;
                 default:
                     return;
@@ -113,10 +118,10 @@ namespace FlashBeat.UI.V6.Common
             var music = Object.FindFirstObjectByType<MusicManager>();
             if (music != null)
             {
-                // Issue #681 review: 演奏音源は audioS と streamAudioSource
-                // (StreamSeparate) の 2 系統。片方だけ書き換えると
-                // StreamSeparate 再生中に音量が追従しない。
-                music.ApplyMainVolume();
+                // Issue #681 review / #851: 演奏音源は audioS と
+                // streamAudioSource (StreamSeparate) の 2 系統。片方だけ
+                // 書き換えると StreamSeparate 再生中に音量が追従しない。
+                music.ApplySongVolume();
             }
 
             var judge = Object.FindFirstObjectByType<Judge>();

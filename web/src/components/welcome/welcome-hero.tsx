@@ -31,8 +31,8 @@ const copy = css({
 
 const heading = css({
   color: "fg.default",
-  fontSize: "lg",
-  fontWeight: "semibold",
+  /** Shared section-heading step (issue #802). */
+  textStyle: "sectionTitle",
   margin: "0",
 });
 
@@ -41,7 +41,8 @@ const steps = css({
   color: "fg.muted",
   display: "flex",
   flexWrap: "wrap",
-  fontSize: "xs",
+  /** Shared caption step (issue #802). */
+  textStyle: "caption",
   gap: "2",
   margin: "0",
 });
@@ -74,6 +75,18 @@ const stepNowCap = css({
 
 const stepArrow = css({
   color: "fg.subtle",
+  flexShrink: 0,
+});
+
+/**
+ * Issue #802 review: on narrow widths a bare arrow could wrap onto the end
+ * of a line, leaving the next step to start the following line. Binding the
+ * arrow to the step it introduces keeps "→ 2 …" together.
+ */
+const stepGroup = css({
+  alignItems: "center",
+  display: "inline-flex",
+  gap: "2",
 });
 
 /** v5 primary CTA (Prefab/Button Primary, 56px class) — the shared class. */
@@ -113,19 +126,23 @@ export function WelcomeHero() {
             <span className={`${stepCap} ${stepNowCap}`}>1</span>
             <span>曲を選ぶ（ここから）</span>
           </span>
-          <span className={stepArrow} aria-hidden="true">
-            →
+          <span className={stepGroup}>
+            <span className={stepArrow} aria-hidden="true">
+              →
+            </span>
+            <span className={legendItem}>
+              <span className={stepCap}>2</span>
+              <span>譜面が開く・再生して試す</span>
+            </span>
           </span>
-          <span className={legendItem}>
-            <span className={stepCap}>2</span>
-            <span>譜面が開く・再生して試す</span>
-          </span>
-          <span className={stepArrow} aria-hidden="true">
-            →
-          </span>
-          <span className={legendItem}>
-            <span className={stepCap}>3</span>
-            <span>気に入ったらスタッフに伝える（公開はスタッフが行います）</span>
+          <span className={stepGroup}>
+            <span className={stepArrow} aria-hidden="true">
+              →
+            </span>
+            <span className={legendItem}>
+              <span className={stepCap}>3</span>
+              <span>気に入ったらスタッフに伝える（公開はスタッフが行います）</span>
+            </span>
           </span>
         </p>
       </div>

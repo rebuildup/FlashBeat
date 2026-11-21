@@ -37,6 +37,7 @@ namespace FlashBeat.Tests.Editor
             new PrefKey { Key = OptionSettings.MainVolumeKey, IsFloat = true },
             new PrefKey { Key = OptionSettings.EffectVolumeKey, IsFloat = true },
             new PrefKey { Key = OptionSettings.BgmVolumeKey, IsFloat = true },
+            new PrefKey { Key = OptionSettings.SongVolumeKey, IsFloat = true },
             new PrefKey { Key = OptionSettings.NoteSpeedKey, IsFloat = true },
             new PrefKey { Key = OptionSettings.NoteTimingKey, IsFloat = false },
             new PrefKey { Key = OptionSettings.FlashKey, IsFloat = false },
@@ -55,7 +56,7 @@ namespace FlashBeat.Tests.Editor
 
         // --- GManager の退避と復元 ---
 
-        float mainVolume, effectVolume, bgmVolume, noteSpeed;
+        float mainVolume, effectVolume, bgmVolume, songVolume, noteSpeed;
         int noteTiming, flashT, flashBG;
         bool flash;
 
@@ -113,6 +114,7 @@ namespace FlashBeat.Tests.Editor
             mainVolume = GManager.mainVolume;
             effectVolume = GManager.effectVolume;
             bgmVolume = GManager.BGMVolume;
+            songVolume = GManager.songVolume;
             noteSpeed = GManager.noteSpeed;
             noteTiming = GManager.noteTiming;
             flash = GManager.Flash;
@@ -147,6 +149,7 @@ namespace FlashBeat.Tests.Editor
             GManager.mainVolume = mainVolume;
             GManager.effectVolume = effectVolume;
             GManager.BGMVolume = bgmVolume;
+            GManager.songVolume = songVolume;
             GManager.noteSpeed = noteSpeed;
             GManager.noteTiming = noteTiming;
             GManager.Flash = flash;
@@ -282,6 +285,7 @@ namespace FlashBeat.Tests.Editor
             GManager.mainVolume = 0.5f;
             GManager.effectVolume = 0.5f;
             GManager.BGMVolume = 0.5f;
+            GManager.songVolume = 0.5f;
 
             V6OptionView.AdjustMainVolume(1);
 
@@ -301,6 +305,53 @@ namespace FlashBeat.Tests.Editor
             Assert.AreEqual(0.4f, GManager.BGMVolume, 0.001f, "実動作へ反映される");
             Assert.AreEqual(GManager.BGMVolume, PlayerPrefs.GetFloat(OptionSettings.BgmVolumeKey), 0.001f,
                 "保存先 (PlayerPrefs) へ書かれる");
+
+            // Issue #851: プレイ楽曲は別チャンネル。Song Volume の変更は
+            // songVolume / SongVolumeKey へ届き、BGM とは独立。
+            V6OptionView.AdjustSongVolume(-1);
+
+            Assert.AreEqual(0.4f, GManager.songVolume, 0.001f, "実動作へ反映される");
+            Assert.AreEqual(GManager.songVolume, PlayerPrefs.GetFloat(OptionSettings.SongVolumeKey), 0.001f,
+                "保存先 (PlayerPrefs) へ書かれる");
+            Assert.AreEqual(0.4f, GManager.BGMVolume, 0.001f, "BGM は Song 変更で変わらない");
+        }
+
+        /// <summary>
+        /// Issue #851: SongVolumeKey は後から追加したキー。旧設定
+        /// (MainVolumeKey のみ存在、SongVolumeKey 無し) の Load では
+        /// songVolume は既定値のまま — メニュー BGM 用に下げられた
+        /// 旧 BgmVolume を演奏音量へ引き継がない。
+        /// </summary>
+        [Test]
+        public void OptionSettingsLoad_LegacyPrefsWithoutSongVolume_KeepsDefault()
+        {
+            float savedSong = GManager.songVolume;
+            try
+            {
+                // 旧バージョン相当: Main/Bgm のみ保存済み、Song は未保存。
+                PlayerPrefs.SetFloat(OptionSettings.MainVolumeKey, 0.7f);
+                PlayerPrefs.SetFloat(OptionSettings.BgmVolumeKey, 0.3f);
+                PlayerPrefs.DeleteKey(OptionSettings.SongVolumeKey);
+                GManager.songVolume = 0.42f; // 読み込みで上書きされないことを見るための異常値
+
+                OptionSettings.Load();
+
+                Assert.AreEqual(0.42f, GManager.songVolume, 0.0001f,
+                    "SongVolumeKey 未保存なら songVolume は現在値 (既定) のまま");
+                Assert.AreEqual(0.3f, GManager.BGMVolume, 0.0001f,
+                    "旧 BgmVolume はメニュー BGM としてそのまま復元される");
+
+                // SongVolumeKey があればそちらが優先される。
+                PlayerPrefs.SetFloat(OptionSettings.SongVolumeKey, 0.9f);
+                GManager.songVolume = 0.1f;
+                OptionSettings.Load();
+                Assert.AreEqual(0.9f, GManager.songVolume, 0.0001f,
+                    "SongVolumeKey 保存済みならその値を復元する");
+            }
+            finally
+            {
+                GManager.songVolume = savedSong;
+            }
         }
 
         // --- Display タブのセッション設定 (Key Guide / Lyrics) ---

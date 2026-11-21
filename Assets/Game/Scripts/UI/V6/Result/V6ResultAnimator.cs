@@ -119,7 +119,10 @@ namespace FlashBeat.UI.V6.Result
 
             float gauge = V6ResultRevealLogic.GaugeProgress(elapsed);
             SetAlpha(gaugeGroup, gauge);
-            float fill = V6ResultLogic.GaugeFillWidth(runScore);
+            // scoring v6 のゲージは譜面満点 ScoreMaxV6(noteCount) で
+            // 正規化する (V6ResultStats.RefreshResult と同じノーツ数)。
+            int noteCount = runPerfect + runGreat + runBad + runMiss;
+            float fill = V6ResultLogic.GaugeFillWidth(runScore, noteCount);
             gaugeFill.rectTransform.sizeDelta = new Vector2(fill * gauge, GaugeTrackH);
 
             float lateAlpha = V6ResultRevealLogic.Alpha(elapsed,
@@ -147,7 +150,8 @@ namespace FlashBeat.UI.V6.Result
             }
 
             SetAlpha(gaugeGroup, 1f);
-            gaugeFill.rectTransform.sizeDelta = new Vector2(V6ResultLogic.GaugeFillWidth(runScore), GaugeTrackH);
+            int finalNoteCount = runPerfect + runGreat + runBad + runMiss;
+            gaugeFill.rectTransform.sizeDelta = new Vector2(V6ResultLogic.GaugeFillWidth(runScore, finalNoteCount), GaugeTrackH);
             for (int i = 0; i < lateGroups.Count; i++)
             {
                 SetAlpha(lateGroups[i], 1f);

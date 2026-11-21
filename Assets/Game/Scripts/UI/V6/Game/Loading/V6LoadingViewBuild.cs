@@ -77,6 +77,7 @@ namespace FlashBeat.UI.V6.Game.Loading
 
             BuildHeader();
             BuildFooter();
+            BuildErrorPanel();
 
             driver = rootGo.AddComponent<V6LoadingViewDriver>();
             driver.View = this;
@@ -213,6 +214,55 @@ namespace FlashBeat.UI.V6.Game.Loading
                 V6LoadingViewLogic.FooterLegendCapHeight, V6Controls.KeyCapPaddingX,
                 V6LoadingViewLogic.FooterLegendInnerGap, V6LoadingViewLogic.FooterLegendItemGap,
                 V6LoadingViewLogic.FooterLegendFontSize, V6Tokens.Key4, V6Tokens.TextMuted);
+        }
+
+        /// <summary>
+        /// 失敗時のエラーパネル (Issue #792)。
+        ///
+        /// design にはエラー専用の表示が無い (Issue #606) が、v0.2.1 の実機受入で
+        /// 「ローディング後に説明なく選曲画面へ戻る」が不合格になった。
+        /// メインゾーン中央に理由の文言と「再試行」(GameScene の読み直し)
+        /// 「選曲にもどる」(既存の Back) の 2 ボタンを出す。
+        /// フレームは 1728×972 の design 座標 (左上原点)。
+        /// </summary>
+        private void BuildErrorPanel()
+        {
+            const float panelW = 1040f;
+            const float panelH = 400f;
+            errorPanel = V5Ui.Panel(frame.gameObject, "Error Panel",
+                new Vector2(panelW, panelH), V5Tokens.Recessed2, V5Tokens.RadiusMedium);
+            V6Layout.PlaceAt(errorPanel, (FrameW - panelW) * 0.5f, (FrameH - panelH) * 0.5f,
+                new Vector2(panelW, panelH));
+            errorPanel.SetActive(false);
+
+            errorText = V5Ui.Text(errorPanel, "Error Message", "", 26f,
+                V5Tokens.Text, TextAlignmentOptions.Center);
+            V6Layout.PlaceAt(errorText, 40f, 48f, new Vector2(panelW - 80f, 200f));
+            errorText.textWrappingMode = TextWrappingModes.Normal;
+            errorText.alignment = TextAlignmentOptions.Center;
+
+            // ボタン行: 「再試行」(主操作) と「選曲にもどる」(副操作)。
+            const float btnW = 260f;
+            const float btnH = 64f;
+            const float btnGap = 40f;
+            float btnY = panelH - btnH - 40f;
+            float btnX = (panelW - btnW * 2f - btnGap) * 0.5f;
+
+            var retry = V5Ui.ButtonPrimary(errorPanel, "再試行", new Vector2(btnW, btnH));
+            V6Layout.PlaceAt(retry, btnX, btnY, new Vector2(btnW, btnH));
+            var retryButton = retry.GetComponent<Button>();
+            if (retryButton != null)
+            {
+                retryButton.onClick.AddListener(Retry);
+            }
+
+            var back = V5Ui.ButtonSecondary(errorPanel, "選曲にもどる", new Vector2(btnW, btnH));
+            V6Layout.PlaceAt(back, btnX + btnW + btnGap, btnY, new Vector2(btnW, btnH));
+            var backButton = back.GetComponent<Button>();
+            if (backButton != null)
+            {
+                backButton.onClick.AddListener(Back);
+            }
         }
     }
 }

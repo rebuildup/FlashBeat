@@ -6,11 +6,14 @@ namespace FlashBeat.UI.V6
     /// <summary>
     /// プロセス内コンテンツ キャッシュの無効化を 1 箇所で定義する (Issue #377)。
     ///
-    /// 対象は 3 つ。すべて Resources の中身 (ビルドに焼き込まれた譜面 JSON と
-    /// ジャケット画像) から導かれ、プロセスの実行中には変わらない。
+    /// 対象は 2 つ。すべて Resources の中身 (ビルドに焼き込まれた譜面 JSON)
+    /// から導かれ、プロセスの実行中には変わらない。
     ///
     ///   - 譜面メタ (BPM / ノーツ数) と譜面の有無: <see cref="V6SelectDataSource"/>
-    ///   - ジャケットの Sprite: <see cref="V6JacketResources"/>
+    ///
+    /// Issue #823: ジャケットはローカル Resources から撤去し、YouTube
+    /// サムネイルの遠隔キャッシュ (LRU 上限付き) に一本化した。遠隔キャッシュは
+    /// ネットワーク由来でプロセス中に増減するため、この無効化の対象外とする。
     ///
     /// したがって有効期間はプロセスの寿命で、更新はアプリの再起動で反映される。
     /// これは「曲データを変えたのに古い表示が残る」が起こり得ない構成
@@ -18,10 +21,9 @@ namespace FlashBeat.UI.V6
     /// 実行中に差し替わる経路 (カタログの再取得でローカルの対応が変わる等) を
     /// 足すときは、その経路から <see cref="InvalidateAll"/> を呼ぶ。
     ///
-    /// メモリ上限の見積り: ジャケット 1 枚は 320×180 px の非圧縮 RGBA で約 220 KB。
-    /// キャッシュに載るのは対応表にある曲だけ (v6 26 + V5 フォールバック 6) なので
-    /// 上限は約 7 MB。曲が増えても「曲数 × 220 KB」を超えない。譜面メタは曲あたり
-    /// 2 つの数値なので無視できる。
+    /// メモリ上限の見積り: 譜面メタは曲あたり 2 つの数値なので無視できる。
+    /// ジャケットの遠隔キャッシュは <see cref="V6JacketProvider.RemoteCacheCapacity"/>
+    /// 件までに制限される (Issue #416)。
     /// </summary>
     public static class V6ContentCaches
     {
@@ -31,22 +33,16 @@ namespace FlashBeat.UI.V6
             get { return V6SelectDataSource.ChartMetaLoadCount; }
         }
 
-        /// <summary>譜面の有無を実際に確かめた回数。</summary>
-        public static int ChartExistsLoadCount
-        {
-            get { return V6SelectDataSource.ChartExistsLoadCount; }
-        }
-
-        /// <summary>ジャケットを実際に Resources から読んだ回数。</summary>
+        /// <summary>ジャケットの遠隔 HTTP を実際に開始した回数。</summary>
         public static int JacketLoadCount
         {
-            get { return V6JacketResources.TextureLoadCount; }
+            get { return V6JacketProvider.RemoteFetchCount; }
         }
 
-        /// <summary>ジャケット キャッシュの現在の枚数。</summary>
+        /// <summary>ジャケット遠隔キャッシュの現在のエントリ数。</summary>
         public static int JacketCount
         {
-            get { return V6JacketResources.CachedSpriteCount; }
+            get { return V6JacketProvider.RemoteCacheEntryCount; }
         }
 
         /// <summary>
@@ -60,10 +56,8 @@ namespace FlashBeat.UI.V6
         public static void InvalidateAll()
         {
             V6SelectDataSource.ClearContentCaches();
-            V6JacketResources.ClearCache();
-            // Issue #398: ジャケットの実体は V6JacketProvider が所有する。
-            // ここを忘れると、無効化したのに古い Sprite が返り続ける。
-            V6JacketProvider.InvalidateLocal();
+            // Issue #823: ジャケットは遠隔キャッシュのみ (LRU 上限付き)。
+            // Resources 由来ではないのでここでは触らない。
         }
 
         /// <summary>
@@ -73,13 +67,11 @@ namespace FlashBeat.UI.V6
         public static string Describe()
         {
             return string.Format(CultureInfo.InvariantCulture,
-                "chartMeta={0}(loads={1}) chartExists={2}(loads={3}) jacket={4}(loads={5})",
+                "chartMeta={0}(loads={1}) jacket={2}(loads={3})",
                 V6SelectDataSource.ChartMetaCacheCount,
                 V6SelectDataSource.ChartMetaLoadCount,
-                V6SelectDataSource.ChartExistsCacheCount,
-                V6SelectDataSource.ChartExistsLoadCount,
-                V6JacketResources.CachedSpriteCount,
-                V6JacketResources.TextureLoadCount);
+                V6JacketProvider.RemoteCacheEntryCount,
+                V6JacketProvider.RemoteFetchCount);
         }
     }
 }

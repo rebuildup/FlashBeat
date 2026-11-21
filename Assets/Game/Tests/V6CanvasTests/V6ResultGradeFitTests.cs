@@ -141,28 +141,33 @@ namespace FlashBeat.V6CanvasTests
         /// <summary>
         /// GradeOf が返し得る全グレード ("–","C","B","A","S","SS") で、
         /// グレード文字が 280×280 の Grade 箱からはみ出さず 1 行で描かれること。
-        /// スコアは scoring v4 (満点 2,000,000) の帯 (ADR-0034 / Issue #758)。
+        /// スコアは scoring v6 (ADR-0037 / Issue #825) の帯: N=139 の譜面
+        /// 満点 1,174,000 に対し SS = 満点のみ / S ≥ 90% / A ≥ 75% / B ≥ 55%。
         /// </summary>
         [Test]
         public void GradeLetter_AllGrades_FitInsideGradeBox()
         {
-            // (score, 期待グレード)。閾値は V6GradeLogic.GradeOfV4 と同一
-            // (GradeOf の帯は V6ResultLogicTests / V6GradeLogicTests が固定済み)。
+            // (score, 期待グレード)。閾値は V6GradeLogic.GradeOfV6 と同一
+            // (v6 帯は V6ResultLogicTests / V6GradeLogicTests が固定済み)。
+            // perfect=139 で譜面ノーツ数 139 を再現する (v6 のグレードは
+            // ScoreMaxV6(noteCount) の割合で決まる)。
             var cases = new[]
             {
                 new KeyValuePair<int, string>(0, "–"),
                 new KeyValuePair<int, string>(100, "C"),
-                new KeyValuePair<int, string>(1599999, "C"),
-                new KeyValuePair<int, string>(1600000, "B"),
-                new KeyValuePair<int, string>(1800000, "A"),
-                new KeyValuePair<int, string>(1900000, "S"),
-                new KeyValuePair<int, string>(1999999, "S"),
-                new KeyValuePair<int, string>(2000000, "SS"),
+                new KeyValuePair<int, string>(645699, "C"),
+                new KeyValuePair<int, string>(645700, "B"),
+                new KeyValuePair<int, string>(880499, "B"),
+                new KeyValuePair<int, string>(880500, "A"),
+                new KeyValuePair<int, string>(1056599, "A"),
+                new KeyValuePair<int, string>(1056600, "S"),
+                new KeyValuePair<int, string>(1173999, "S"),
+                new KeyValuePair<int, string>(1174000, "SS"),
             };
 
             foreach (var c in cases)
             {
-                var view = CreateView(c.Key);
+                var view = CreateView(c.Key, perfect: 139);
                 try
                 {
                     var letter = FindText(view, "Main/Result Block/Grade/Letter");
@@ -185,11 +190,12 @@ namespace FlashBeat.V6CanvasTests
         /// <summary>
         /// "SS" (2 グリフ) は fs240 では Grade 箱の幅を超えるため、実測フィットで
         /// 最大 fs より小さいサイズへ縮むこと。単一グリフは design どおり fs240。
+        /// v6: N=139 の譜面満点 1,174,000 が SS、1,100,000 (93.7%) は S。
         /// </summary>
         [Test]
         public void GradeLetter_SS_ShrinksToFit_WhileSingleGlyphKeepsMaxSize()
         {
-            var ssView = CreateView(2000000);
+            var ssView = CreateView(1174000, perfect: 139);
             try
             {
                 var ss = FindText(ssView, "Main/Result Block/Grade/Letter");
@@ -203,7 +209,7 @@ namespace FlashBeat.V6CanvasTests
                 Object.DestroyImmediate(ssView.Root.gameObject);
             }
 
-            var sView = CreateView(1900000);
+            var sView = CreateView(1100000, perfect: 139);
             try
             {
                 var s = FindText(sView, "Main/Result Block/Grade/Letter");
@@ -225,7 +231,7 @@ namespace FlashBeat.V6CanvasTests
         [Test]
         public void GradeLetter_SS_DoesNotReachScoreColumn()
         {
-            var view = CreateView(1000000);
+            var view = CreateView(1000000, perfect: 139);
             try
             {
                 var letter = FindText(view, "Main/Result Block/Grade/Letter");
@@ -268,12 +274,12 @@ namespace FlashBeat.V6CanvasTests
                         view, 160f, 70f);
                 }
 
-                // Issue #736 (scoring v4): ボーナス内訳の表示名は
-                // BASE / COMBO / MILESTONE / CLEAR の 4 列
+                // scoring v6 (ADR-0037): ボーナス内訳の表示名は
+                // BASE / NOTE QUALITY / MILESTONE / CLEAR の 4 列
                 // (V6ResultStats.BuildBonusLine の keys と同一)。
                 string[] bonusKeys =
                 {
-                    "Base Score", "Combo Bonus", "Milestone Bonus", "Clear Bonus",
+                    "Base Score", "Note Quality", "Milestone Bonus", "Clear Bonus",
                 };
                 for (int i = 0; i < bonusKeys.Length; i++)
                 {
@@ -316,7 +322,7 @@ namespace FlashBeat.V6CanvasTests
         [Test]
         public void RegisterModal_NumericTexts_StayInsideTheirRects()
         {
-            var view = CreateView(1000000);
+            var view = CreateView(1000000, perfect: 139);
             try
             {
                 // モーダルは非表示だが構造は構築済み。RefreshModal で実値が入る。

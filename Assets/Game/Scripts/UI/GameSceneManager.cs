@@ -34,8 +34,17 @@ public class GameSceneManager : MonoBehaviour
     [SerializeField] public GameObject Flash;
 
     private string songName;
+    private SongData sessionSong;
 
     private TextData inputJson; // メンバ変数として TextData オブジェクトを宣言
+
+    /// <summary>
+    /// Issue #789: 歌詞データの解決結果。<see cref="Load"/> で
+    /// <see cref="ChartLyrics.Resolve"/> の結果を保持する。
+    /// テスト等で <see cref="InputJson"/> が直接差し込まれた場合は null のまま
+    /// (その場合 HUD は行データの有無から状態を推測する従来経路を使う)。
+    /// </summary>
+    public ChartLyricsResult LyricsResult { get; private set; }
 
     // 他の関数で使用するためのプロパティ
     public TextData InputJson
@@ -51,67 +60,39 @@ public class GameSceneManager : MonoBehaviour
         Flash.SetActive(true);
         gauge.fillAmount = 0;
         // Issue #657: GetSong はプレイセッション固定の曲を優先する。
-        songName = GManager.GetSong(GManager.songID).title;
-        Load(songName);
+        SongData song = PlaySessionSnapshot.ResolveSong(GManager.songID);
+        SongData fallback = song ?? GManager.GetSong(GManager.songID);
+        songName = fallback != null ? fallback.title : string.Empty;
+        sessionSong = song;
+        Load(songName, song);
 
     }
-    private void Load(string SongName)
+    private void Load(string SongName, SongData song)
     {
-        this.inputJson = LoadTextData(SongName);
+        // Issue #789: 歌詞は実際に使う譜面ソース (プレイセッションの固定 JSON /
+        // CloudChartHolder / ローカル Resources) から ChartLyrics が解決する。
+        // 以前はローカル Resources しか読まず、リモート曲では常に空を返して
+        // いた (クラウド譜面の lyrics ブロックが HUD へ届かない根本原因)。
+        LyricsResult = ChartLyrics.Resolve(song);
+        this.inputJson = LyricsResult.Lyrics;
     }
 
     /// <summary>
-    /// 曲名から歌詞データ (TextData) を読む。マージ済み譜面 JSON
-    /// (NoteEditor DTO) を優先し、無ければ旧形式 *_text.json にフォールバックする。
-    ///
-    /// Issue #607: Option 画面の Game Preview も同じ経路で歌詞を読むため
-    /// internal static にした (読み取りのみ・状態は持たない)。
+    /// Issue #789: Pending (リモート譜面の到着待ち) の間だけ毎フレーム
+    /// 再解決する。通常は Start 時点で譜面が確定しているが、万が一
+    /// 到着が遅れた場合でも、ChartLyrics が Pending をキャッシュしない
+    /// ためここで到着を拾って歌詞が出るようになる。
     /// </summary>
-    internal static TextData LoadTextData(string songName)
+    void RefreshPendingLyrics()
     {
-        var mergedAsset = Resources.Load<TextAsset>(songName);
-        if (mergedAsset != null)
+        if (LyricsResult == null || LyricsResult.State != ChartLyricsState.Pending)
         {
-            var chart = JsonUtility.FromJson<NoteEditor.DTO.MusicDTO.EditData>(mergedAsset.text);
-            if (chart != null && chart.lyrics != null && chart.lyrics.mondai != null && chart.lyrics.mondai.Length > 0)
-            {
-                return new TextData
-                {
-                    StartTime = chart.lyrics.startTime ?? new float[0],
-                    Furigana  = chart.lyrics.furigana  ?? new string[0],
-                    Mondai    = chart.lyrics.mondai    ?? new string[0],
-                    romaji    = chart.lyrics.romaji    ?? new string[0],
-                    EndTime   = chart.lyrics.endTime   ?? new float[0],
-                };
-            }
+            return;
         }
-
-        var legacyAsset = Resources.Load<TextAsset>(songName + "_text");
-        if (legacyAsset != null)
-        {
-            return JsonUtility.FromJson<TextData>(legacyAsset.text);
-        }
-
-        // Cloud Catalog songs (#17) have no local lyrics resource; that is
-        // expected, so only a warning. Fixed-catalog songs keep the error.
-        SongData currentSong = GManager.GetSong(GManager.songID);
-        if (currentSong != null && currentSong.isRemote)
-        {
-            Debug.LogWarning($"[GameSceneManager] no text data for remote song '{currentSong.remoteId}' - lyrics are empty");
-        }
-        else
-        {
-            Debug.LogError($"[GameSceneManager] No text data for {songName}");
-        }
-        return new TextData
-        {
-            StartTime = new float[0],
-            Furigana  = new string[0],
-            Mondai    = new string[0],
-            romaji    = new string[0],
-            EndTime   = new float[0],
-        };
+        LyricsResult = ChartLyrics.Resolve(sessionSong);
+        inputJson = LyricsResult.Lyrics;
     }
+
     public void RetireGame()
     {
         Initiate.Fade("SelectScene", Color.black, 1.0f);
@@ -129,6 +110,7 @@ public class GameSceneManager : MonoBehaviour
 
     void Update()
     {
+        RefreshPendingLyrics();
         if (!GManager.played)
         {
             return;

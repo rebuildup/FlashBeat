@@ -23,6 +23,32 @@ public class SongEndHarnessTests
     /// <summary>ハーネスが既定で再生する曲。</summary>
     const string HarnessSong = AutoTestV6SongEnd.DefaultSongTitle;
 
+    /// <summary>
+    /// Issue #823: 実曲譜面はクラウド正本。ハーネス前提 (ノーツあり・
+    /// HOLD 無し・末尾が曲終了より前) は権利クリアな合成 fixture で
+    /// 固定する。リモート曲としてカタログへ重ね、CloudChartHolder に
+    /// 保持した状態を製品パスと同じく読む。
+    /// </summary>
+    const string FixtureRemoteId = "synthetic-songend";
+
+    [SetUp]
+    public void SetUp()
+    {
+        SyntheticCharts.Reset();
+        SongData local = Song(HarnessSong);
+        Assert.IsNotNull(local, "the harness song must be in the catalog");
+        string json = SyntheticCharts.SongEndChartEnvelope(FixtureRemoteId);
+        SyntheticCharts.ApplyRemoteOverlay(local, FixtureRemoteId,
+            SyntheticCharts.ChartVersion, 15);
+        SyntheticCharts.Hold(FixtureRemoteId, SyntheticCharts.ChartVersion, json);
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        SyntheticCharts.Reset();
+    }
+
     static int SongIndex(string title)
     {
         for (int i = 0; i < GManager.SongName.Length; i++)
@@ -43,9 +69,13 @@ public class SongEndHarnessTests
 
     static Data Chart(string title)
     {
-        var asset = Resources.Load<TextAsset>(title);
-        if (asset == null) { return null; }
-        return JsonUtility.FromJson<Data>(asset.text);
+        // 保持中のクラウド譜面 (合成 fixture) を製品と同じ封筒経路で読む。
+        SongData song = Song(title);
+        if (song == null || !song.isRemote) { return null; }
+        int version;
+        string json;
+        if (!CloudChartHolder.TryGetForSong(song.remoteId, out version, out json)) { return null; }
+        return CloudCatalog.ParseChartResponse(json);
     }
 
     /// <summary>末尾ノーツが確定する時刻 (タップ: 時刻 + Miss 窓)。</summary>

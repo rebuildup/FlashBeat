@@ -250,26 +250,38 @@ Mac 実機で確認していない項目を PASS と書かない。実行でき�
 
 - 「正しく叩いた感覚」を判定線の位置で返すため、判定テキストは判定確定
   (t=0) の時点で**判定線の位置**に即時出現する (フェードインしない)。
-  そこから `VerdictRiseSeconds` (0.18 秒) かけて EaseOutCubic で
-  頂点 (判定線の `VerdictPeakGapAboveLine` = 72px 上) まで**上昇**する。
-- 頂点では `VerdictHoldSeconds` (0.50 秒) 静止して読み取り時間を取る。
-- その後 `VerdictFallSeconds` (0.32 秒) かけて EaseInCubic で**加速しながら
-  判定線を越えて下へ落下**し、同じ時間で不透明度を 1→0 にフェードする。
+  そこから `VerdictRiseSeconds` (0.14 秒) かけて EaseOutCubic で
+  頂点 (判定線の `VerdictPeakRisePx(m)` = 判定ボックス高さ `VerdictH` の
+  `VerdictPeakRiseRatio` = 4 個分上。FHD で約 176px) まで**上昇**する。
+- 頂点での静止フェーズは持たず、直後 `VerdictFallSeconds` (0.42 秒)
+  かけて EaseInCubic で**加速しながら判定線を越えて下へ落下**し、
+  落下終盤 (`VerdictFadeStartU` 以降) で不透明度を 1→0 にフェードする。
   退場の終端は判定線より `VerdictExitDropPx(m)` (= 判定ボックス高さ
-  `VerdictH` 1 個分) 下。総寿命は `VerdictTotalSeconds` = 1.00 秒。
-- レイアウトは動かさない (anchoredPosition の y だけを時間で変える)。
-- **起点は判定線、頂点はその 72px 上、退場は判定ボックス 1 個分下。**
-  いずれも判定線付近に局所化され、ノーツの全画面落下とは区別できる。
-  距離・時間は解像度別メトリクスと `V6HudLogic` の定数が正本。
-- 本節は Issue #731 (親 #728 観測 3) で再制定した。旧 #671 の
-  「静止位置 (判定線 72px 上) の真上 `VerdictH` から落下して着地 →
-  静止 → フェード」はオーナー要求に反するため廃止。Issue #605 の
-  「判定線から立ち上がる」方向性は上昇フェーズとして復活したが、
-  終了時の下方退場が加わり軌道全体は別物。
+  `VerdictH` 1 個分) 下。総寿命は `VerdictTotalSeconds` = 0.56 秒。
+- 出現直後 `VerdictPopScaleTotal` (0.24 秒) だけ `PunchScale` で
+  `VerdictPopPeakScale` (1.18) へふくらんで等倍へ戻る
+  (出現のスケールアニメーション)。
+- **判定イベント 1 件につき独立した表示インスタンス**を持つ
+  (`V6VerdictPopPool`: レーン × `SlotsPerLane` = 4 の使い回しプール。
+  実行時の Instantiate/GC は発生しない)。同一レーンの連続判定でも
+  前の判定を上書きせず、開始時刻の差で自然に縦へずれて重なり、
+  新しい判定ほど前面に描く (SetAsLastSibling)。スロット超過時は
+  同レーンの最古表示を回収する。
+- レイアウトは動かさない (anchoredPosition の y と localScale、
+  不透明度だけを時間で変える)。
+- **起点は判定線、頂点はその `VerdictH`×4 上、退場は判定ボックス
+  1 個分下。** 距離は解像度別メトリクスに比例し、時間・距離・色・
+  ラベルの正本は `V6HudLogic`。
+- 本節は Issue #731 (親 #728 観測 3) で再制定し、Issue #793
+  (v0.2.3 実機受入) で頂点距離・出現スケール・イベント単位の
+  表示インスタンスを改訂した。旧 #671 の「静止位置の真上から落下」
+  軌道と、v0.2.0〜v0.2.2 の「頂点で静止」軌道は実機レビューで
+  差し戻されている。
 - 時系列パラメータの正本は `V6HudLogic` の `VerdictPoseAt`
-  (純粋タイムライン: 判定線からのオフセット px と不透明度を返す)。
-  本編 HUD (`V6HudVerdict`) と Option プレビュー
-  (`V6OptionViewPreviewOverlay`) は同じ関数・同じ定数を使う。
+  (純粋タイムライン: 判定線からのオフセット px・不透明度・
+  スケールを返す)。本編 HUD (`V6HudVerdict`) と Option プレビュー
+  (`V6GamePreview` + `V6OptionPreviewRig` のイベント記録 +
+  `V6VerdictPopPool`) は同じ関数・同じ定数・同じプール方式を使う。
 
 ### 10.4 コンボのポップ
 

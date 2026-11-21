@@ -23,12 +23,13 @@ namespace FlashBeat.Tests
         /// 境界・中間時刻での軌道。判定確定 t=0 を原点に、
         /// 判定線上に出現 → EaseOutCubic で頂点まで上昇 → 頂点で保持 →
         /// EaseInCubic で加速しながら判定線を割って下へ落下 + フェード。
+        /// v0.2.1: 頂点での静止フェーズは無く、上昇の終端から連続して落下する。
         /// </summary>
         [Test]
-        public void VerdictPose_RisesFromJudgeLine_Holds_FallsBelow()
+        public void VerdictPose_RisesFromJudgeLine_FallsBelow()
         {
             var m = V6HudMetrics.Fhd(1f);
-            float peak = V6HudLogic.VerdictPeakGapAboveLine;
+            float peak = V6HudLogic.VerdictPeakRisePx(m);
             float exitDrop = V6HudLogic.VerdictExitDropPx(m);
 
             // t=0: 判定線の位置 (オフセット 0) に即時出現、不透明。
@@ -48,17 +49,16 @@ namespace FlashBeat.Tests
                 prev = off;
             }
 
-            // 上昇の終端と保持フェーズ: 頂点 (peak) に留まる。
+            // 上昇の終端は頂点 (peak)。直後から落下が始まる (静止フェーズ無し)。
             Assert.AreEqual(peak,
                 V6HudLogic.VerdictPoseAt(V6HudLogic.VerdictRiseSeconds, m).OffsetPx, 0.001f);
-            Assert.AreEqual(peak,
-                V6HudLogic.VerdictPoseAt(
-                    V6HudLogic.VerdictRiseSeconds + V6HudLogic.VerdictHoldSeconds * 0.5f, m)
-                    .OffsetPx, 0.001f,
-                "保持フェーズは頂点で静止する");
+            float justAfterPeak = V6HudLogic.VerdictPoseAt(
+                V6HudLogic.VerdictRiseSeconds + 0.02f, m).OffsetPx;
+            Assert.Less(justAfterPeak, peak,
+                "頂点で静止せず直後から下へ落ち始める (v0.2.1)");
 
             // 下方退場フェーズ: peak から単調減少し、終端は判定線より下 (負)。
-            float fallStart = V6HudLogic.VerdictRiseSeconds + V6HudLogic.VerdictHoldSeconds;
+            float fallStart = V6HudLogic.VerdictRiseSeconds;
             prev = peak;
             for (int i = 1; i <= 10; i++)
             {
@@ -125,7 +125,7 @@ namespace FlashBeat.Tests
 
             // 旧軌道の「静止位置 + 落下距離」の出現高さ (peak + VerdictH 相当の
             // 上空出発) を新軌道が取らないことも確認する。
-            float oldAppearOffset = V6HudLogic.VerdictPeakGapAboveLine
+            float oldAppearOffset = V6HudLogic.VerdictPeakRisePx(m)
                 + V6HudLogic.VerdictExitDropPx(m);
             for (int i = 0; i <= 20; i++)
             {
@@ -137,25 +137,35 @@ namespace FlashBeat.Tests
         }
 
         [Test]
-        public void VerdictAlpha_IsOpaqueUntilExitFade()
+        public void VerdictAlpha_FadesDuringLateFall_NotAtTheLine()
         {
             var m = V6HudMetrics.Fhd(1f);
 
-            // 上昇・保持フェーズは常に不透明 (フェードインしない)。
+            // 出現・上昇・退場序盤 (u < VerdictFadeStartU) は不透明
+            // (フェードインしない)。
             Assert.AreEqual(1f, V6HudLogic.VerdictPoseAt(0f, m).Alpha, 0.001f);
             Assert.AreEqual(1f,
-                V6HudLogic.VerdictPoseAt(
-                    V6HudLogic.VerdictRiseSeconds + V6HudLogic.VerdictHoldSeconds, m)
-                    .Alpha, 0.001f,
-                "下方退場の開始時点でもまだ不透明");
+                V6HudLogic.VerdictPoseAt(V6HudLogic.VerdictRiseSeconds, m).Alpha, 0.001f,
+                "頂点到達時点でもまだ不透明");
+            float midFallAlpha = V6HudLogic.VerdictPoseAt(
+                V6HudLogic.VerdictRiseSeconds
+                + V6HudLogic.VerdictFallSeconds * (V6HudLogic.VerdictFadeStartU - 0.01f), m).Alpha;
+            Assert.AreEqual(1f, midFallAlpha, 0.001f,
+                "フェード開始前は落下中も不透明のまま");
 
-            // 退場フェーズは 1→0 に線形で下がる。
-            float fallMid = V6HudLogic.VerdictPoseAt(
-                V6HudLogic.VerdictRiseSeconds + V6HudLogic.VerdictHoldSeconds
-                    + V6HudLogic.VerdictFallSeconds * 0.5f, m).Alpha;
-            Assert.AreEqual(0.5f, fallMid, 0.001f);
-
-            // 寿命末とそれ以降は透明。
+            // フェード区間 (u 0.6→1.0) では単調に減少し、
+            // 寿命末で 0。判定線を割るのは終盤なので、線の下で
+            // 「不透明のまま残る」時間は無い (v0.2.1 実機レビュー)。
+            float prev = 1f;
+            for (int i = 1; i <= 10; i++)
+            {
+                float u = V6HudLogic.VerdictFadeStartU
+                    + (1f - V6HudLogic.VerdictFadeStartU) * i / 10f;
+                float a = V6HudLogic.VerdictPoseAt(
+                    V6HudLogic.VerdictRiseSeconds + V6HudLogic.VerdictFallSeconds * u, m).Alpha;
+                Assert.LessOrEqual(a, prev + 0.0001f, $"フェードは単調減少 (u={u:F2})");
+                prev = a;
+            }
             Assert.AreEqual(0f,
                 V6HudLogic.VerdictPoseAt(V6HudLogic.VerdictTotalSeconds, m).Alpha, 0.001f);
             Assert.AreEqual(0f,
@@ -163,7 +173,97 @@ namespace FlashBeat.Tests
                 0.001f);
         }
 
+        /// <summary>
+        /// Issue #793 (v0.2.3 実機受入): 出現時にスケールアニメーションを入れる。
+        /// 出現直後だけ山 (<see cref="V6HudLogic.VerdictPopPeakScale"/>) へ
+        /// ふくらみ、<see cref="V6HudLogic.VerdictPopScaleTotal"/> 以降は等倍。
+        /// 退場中に拡大が残らないことも確認する。
+        /// </summary>
+        [Test]
+        public void VerdictPose_ScalePopsOnAppear_ThenSettles()
+        {
+            var m = V6HudMetrics.Fhd(1f);
+
+            // 出現時点は等倍から始まり、ポップ時間内に山を越える。
+            Assert.AreEqual(1f, V6HudLogic.VerdictPoseAt(0f, m).Scale, 0.001f);
+            float peakScale = 0f;
+            for (int i = 1; i <= 12; i++)
+            {
+                float t = V6HudLogic.VerdictPopScaleTotal * i / 12f;
+                peakScale = Mathf.Max(peakScale,
+                    V6HudLogic.VerdictPoseAt(t, m).Scale);
+            }
+            Assert.Greater(peakScale, 1.05f,
+                "出現時にスケールがふくらむ (見た目の出現アニメーション)");
+            // EaseOutBack は山を行き過ぎるので peak を僅かに超え得る。
+            Assert.Less(peakScale, 1.3f,
+                "スケールの振れ幅は控えめ (行き過ぎは EaseOutBack のオーバーシュート分)");
+
+            // ポップ終了後〜退場中盤は等倍。寿命末も等倍 (透明なので見えないが
+            // 値として 1 に戻っていること)。
+            Assert.AreEqual(1f,
+                V6HudLogic.VerdictPoseAt(V6HudLogic.VerdictPopScaleTotal + 0.01f, m).Scale,
+                0.001f);
+            Assert.AreEqual(1f,
+                V6HudLogic.VerdictPoseAt(V6HudLogic.VerdictTotalSeconds, m).Scale,
+                0.001f);
+        }
+
+        /// <summary>
+        /// v0.2.1 実機レビュー: 「一番上で完全に制止するべきではない」。
+        /// 頂点付近でフレーム間の移動量がほぼ 0 の状態が長く続かないことを
+        /// 60fps の連続サンプルで確認する (旧 0.5s ホールドの再発防止)。
+        /// </summary>
+        [Test]
+        public void VerdictPose_HasNoExtendedStopAtThePeak()
+        {
+            var m = V6HudMetrics.Fhd(1f);
+            const float frame = 1f / 60f;
+
+            int stillFrames = 0;
+            int maxStill = 0;
+            float prev = V6HudLogic.VerdictPoseAt(0f, m).OffsetPx;
+            for (float t = frame; t <= V6HudLogic.VerdictTotalSeconds; t += frame)
+            {
+                float off = V6HudLogic.VerdictPoseAt(t, m).OffsetPx;
+                // 頂点付近の easing による減速はあるが、1 フレームの移動が
+                // 0.5px 未満 (= 60fps でほぼ静止) の状態が 6 フレーム
+                // (0.1 秒) を超えて続いてはいけない。
+                if (System.Math.Abs(off - prev) < 0.5f)
+                {
+                    stillFrames++;
+                    maxStill = System.Math.Max(maxStill, stillFrames);
+                }
+                else
+                {
+                    stillFrames = 0;
+                }
+                prev = off;
+            }
+
+            Assert.LessOrEqual(maxStill, 6,
+                $"頂点付近でほぼ静止のフレームが {maxStill} 連続した (上限 6)");
+        }
+
         // --- ポップ・パンチ (Issue #434) ---
+
+        [Test]
+        public void VerdictBadColor_IsDarkBlue_NotYellow()
+        {
+            // Issue #785 (v0.2.1 実機レビュー): BAD は黄色ではなく暗い青系。
+            // 色相が再び Warn 系 (黄) へ戻らないことを固定する。
+            Color bad = V6HudLogic.VerdictColor("BAD");
+            Assert.AreEqual(V6HudLogic.VerdictBadColor, bad);
+            Assert.Less(bad.r, 0.4f, "BAD は赤みの強い色ではない");
+            Assert.Greater(bad.b, bad.r, "BAD は青系 (B > R)");
+            Assert.Greater(bad.g, bad.r, "BAD は緑成分も赤より多い");
+            Assert.Less(bad.g, 0.6f, "BAD は明るい水色ではなく暗い青");
+            // 旧色 (WarnLight 黄 #E9B949 系) との差: B が R を上回ることが
+            // 青系の判定条件。黄に戻ると B < R になりこのテストが落ちる。
+            Assert.AreEqual(0x4A, ((Color32)bad).r, 1);
+            Assert.AreEqual(0x7E, ((Color32)bad).g, 1);
+            Assert.AreEqual(0xC2, ((Color32)bad).b, 1);
+        }
 
         [Test]
         public void PunchScalePopsUpAndSettles()
@@ -207,25 +307,23 @@ namespace FlashBeat.Tests
         [Test]
         public void VerdictLifeIsLongEnoughToRead()
         {
-            // Issue #731: 上昇・保持・下方退場の 3 フェーズ合計が総寿命。
-            // 保持フェーズは読み取りに必要な 0.4 秒以上を確保する。
+            // Issue #731 / v0.2.1: 上昇・下方退場の 2 フェーズ合計が総寿命。
+            // 頂点での静止フェーズは持たない (頂点は通過点)。
             Assert.GreaterOrEqual(V6HudLogic.VerdictTotalSeconds, 0.5f);
             Assert.LessOrEqual(V6HudLogic.VerdictTotalSeconds, 1.0f + 0.0001f);
             Assert.AreEqual(
-                V6HudLogic.VerdictRiseSeconds + V6HudLogic.VerdictHoldSeconds
-                    + V6HudLogic.VerdictFallSeconds,
+                V6HudLogic.VerdictRiseSeconds + V6HudLogic.VerdictFallSeconds,
                 V6HudLogic.VerdictTotalSeconds, 0.001f);
-            Assert.GreaterOrEqual(V6HudLogic.VerdictHoldSeconds, 0.4f,
-                "頂点での読み取り時間は 0.4 秒以上");
 
-            // フェーズの順序: 上昇 → 保持 → 下方退場。
-            // 退場は保持より短く、上昇は保持より短い (素早い出入り)。
-            Assert.Less(V6HudLogic.VerdictRiseSeconds, V6HudLogic.VerdictHoldSeconds);
-            Assert.Less(V6HudLogic.VerdictFallSeconds, V6HudLogic.VerdictHoldSeconds);
+            // フェーズの順序: 上昇 → 下方退場 (静止フェーズ無し)。
+            // 落下は上昇より長く、判定を読み取る時間を確保する。
+            Assert.Less(V6HudLogic.VerdictRiseSeconds, V6HudLogic.VerdictFallSeconds);
 
-            // 頂点は判定線のすぐ上 (読み取りに十分で、離れすぎない)。
-            Assert.Greater(V6HudLogic.VerdictPeakGapAboveLine, 0f);
-            Assert.Less(V6HudLogic.VerdictPeakGapAboveLine, 200f);
+            // 頂点は判定線の上 (Issue #793: メトリクス比例、FHD で判定ボックス
+            // 約 4 個分)。読み取りに十分で、画面外へ出ない範囲に収める。
+            float peak = V6HudLogic.VerdictPeakRisePx(V6HudMetrics.Fhd(1f));
+            Assert.Greater(peak, 0f);
+            Assert.Less(peak, 200f);
         }
 
         // --- 桁別アニメーションの差分 (Issue #445) ---
@@ -481,14 +579,21 @@ namespace FlashBeat.Tests
                     "effect point must project visibly above the drawn judge line " +
                     "(Issue #715: it is ~50px too high at FHD)");
 
-                // 上昇の頂点 = 描画判定線の投影 + VerdictPeakGapAboveLine
-                // (72px、画面下原点)。アンカーが描画線そのものなので、
-                // 頂点は常に線の真上 72px — design §10.3 の契約そのもの
+                // 上昇の頂点 = 描画判定線の投影 + VerdictPeakRisePx(m)
+                // (メトリクス比例、画面下原点)。アンカーが描画線そのものなので、
+                // 頂点は常に線の真上 — design §10.3 / Issue #793 の契約
                 // (Issue #731: 「静止位置」ではなく上昇の頂点)。
-                Assert.AreEqual(72f, V6HudLogic.VerdictPeakGapAboveLine, 0.001f);
+                var metrics = V6HudMetrics.ForResolution(Screen.width, Screen.height);
+                float peakPx = V6HudLogic.VerdictPeakRisePx(metrics);
+                // Issue #793: 頂点距離は解像度プロファイルの判定ボックス高さに
+                // 比例する (旧固定 72px は近すぎと差し戻された)。
+                Assert.AreEqual(metrics.VerdictH * V6HudLogic.VerdictPeakRiseRatio,
+                    peakPx, 0.001f, "頂点距離はメトリクス比例が正本");
+                Assert.Greater(peakPx, metrics.VerdictH,
+                    "頂点は判定ボックス 1 個分より十分上 (判定線への近接を解消)");
                 float screenH = Mathf.Max(1f, Screen.height);
                 float lineFromBottom = lineVp.y * screenH;
-                float peakFromBottom = lineFromBottom + V6HudLogic.VerdictPeakGapAboveLine;
+                float peakFromBottom = lineFromBottom + peakPx;
                 Assert.Greater(peakFromBottom, lineFromBottom);
                 Assert.Less(peakFromBottom, screenH,
                     "verdict peak position must stay on screen");

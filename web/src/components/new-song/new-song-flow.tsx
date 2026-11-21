@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft } from "lucide-react";
+import { Link } from "@void/react";
 import { css } from "styled-system/css";
 import type { ValidationIssue } from "@/lib/chart/types";
 import { parseYouTubeId } from "@/lib/chart/youtube";
@@ -32,8 +33,8 @@ import { Stepper } from "./stepper";
  */
 
 const root = css({
-  bg: "#1b1b1b",
-  color: "#ffffff",
+  bg: "canvas",
+  color: "fg.default",
   display: "grid",
   fontFamily: '"Noto Sans JP", "Hiragino Kaku Gothic ProN", Meiryo, system-ui, sans-serif',
   gridTemplateRows: "auto auto minmax(0, 1fr)",
@@ -43,7 +44,7 @@ const root = css({
 
 const header = css({
   alignItems: "center",
-  borderBottomColor: "#2d2d2d",
+  borderBottomColor: "border",
   borderBottomWidth: "1px",
   display: "flex",
   flexWrap: "wrap",
@@ -60,10 +61,10 @@ const headerTitles = css({
 });
 
 const backLink = css({
-  color: "#8c8c8c",
+  color: "fg.subtle",
   fontSize: "xs",
   textDecoration: "none",
-  _hover: { color: "#ffffff" },
+  _hover: { color: "fg.default" },
 });
 
 /** The arrow icon of the back link. */
@@ -74,16 +75,16 @@ const backIcon = css({
 });
 
 const title = css({
-  color: "#ffffff",
+  color: "fg.default",
   fontSize: "sm",
   fontWeight: "semibold",
   margin: "0",
 });
 
 const badge = css({
-  bg: "#2d2d2d",
+  bg: "gray.6",
   borderRadius: "full",
-  color: "#8c8c8c",
+  color: "fg.subtle",
   fontSize: "2xs",
   paddingBlock: "0.5",
   paddingInline: "2",
@@ -97,7 +98,7 @@ const goal = css({
 });
 
 const stepperBar = css({
-  borderBottomColor: "#2d2d2d",
+  borderBottomColor: "border",
   borderBottomWidth: "1px",
   display: "flex",
   justifyContent: "center",
@@ -113,7 +114,7 @@ const stepScroll = css({
 });
 
 const stepFrame = css({
-  bg: "#2d2d2d",
+  bg: "gray.6",
   borderRadius: "16px",
   margin: "0 auto",
   maxWidth: "44rem",
@@ -294,10 +295,10 @@ function Header({ transport }: { transport: PublishTransport }) {
   return (
     <header className={header}>
       <div className={headerTitles}>
-        <a className={backLink} href="/">
+        <Link className={backLink} href="/">
           <ArrowLeft className={backIcon} size={14} aria-hidden="true" />
           曲を選ぶ
-        </a>
+        </Link>
         <h1 className={title}>新曲を登録</h1>
         {/* Issue #215: the goal and the permission boundary are stated up
             front, before the operator reaches the publish step. */}

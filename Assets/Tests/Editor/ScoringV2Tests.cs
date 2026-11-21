@@ -176,32 +176,32 @@ public class ScoringV2Tests
     [Test]
     public void ResultBreakdown_ShowsRealBonusValues()
     {
-        // P=8 G=1 B=0 M=1, maxCombo=8, milestones=0, N=10 (v4, ADR-0033):
-        // baseScore = floor(43*1e6/50) = 860,000
-        // comboBonus = 40 ratio → ComponentScoreV4(40,10) = floor(40*1e6/200)=200,000
-        //   (MaxBonusRatioV4(10) = 100 + 0 + 100 = 200)
-        // noMiss / milestone / clear = 0 (miss>0, milestones=0) → "–"
-        V6ResultLogic.BonusBreakdownTexts(8, 1, 0, 1, 8, 0, 10, true,
+        // scoring v6 (ADR-0037): P=50 G=10 B=0 M=1, maxCombo=50,
+        // milestones=1, N=61。
+        // judgment=280 → baseScore = floor(280*1e6/(5*61)) = 918,032
+        // COMBO 列はノーツ品質点 = 50*1000 + 10*600 = 56,000。
+        // MILESTONE 列は節目点 = 1*5000。miss>0 なので CLEAR は "–"。
+        V6ResultLogic.BonusBreakdownTexts(50, 10, 0, 1, 50, 1, 61, true,
             out string baseText, out string comboText, out string milestoneText, out string clearText);
-        Assert.AreEqual("860,000", baseText);
-        Assert.AreEqual("+200,000", comboText);
-        Assert.AreEqual("–", milestoneText);
+        Assert.AreEqual("918,032", baseText);
+        Assert.AreEqual("+56,000", comboText);
+        Assert.AreEqual("+5,000", milestoneText);
         Assert.AreEqual("–", clearText);
     }
 
     [Test]
     public void ResultBreakdown_ClearBonusShownOnlyWhenEarned()
     {
-        // miss=0 なら noMissBonus + finalBonus が「CLEAR」列にまとまって出る (v4)。
+        // scoring v6 (ADR-0037): miss=0 の確定プレイならフルクリア点
+        // 25,000 が「CLEAR」列に出る。
         V6ResultLogic.BonusBreakdownTexts(8, 1, 0, 0, 9, 0, 9, true,
             out string baseText, out string comboText, out string milestoneText, out string clearText);
-        // noteCount=9 → MaxBonusRatioV4(9)=90+0+100=190、
-        // judgment=43 → baseScore=floor(43*1e6/45)=955,555
+        // noteCount=9 → judgment=43 → baseScore=floor(43*1e6/45)=955,555
         Assert.AreEqual("955,555", baseText);
-        // comboBonus=9*5=45 → floor(45*1e6/190)=236,842
-        Assert.AreEqual("+236,842", comboText);
-        // clear = noMiss 45 + final 100 = 145 → floor(145*1e6/190)=763,157
-        Assert.AreEqual("+763,157", clearText);
+        // COMBO 列はノーツ品質点 = 8*1000 + 1*600 = 8,600。
+        Assert.AreEqual("+8,600", comboText);
+        // clear = FullClearScoreV6 = 25,000。
+        Assert.AreEqual("+25,000", clearText);
         Assert.AreEqual("–", milestoneText);
     }
 }

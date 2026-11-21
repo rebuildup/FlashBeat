@@ -180,39 +180,11 @@ namespace FlashBeat.UI.V6.Game.Pause
 
         /// <summary>
         /// JIS キーボード刻印 1 文字 → 候補 KeyCode。
-        /// KeyBindings の既定は '-' を Equals と Minus の両方で受ける (KeyConfigUI.DefaultLayout)。
+        /// Issue #733 フォローアップ: 正本は共有レイアウト <see cref="Common.V6SettingsLayout"/>。
         /// </summary>
         public static KeyCode[] CharToKeyCodes(char c)
         {
-            if (c >= '0' && c <= '9')
-            {
-                return new[] { KeyCode.Alpha0 + (c - '0') };
-            }
-
-            if (c >= 'A' && c <= 'Z')
-            {
-                // KeyCode の英字は小文字の ASCII 値 (KeyCode.A = 97 = 'a')。
-                return new[] { (KeyCode)char.ToLower(c) };
-            }
-
-            switch (c)
-            {
-                case '-': return new[] { KeyCode.Minus, KeyCode.Equals };
-                case '^': return new[] { KeyCode.Caret };
-                case '\\': return new[] { KeyCode.Backslash };
-                case '@': return new[] { KeyCode.At };
-                case '[': return new[] { KeyCode.LeftBracket };
-                case ';': return new[] { KeyCode.Semicolon };
-                case ':': return new[] { KeyCode.Colon };
-                case ']': return new[] { KeyCode.RightBracket };
-                case ',': return new[] { KeyCode.Comma };
-                case '.': return new[] { KeyCode.Period };
-                case '/': return new[] { KeyCode.Slash };
-                case '_': return new[] { KeyCode.Underscore };
-                case '*': return new[] { KeyCode.Asterisk };
-                case '`': return new[] { KeyCode.BackQuote };
-                default: return System.Array.Empty<KeyCode>();
-            }
+            return Common.V6SettingsLayout.CharToKeyCodes(c);
         }
 
         /// <summary>
@@ -250,19 +222,14 @@ namespace FlashBeat.UI.V6.Game.Pause
             return -1;
         }
 
-        /// <summary>プレビューのキー一覧 (JIS 4 段)。design uDNC0 の Key 行と同じ刻印順。</summary>
-        public static readonly char[][] JisKeyRows =
-        {
-            new[] { '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', '\\' },
-            new[] { 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '@', '[' },
-            new[] { 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', ':', ']' },
-            new[] { 'Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/', '_' },
-        };
+        /// <summary>プレビューのキー一覧 (JIS 4 段)。design uDNC0 の Key 行と同じ刻印順。
+        /// Issue #733 フォローアップ: 正本は共有レイアウト <see cref="Common.V6SettingsLayout"/>。</summary>
+        public static readonly char[][] JisKeyRows = Common.V6SettingsLayout.JisGridChars;
 
         /// <summary>JIS 各段の x 原点 (design px, プレビューパネル基準)。</summary>
-        public static readonly float[] JisKeyRowX = { 8f, 25f, 42f, 59f };
+        public static readonly float[] JisKeyRowX = Common.V6SettingsLayout.GridRowX;
 
         /// <summary>JIS 各段の y (design px, プレビューパネル基準、上端から)。</summary>
-        public static readonly float[] JisKeyRowY = { 356f, 400f, 444f, 488f };
+        public static readonly float[] JisKeyRowY = Common.V6SettingsLayout.GridRowY;
     }
 }

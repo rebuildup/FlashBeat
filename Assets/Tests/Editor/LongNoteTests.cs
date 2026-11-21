@@ -1,5 +1,4 @@
 ﻿using NUnit.Framework;
-using UnityEngine;
 using FlashBeat.Gameplay;
 
 /// <summary>
@@ -218,42 +217,37 @@ public class LongNoteTests
             + Scoring.FullComboBonusPoints, (int)Scoring.MaxRatioV3(noteCount));
     }
 
-    // ---- 既存 tap 譜面の回帰 -------------------------------------------
+    // ---- クラウド譜面 (合成 fixture) の回帰 -------------------------------
 
     [Test]
-    public void TheTapNotesOfTheGameAreNotHolds()
+    public void TheTapNotesOfTheFixtureChartAreNotHolds()
     {
-        // 既存 26 曲 tap 譜面は、すべて type 1。
-        foreach (var song in GManager.SongName)
+        // Issue #823: 実曲譜面はクラウド正本。ここでは合成 fixture の
+        // タップ譜面が「HOLD と誤認されない」ことを固定する
+        // (実曲側の HOLD 有無はクラウドの公開時検証の責務)。
+        Data chart = CloudCatalog.ParseChartResponse(SyntheticCharts.LyricsChartEnvelope("synthetic-longnote"));
+        Assert.IsNotNull(chart);
+        Assert.Greater(chart.notes.Length, 0);
+
+        foreach (Note note in chart.notes)
         {
-            TextAsset asset = Resources.Load<TextAsset>(song);
-            if (asset == null) continue;
-
-            Data chart = JsonUtility.FromJson<Data>(asset.text);
-            if (chart == null || chart.notes == null) continue;
-
-            foreach (Note note in chart.notes)
-            {
-                Assert.IsFalse(LongNote.IsHold(note), $"{song} carries a hold");
-                Assert.AreEqual(LongNote.TYPE_TAP, note.type, $"{song} has a note that is not a tap");
-            }
+            Assert.IsFalse(LongNote.IsHold(note), "the fixture carries a hold");
+            Assert.AreEqual(LongNote.TYPE_TAP, note.type, "the fixture has a note that is not a tap");
         }
     }
 
     [Test]
-    public void TheTapChartsKeepTheirLastNoteTime()
+    public void TheTapChartKeepsItsLastNoteTime()
     {
-        // ロングノーツの対応で既存の tap 譜面の解釈が変わっていないこと。
-        // (ChartDataIntegrityTests が同じ値を固定している)
-        TextAsset asset = Resources.Load<TextAsset>("Who");
-        Assert.IsNotNull(asset);
-
-        Data chart = JsonUtility.FromJson<Data>(asset.text);
+        // ノーツ時刻の解釈 (NoteTimeSeconds) が合成 fixture で固定されて
+        // いること。実曲の「解釈が変わっていない」確認はクラウド側の
+        // 公開データとの対応で行う (Issue #823 でローカル譜面は撤去)。
+        Data chart = CloudCatalog.ParseChartResponse(SyntheticCharts.LyricsChartEnvelope("synthetic-longnote"));
         Assert.IsNotNull(chart);
-        Assert.AreEqual(139, chart.notes.Length);
+        Assert.AreEqual(SyntheticCharts.LyricsChartNoteCount, chart.notes.Length);
 
         float last = NotesManager.NoteTimeSeconds(chart.BPM, chart.notes[chart.notes.Length - 1]);
-        Assert.AreEqual(63.398f, last, 0.01f);
+        Assert.AreEqual(30.0f, last, 0.01f);
     }
 
     // ---- 判定キューの挙動 -----------------------------------------------

@@ -20,7 +20,7 @@ namespace FlashBeat.UI.V6.Common
     /// - ドラッグはトラック上のポインタ位置をそのまま値へ写す (押した瞬間にジャンプし、
     ///   そのまま連続変化する)。キーボード操作はこの部品ではなく各画面が行い、
     ///   同じ値モデル (<see cref="Func{TResult}"/> の getter と setter) を共有する。
-    /// - 値の所有者は GManager (mainVolume / effectVolume / BGMVolume)。この部品は
+    /// - 値の所有者は GManager (mainVolume / effectVolume / songVolume / BGMVolume)。この部品は
     ///   値を保持しない (getValue で読み、onValue で書き戻す)。
     /// </summary>
     public sealed class V6VolumeSlider : V6Slider

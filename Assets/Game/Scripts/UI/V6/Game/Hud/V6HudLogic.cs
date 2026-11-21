@@ -33,25 +33,30 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// スコアゲージの塗り幅 (px)。塗りは + セグメントを含むトラック全長
-        /// (<paramref name="fillMax"/>) まで。点数空間は最新の scoringVersion の
-        /// 満点 (<see cref="FlashBeat.UI.V6.Common.V6GradeLogic.ScoreMaxOf"/>、
-        /// scoring v4 では 2,000,000 = 基礎 + ボーナス) で、v4 の合計スコアが
-        /// そのまま 0..満点 の 1 本のレールに写る (Issue #758 / ADR-0034)。
+        /// スコアゲージの塗り幅 (px)。塗りはトラック全長
+        /// (<paramref name="fillMax"/>) まで。点数→位置は
+        /// <see cref="FlashBeat.UI.V6.Common.V6GradeLogic.ScoreFractionOf"/>
+        /// の単一写像で、グレード帯の目盛り・ラベルと同じ空間
+        /// (Issue #788)。scoring v4/v5 の満点は 2,000,000
+        /// (基礎 + ボーナス、ADR-0033/0035)。scoring v6 (ADR-0037) の満点は
+        /// 譜面ごとの <see cref="Scoring.ScoreMaxV6"/> で、再生中の譜面
+        /// ノーツ数 (GManager.chartNoteCount) で正規化する。
         /// </summary>
         public static float GaugeFillWidth(int score, float fillMax)
         {
-            return Mathf.Clamp01(score / (float)FlashBeat.UI.V6.Common.V6GradeLogic
-                .ScoreMaxOf(FlashBeat.Gameplay.Scoring.LatestVersion)) * fillMax;
+            return FlashBeat.UI.V6.Common.V6GradeLogic
+                .ScoreFractionOf(score, FlashBeat.Gameplay.Scoring.LatestVersion,
+                    GManager.chartNoteCount) * fillMax;
         }
 
         /// <summary>スコアゲージの Best マーカー x (px)。
-        /// 点数空間は最新 scoringVersion の満点 (scoring v4 では 0..2,000,000)。
-        /// マーカーがトラック外に出ないよう満点でクランプする。</summary>
+        /// 点数→位置は <see cref="FlashBeat.UI.V6.Common.V6GradeLogic.ScoreFractionOf"/>
+        /// の単一写像。マーカーがトラック外に出ないよう満点でクランプする。</summary>
         public static float GaugeBestX(int hiscore, float fillMax)
         {
-            return Mathf.Clamp01(hiscore / (float)FlashBeat.UI.V6.Common.V6GradeLogic
-                .ScoreMaxOf(FlashBeat.Gameplay.Scoring.LatestVersion)) * fillMax;
+            return FlashBeat.UI.V6.Common.V6GradeLogic
+                .ScoreFractionOf(hiscore, FlashBeat.Gameplay.Scoring.LatestVersion,
+                    GManager.chartNoteCount) * fillMax;
         }
 
         /// <summary>
@@ -173,14 +178,41 @@ namespace FlashBeat.UI.V6.Game.Hud
         // --- 判定ポップアップ (Issue #731: 判定線起点の上昇 → 保持 → 下方退場) ---
 
         /// <summary>
-        /// 判定テキストが読み取りのために留まる頂点の高さ = 判定線のこの距離だけ上 (px)。
+        /// 判定テキストが読み取りのために留まる頂点の高さ = 判定線のこの距離だけ上。
         /// 判定確定 (t=0) に判定線の位置へ出現し、<see cref="VerdictRiseSeconds"/>
-        /// かけてこの高さまで上昇する。Issue #731 で旧「静止位置」(Issue #671) から
-        /// 「上昇の頂点」へ役割が変わった。72px は判定ボックス
-        /// (<see cref="V6HudMetrics.VerdictH"/>、FHD で 44px) の高さとほぼ同じで、
-        /// テキスト下端が判定線・レーンフラッシュと重ならない最小の読み取り高さ。
+        /// かけてこの高さまで上昇する。
+        ///
+        /// Issue #793 (v0.2.3 実機受入): 旧固定値 72px は判定ボックス
+        /// (<see cref="V6HudMetrics.VerdictH"/>、FHD で 44px) の約 1.6 個分しかなく、
+        /// 判定線・キーガイドに近すぎて読み取りにくいと差し戻された。
+        /// 一方でメトリクス比例 4 個分 (約 176px) では頂点が判定線から
+        /// 離れすぎるとの指摘があり、読み取りやすさと近さの中間として
+        /// 3 個分へ詰めた。頂点距離は解像度別メトリクスの判定ボックス
+        /// 高さに比例させ、<see cref="VerdictPeakRisePx"/> が正本。
         /// </summary>
-        public const float VerdictPeakGapAboveLine = 72f;
+        public const float VerdictPeakRiseRatio = 3f;
+
+        /// <summary>
+        /// 頂点の高さ (判定線からの px、正 = 上)。解像度別メトリクスの
+        /// 判定ボックス高さ × <see cref="VerdictPeakRiseRatio"/>。
+        /// </summary>
+        public static float VerdictPeakRisePx(V6HudMetrics m)
+        {
+            return m.VerdictH * VerdictPeakRiseRatio;
+        }
+
+        /// <summary>
+        /// 出現時のスケールポップの山 (1 より大きい = ふくらんでから戻る)。
+        /// 判定イベントごとの独立インスタンスが重なっても、出現の瞬間に
+        /// 「新しい判定」が視認できるようにする (Issue #793)。
+        /// </summary>
+        public const float VerdictPopPeakScale = 1.18f;
+
+        /// <summary>スケールポップの立ち上がり時間 (秒)。</summary>
+        public const float VerdictPopScaleAttack = 0.06f;
+
+        /// <summary>スケールポップ全体の時間 (秒)。これ以降は等倍。</summary>
+        public const float VerdictPopScaleTotal = 0.24f;
 
         /// <summary>
         /// レガシー 3D プレイフィールド経路 (V6UiMode.Playfield=false) の
@@ -205,27 +237,37 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// 判定線上の出現点から読み取りの頂点まで上昇する時間 (秒)。
         /// 「叩いた」位置 (判定線) から文字が立ち上がる動きを
         /// EaseOutCubic で素早く見せる。長すぎると判定の瞬間性が薄れる。
+        /// v0.2.1: 頂点付近の減速区間を短く保つため 0.18 → 0.14。
         /// </summary>
-        public const float VerdictRiseSeconds = 0.18f;
-
-        /// <summary>頂点で読み取りのために留まる時間 (秒)。0.4 秒以上を確保する。</summary>
-        public const float VerdictHoldSeconds = 0.50f;
+        public const float VerdictRiseSeconds = 0.14f;
 
         /// <summary>
         /// 頂点から判定線を越えて下へ加速落下しながら消える時間 (秒)。
-        /// 落下とフェードアウトはこの 1 フェーズに統合する
-        /// (旧来の「静止保持 → フェードのみ」の 2 段階は廃止)。
+        /// 落下は EaseInCubic (加速) で、頂点での静止フェーズは持たない
+        /// (v0.2.1 実機レビュー: 「一番上で完全に制止するべきではない」)。
+        /// α は退場終盤 (<see cref="VerdictFadeStartU"/> 以降) で 1→0 に
+        /// フェードするため、判定線付近に不透明のまま滞留しない。
         /// </summary>
-        public const float VerdictFallSeconds = 0.32f;
+        public const float VerdictFallSeconds = 0.42f;
+
+        /// <summary>
+        /// 退場フェードの開始位置 (落下進行 u = 0..1 のうち 0.6 から)。
+        /// EaseIn の加速で判定線を割るのは終盤なので、線より下だけで
+        /// フェードすると消えるまでの時間が短すぎて「残像」に見える。
+        /// 落下の終盤 40% をフェード区間にして、落ちる様子が見えてから
+        /// 自然に消える (v0.2.1 実機レビュー: 「落ちたとわかるくらいで
+        /// 消えるべき」「判定線まで残す必要はない」)。
+        /// </summary>
+        public const float VerdictFadeStartU = 0.6f;
 
         /// <summary>
         /// 判定テキストが見える全体時間 (秒) =
-        /// 上昇 (<see cref="VerdictRiseSeconds"/>) + 保持
-        /// (<see cref="VerdictHoldSeconds"/>) + 下方退場
-        /// (<see cref="VerdictFallSeconds"/>) = 1.00 秒。
+        /// 上昇 (<see cref="VerdictRiseSeconds"/>) + 下方退場
+        /// (<see cref="VerdictFallSeconds"/>) = 0.56 秒。
+        /// 頂点での保持フェーズは無い (頂点は通過点)。
         /// </summary>
         public const float VerdictTotalSeconds =
-            VerdictRiseSeconds + VerdictHoldSeconds + VerdictFallSeconds;
+            VerdictRiseSeconds + VerdictFallSeconds;
 
         /// <summary>
         /// 下方退場の終端 = 判定線のこの距離だけ下 (px、正の値)。
@@ -242,17 +284,20 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// <summary>
         /// 判定ポップのある時刻の姿勢。<see cref="OffsetPx"/> は判定線からの
         /// 垂直オフセット (px、画面下原点で正 = 上。負は判定線より下)、
-        /// <see cref="Alpha"/> は不透明度 (0..1)。
+        /// <see cref="Alpha"/> は不透明度 (0..1)、<see cref="Scale"/> は
+        /// 出現時のスケールポップ倍率 (Issue #793。1 が等倍)。
         /// </summary>
         public struct VerdictPose
         {
             public readonly float OffsetPx;
             public readonly float Alpha;
+            public readonly float Scale;
 
-            public VerdictPose(float offsetPx, float alpha)
+            public VerdictPose(float offsetPx, float alpha, float scale)
             {
                 OffsetPx = offsetPx;
                 Alpha = alpha;
+                Scale = scale;
             }
         }
 
@@ -263,43 +308,53 @@ namespace FlashBeat.UI.V6.Game.Hud
         ///
         /// - t=0: 判定線の位置に即時出現 (オフセット 0、α=1。フェードインなし)。
         /// - 0〜<see cref="VerdictRiseSeconds"/>: EaseOutCubic で頂点
-        ///   (判定線 + <see cref="VerdictPeakGapAboveLine"/>) まで上昇。
-        /// - 〜+<see cref="VerdictHoldSeconds"/>: 頂点で静止 (読み取り時間)。
+        ///   (判定線 + <see cref="VerdictPeakRisePx"/>) まで上昇。
         /// - 〜+<see cref="VerdictFallSeconds"/>: EaseInCubic で加速しながら
-        ///   判定線を越え、<see cref="VerdictExitDropPx"/> 分だけ下まで落下。
-        ///   同じ時間で α を 1→0 にフェードする。
+        ///   頂点から判定線を越え、<see cref="VerdictExitDropPx"/> 分だけ下まで
+        ///   落下。頂点での静止フェーズは無く、上昇の終端からそのまま落下へ移る。
+        ///   α は退場終盤 (<see cref="VerdictFadeStartU"/> 以降の 40%) で
+        ///   1→0 にフェードする (判定線付近に不透明のまま滞留しない)。
+        /// - Scale: 出現直後 <see cref="VerdictPopScaleTotal"/> 秒だけ
+        ///   <see cref="PunchScale"/> でふくらんで等倍へ戻る (Issue #793)。
         /// - 総寿命 <see cref="VerdictTotalSeconds"/> を過ぎると α=0。
         ///
         /// 旧軌道 (Issue #671: 静止位置の真上から落下して着地 → 静止 → フェード)
         /// はオーナー要求に反するため廃止した (#728 観測 3 / #731)。
+        /// v0.2.0 の「頂点で 0.5 秒静止 → 落下」も v0.2.1 実機レビューで
+        /// 不自然と差し戻され、頂点通過型の連続軌道へ改めた。
+        /// v0.2.3 実機レビュー (Issue #793) で頂点距離の不足と出現スケール
+        /// 欠如、同一レーン連打での上書きを指摘され、距離をメトリクス比例へ、
+        /// スケールポップとイベント単位の表示インスタンスを追加した。
         /// </summary>
         /// <param name="elapsed">判定確定からの経過秒 (負は 0 として扱う)。</param>
         /// <param name="m">解像度別 HUD メトリクス (退場距離の算出に使う)。</param>
         public static VerdictPose VerdictPoseAt(float elapsed, V6HudMetrics m)
         {
             float t = Mathf.Max(0f, elapsed);
+            float peak = VerdictPeakRisePx(m);
+            float scale = PunchScale(t, VerdictPopPeakScale,
+                VerdictPopScaleAttack, VerdictPopScaleTotal);
 
             // 上昇: 判定線 (0) → 頂点 (peak)。EaseOut で立ち上がりを減速させる。
             if (t < VerdictRiseSeconds)
             {
                 return new VerdictPose(
-                    VerdictPeakGapAboveLine * EaseOutCubic(t / VerdictRiseSeconds), 1f);
-            }
-
-            // 保持: 頂点で静止。
-            if (t < VerdictRiseSeconds + VerdictHoldSeconds)
-            {
-                return new VerdictPose(VerdictPeakGapAboveLine, 1f);
+                    peak * EaseOutCubic(t / VerdictRiseSeconds), 1f, scale);
             }
 
             // 下方退場: 頂点 → 判定線を越えて exitDrop 分だけ下。
-            // EaseIn で加速し、同じ時間で α を 1→0 にする。
-            float u = Mathf.Clamp01(
-                (t - VerdictRiseSeconds - VerdictHoldSeconds) / VerdictFallSeconds);
-            float travel = VerdictPeakGapAboveLine + VerdictExitDropPx(m);
-            return new VerdictPose(
-                VerdictPeakGapAboveLine - travel * EaseInCubic(u),
-                1f - u);
+            // EaseIn で加速する。頂点での静止は挟まず上昇から連続して落ちる。
+            float u = Mathf.Clamp01((t - VerdictRiseSeconds) / VerdictFallSeconds);
+            float travel = peak + VerdictExitDropPx(m);
+            float offset = peak - travel * EaseInCubic(u);
+
+            // α: 上昇と退場序盤 (u < FadeStartU) は不透明。終盤 40% で
+            // smoothstep により 1→0 へフェードする。判定線を割るのは
+            // EaseIn 加速の終盤なので「線の下だけでフェード」だと
+            // 消滅が速すぎて残像に見える — 落下の終盤に合わせて消す。
+            float fadeU = (u - VerdictFadeStartU) / (1f - VerdictFadeStartU);
+            float alpha = fadeU <= 0f ? 1f : 1f - fadeU * fadeU * (3f - 2f * fadeU);
+            return new VerdictPose(offset, alpha, scale);
         }
 
         // --- ポップ・パンチ系の共通イージング (Issue #434 / #445) ---
@@ -438,6 +493,60 @@ namespace FlashBeat.UI.V6.Game.Hud
         public const float ReadyPromptFontSize = 22f;
         public const float ReadyPromptGap = 10f;
 
+        /// <summary>KeyCap「Space」の左右 padding (design [0,10] の水平成分)。</summary>
+        public const float ReadyPromptPaddingX = 10f;
+
+        /// <summary>KeyCap の角丸半径 (design r4)。</summary>
+        public const float ReadyPromptCornerRadius = 4f;
+
+        /// <summary>
+        /// design の歌詞本文 fs (HcP8N Lyrics = 44)。Start Prompt の全寸法は
+        /// この値を基準にした比率で決める (Issue #790)。
+        /// </summary>
+        public const float LyricDesignFontSize = 44f;
+
+        /// <summary>
+        /// Start Prompt の寸法一式。歌詞本文の実 fs (<paramref name="lyricFs"/>)
+        /// を基準に、cap 高さ・fs・gap・左右 padding・角丸を <b>同じ比率</b>で
+        /// 揃えた実 px 値を返す。
+        ///
+        /// Issue #790 (v0.2.1 実機受入): かつてはフォントサイズだけを
+        /// <c>LyricFontScale</c> で拡縮し、KeyCap の padding・gap・角丸は
+        /// design px 固定のままだった。比率が解像度ごとにずれ、
+        /// 「Space to start」の余白と文字組みが崩れた。寸法の正本をここに
+        /// 置き、ビルド側はこの spec だけを使う。
+        /// </summary>
+        public struct ReadyPromptSpec
+        {
+            /// <summary>KeyCap の高さ (px)。ラベル行の高さもこれに揃える。</summary>
+            public float CapHeight;
+            /// <summary>KeyCap 内文字とラベルのフォントサイズ (px)。</summary>
+            public float FontSize;
+            /// <summary>KeyCap とラベルの間隔 (px)。</summary>
+            public float Gap;
+            /// <summary>KeyCap 内の文字左右 padding (px)。</summary>
+            public float PaddingX;
+            /// <summary>KeyCap の角丸半径 (px)。</summary>
+            public float CornerRadius;
+        }
+
+        /// <summary>
+        /// 歌詞本文 fs から Start Prompt の寸法一式を求める。
+        /// design 比: fs 22/44, cap 36/44, gap 10/44, padding 10/44, r 4/44。
+        /// </summary>
+        public static ReadyPromptSpec ReadyPrompt(float lyricFs)
+        {
+            float k = LyricDesignFontSize > 0f ? lyricFs / LyricDesignFontSize : 1f;
+            return new ReadyPromptSpec
+            {
+                CapHeight = ReadyPromptCapHeight * k,
+                FontSize = ReadyPromptFontSize * k,
+                Gap = ReadyPromptGap * k,
+                PaddingX = ReadyPromptPaddingX * k,
+                CornerRadius = ReadyPromptCornerRadius * k,
+            };
+        }
+
         /// <summary>
         /// 次の節目ボーナス (scoring v3, ADR-0029) までの進捗 0..1。
         /// 節目に達した瞬間は 0 に戻り、次の節目へ向けて再び満ちる。
@@ -446,6 +555,134 @@ namespace FlashBeat.UI.V6.Game.Hud
         {
             int interval = FlashBeat.Gameplay.Scoring.MilestoneInterval;
             return (combo % interval) / (float)interval;
+        }
+
+        /// <summary>
+        /// コンボボーナス表示 (Issue #784 / ADR-0035) を出すか。
+        /// scoring v5 では連続コンボボーナスが無く、コンボ由来の獲得済み
+        /// ボーナスは節目到達 (GManager.milestoneBonus) が保持する。
+        /// 1 回でも節目に達していれば (ratioPoints &gt; 0) 表示し続ける
+        /// (Miss でコンボが切れても獲得済みは失われない)。
+        /// </summary>
+        public static bool ShowComboBonus(int comboBonusRatioPoints)
+        {
+            return comboBonusRatioPoints > 0;
+        }
+
+        /// <summary>
+        /// 表示中のプレイで「獲得済みボーナス」のスコア点
+        /// (scoring v6 では絶対スコア点)。v6 (ADR-0037) は追加スコア全体
+        /// (品質点 + 節目 + フルクリア = GManager.bonusScore) を返し、
+        /// HUD のボーナスブロックが基礎スコアと別に追加スコアを表示する
+        /// 契約を満たす。v5 (ADR-0035) は milestoneBonus (ratio points)、
+        /// v4 以前は comboBonus (maxCombo * 5) を使う。
+        /// GManager.comboBonus は v5/v6 では常に 0。
+        /// </summary>
+        public static int EarnedBonusPointsLatest()
+        {
+            if (FlashBeat.Gameplay.Scoring.LatestVersion >= FlashBeat.Gameplay.Scoring.Version6)
+            {
+                return GManager.bonusScore;
+            }
+
+            return FlashBeat.Gameplay.Scoring.LatestVersion >= FlashBeat.Gameplay.Scoring.Version5
+                ? GManager.milestoneBonus
+                : GManager.comboBonus;
+        }
+
+        /// <summary>
+        /// 最新 scoringVersion のボーナスをスコア点へ換算する
+        /// (v6: <see cref="FlashBeat.Gameplay.Scoring.ComponentScoreV6"/>
+        /// = 恒等、追加スコアは既に絶対点。v5:
+        /// <see cref="FlashBeat.Gameplay.Scoring.ComponentScoreV5"/>、
+        /// v4: <see cref="FlashBeat.Gameplay.Scoring.ComponentScoreV4"/>)。
+        /// </summary>
+        public static int ComponentScoreLatest(int bonusRatioPoints, float maxBonusRatio)
+        {
+            if (FlashBeat.Gameplay.Scoring.LatestVersion >= FlashBeat.Gameplay.Scoring.Version6)
+            {
+                return FlashBeat.Gameplay.Scoring.ComponentScoreV6(bonusRatioPoints);
+            }
+
+            return FlashBeat.Gameplay.Scoring.LatestVersion >= FlashBeat.Gameplay.Scoring.Version5
+                ? FlashBeat.Gameplay.Scoring.ComponentScoreV5(bonusRatioPoints, maxBonusRatio)
+                : FlashBeat.Gameplay.Scoring.ComponentScoreV4(bonusRatioPoints, maxBonusRatio);
+        }
+
+        /// <summary>
+        /// 最新 scoringVersion の 1 節目あたりスコア点
+        /// (v6: <see cref="FlashBeat.Gameplay.Scoring.MilestoneScoreV6"/>=5000、
+        /// v5: <see cref="FlashBeat.Gameplay.Scoring.MilestoneBonusPointsV5"/>
+        /// =250 ratio points、v4: <see cref="FlashBeat.Gameplay.Scoring.MilestoneBonusPoints"/>
+        /// =25)。v6/v5 の戻り値は <see cref="ComponentScoreLatest"/> に渡す
+        /// 前の単位が違う点に注意 (v6 は絶対点、v5 は ratio points)。
+        /// </summary>
+        public static int MilestoneBonusPointsLatest()
+        {
+            if (FlashBeat.Gameplay.Scoring.LatestVersion >= FlashBeat.Gameplay.Scoring.Version6)
+            {
+                return FlashBeat.Gameplay.Scoring.MilestoneScoreV6;
+            }
+
+            return FlashBeat.Gameplay.Scoring.LatestVersion >= FlashBeat.Gameplay.Scoring.Version5
+                ? FlashBeat.Gameplay.Scoring.MilestoneBonusPointsV5
+                : FlashBeat.Gameplay.Scoring.MilestoneBonusPoints;
+        }
+
+        /// <summary>
+        /// コンボボーナスの表示スコア点 (Issue #784 / ADR-0035)。
+        /// <paramref name="comboBonusRatioPoints"/> を最新 scoringVersion
+        /// のボーナス分母 (GManager.maxBonusRatio) で実際に加算される
+        /// スコア点へ換算する。結果画面の内訳表示と同じ値になる。
+        /// 表示専用の目安で、送信フィールドではない。
+        /// </summary>
+        public static int ComboBonusScorePoints(int comboBonusRatioPoints, float maxBonusRatio)
+        {
+            return ComponentScoreLatest(comboBonusRatioPoints, maxBonusRatio);
+        }
+
+        /// <summary>
+        /// 次の節目 (50 コンボ) がこのプレイでまだ到達可能か (ADR-0035)。
+        /// 残りの未判定ノーツ数が、現在のコンボから次の節目までに必要な
+        /// 連続ヒット数に満たなければ false。combo % 50 == 0 のときは
+        /// 次の節目まで丸ごと 50 ヒット必要。譜面ノーツ数が不明
+        /// (chartNoteCount &lt;= 0) のときは到達不能とみなす。
+        /// </summary>
+        public static bool NextMilestoneReachable(int combo, int settledNotes, int chartNoteCount)
+        {
+            if (chartNoteCount <= 0)
+            {
+                return false;
+            }
+
+            int interval = FlashBeat.Gameplay.Scoring.MilestoneInterval;
+            int needed = interval - (combo % interval);
+            return chartNoteCount - settledNotes >= needed;
+        }
+
+        /// <summary>
+        /// 次の節目到達で確定するボーナスのスコア点 (ADR-0035/0037)。
+        /// v6 では 1 節目あたり <see cref="Scoring.MilestoneScoreV6"/>
+        /// (絶対スコア点) が常に同じ。v5 では 1 節目あたり
+        /// MilestoneBonusPointsV5 ratio points が常に同じスコア点になる。
+        /// v4 以前は節目ごとの加点が一定でないため 0 を返す
+        /// (呼び出し側は非表示にする)。
+        /// </summary>
+        public static int NextMilestoneScorePoints(float maxBonusRatio)
+        {
+            if (FlashBeat.Gameplay.Scoring.LatestVersion >= FlashBeat.Gameplay.Scoring.Version6)
+            {
+                // v6 の節目ボーナスは絶対点なので分母換算は不要。
+                return FlashBeat.Gameplay.Scoring.MilestoneScoreV6;
+            }
+
+            if (FlashBeat.Gameplay.Scoring.LatestVersion < FlashBeat.Gameplay.Scoring.Version5)
+            {
+                return 0;
+            }
+
+            return FlashBeat.Gameplay.Scoring.ComponentScoreV5(
+                FlashBeat.Gameplay.Scoring.MilestoneBonusPointsV5, maxBonusRatio);
         }
 
         /// <summary>
@@ -466,6 +703,13 @@ namespace FlashBeat.UI.V6.Game.Hud
             }
         }
 
+        /// <summary>
+        /// BAD 判定の表示色。v0.2.0 までは <see cref="V5Tokens.WarnLight"/> (黄)
+        /// だったが、実機レビューで判定体系の色相として不適切と判断され、
+        /// 濃い青系 (#4A7EC2) へ変更した (v0.2.1)。
+        /// </summary>
+        public static readonly Color VerdictBadColor = new Color32(0x4A, 0x7E, 0xC2, 0xFF);
+
         /// <summary>判定ラベルの表示色 (v5 GameHudView.JudgeColor と同じ割り当て)。</summary>
         public static Color VerdictColor(string label)
         {
@@ -473,7 +717,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             {
                 case "PERFECT": return V5Tokens.AccentLight;
                 case "GREAT": return V5Tokens.Text;
-                case "BAD": return V5Tokens.WarnLight;
+                case "BAD": return VerdictBadColor;
                 default: return V5Tokens.DangerLight;
             }
         }

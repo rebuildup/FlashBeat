@@ -83,7 +83,11 @@ namespace FlashBeat.V6CanvasTests
 
             var title = (RectTransform)view.Root.Find("Main/Preview/Desc Title");
             Assert.AreEqual(expectedY + 20f, DesignTopLeft(title).y, 0.01f, "Desc Title は Divider +20");
-            var desc = (RectTransform)view.Root.Find("Main/Preview/Desc");
+            // v0.2.1 (#786): Desc 本文は ScrollRect の content 内へ移り、
+            // design の Desc 矩形 (divider+70, w464 h68) はマスク付き
+            // ビューポート "Desc Viewport" が占める。座標の検証対象はそちら。
+            var desc = (RectTransform)view.Root.Find("Main/Preview/Desc Viewport");
+            Assert.IsNotNull(desc, "Desc Viewport");
             Assert.AreEqual(expectedY + 70f, DesignTopLeft(desc).y, 0.01f, "Desc は Divider +70");
         }
 
@@ -98,7 +102,8 @@ namespace FlashBeat.V6CanvasTests
             // design 実測 (Data タブ 457→492) は 35px。
             var view = CreateView();
             view.SelectTabForAudit(3); // Data は 2 行の説明
-            var desc = TextUnder(view.Root, "Main/Preview/Desc");
+            // v0.2.1 (#786): Desc 本文 TMP は ScrollRect content 配下。
+            var desc = TextUnder(view.Root, "Main/Preview/Desc Viewport/Desc Content/Desc");
             desc.ForceMeshUpdate(true, true);
             Assert.GreaterOrEqual(desc.textInfo.lineCount, 2, "Data タブの説明は design でも 2 行");
             float pitch = Mathf.Abs(desc.textInfo.lineInfo[1].baseline - desc.textInfo.lineInfo[0].baseline);

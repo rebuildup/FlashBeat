@@ -36,15 +36,24 @@ namespace FlashBeat.Gameplay
 
         /// <summary>The sound track was opened, but stays silent.</summary>
         AudioSilent,
+
+        /// <summary>Issue #632/#792: the chart data was rejected at the input boundary.</summary>
+        ChartRejected,
     }
 
     /// <summary>
     /// What the game does when the media pipeline fails.
     ///
     /// A rhythm game needs the music: without a sound track the song cannot be
-    /// played, so the player is taken back to the song list instead of being
-    /// left in front of a silent song. A failure that still leaves a sound (the
-    /// picture is missing, for example) is only logged - the song is playable.
+    /// played, so the failure is shown on the loading screen with retry and
+    /// back-to-select actions instead of leaving the player in front of a
+    /// silent song. A failure that still leaves a sound (the picture is
+    /// missing, for example) is only logged - the song is playable.
+    ///
+    /// Issue #792: the old automatic return to the song list (a fade after a
+    /// few seconds) was removed - it gave no explanation and was rejected in
+    /// device review. The player now chooses: retry (reload GameScene) or
+    /// back to the song list, both on the error view.
     ///
     /// The rules live here (and not in the MonoBehaviour) so they can be
     /// verified by EditMode tests.
@@ -67,23 +76,12 @@ namespace FlashBeat.Gameplay
             return PlaybackSource.None;
         }
 
-        /// <summary>Seconds the message stays on the screen before the return.</summary>
-        public const float SelectReturnDelaySeconds = 6f;
-
         /// <summary>
-        /// How often the return to the song list is tried. A fade that is still
-        /// running is skipped by the fade system, so the attempt is repeated.
+        /// True when the song cannot be played and the failure has to be shown
+        /// (the error view offers retry / back-to-select; there is no automatic
+        /// scene change anymore - Issue #792).
         /// </summary>
-        public const int MaxSelectReturnAttempts = 6;
-
-        /// <summary>Seconds between two attempts.</summary>
-        public const float SelectReturnRetrySeconds = 1.5f;
-
-        /// <summary>
-        /// True when the song cannot be played and the player has to be taken
-        /// back to the song list.
-        /// </summary>
-        public static bool NeedsSelectReturn(MediaFailure failure, bool hasSound)
+        public static bool IsUnplayable(MediaFailure failure, bool hasSound)
         {
             if (failure == MediaFailure.None) return false;
             return !hasSound;
@@ -115,6 +113,7 @@ namespace FlashBeat.Gameplay
                 case MediaFailure.VideoPrepareFailed: return "the media file could not be opened by the player";
                 case MediaFailure.AudioUnavailable: return "no sound track could be prepared";
                 case MediaFailure.AudioSilent: return "the sound track stays silent";
+                case MediaFailure.ChartRejected: return "the chart data is invalid";
                 default: return "no failure";
             }
         }
@@ -130,22 +129,13 @@ namespace FlashBeat.Gameplay
                    $"(picture={(hasPicture ? "ok" : "missing")})";
         }
 
-        /// <summary>The message on the start hint, so the player knows what happens.</summary>
+        /// <summary>
+        /// The message shown on the error view, so the player knows what
+        /// happened and what the buttons do (Issue #792).
+        /// </summary>
         public static string StartHint(MediaFailure failure)
         {
-            return $"この曲を再生できません ({Reason(failure)}) - 選曲画面へ戻ります";
-        }
-
-        /// <summary>The info log line of the return to the song list.</summary>
-        public static string SelectReturnLog(int attempt)
-        {
-            return $"[MusicManager] returning to the select screen (attempt {attempt}/{MaxSelectReturnAttempts})";
-        }
-
-        /// <summary>True when another attempt to return to the song list is allowed.</summary>
-        public static bool ShouldRetrySelectReturn(int attempt)
-        {
-            return attempt < MaxSelectReturnAttempts;
+            return $"この曲を再生できません ({Reason(failure)})\n再試行するか、選曲画面へ戻ってください";
         }
     }
 }

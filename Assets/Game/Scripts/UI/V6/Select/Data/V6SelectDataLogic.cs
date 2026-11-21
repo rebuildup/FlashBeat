@@ -12,7 +12,11 @@ namespace FlashBeat.UI.V6.Select.Data
     /// </summary>
     public static class V6SelectDataLogic
     {
-        /// <summary>スコア満点 (scoring v4 = 2,000,000。V6GradeLogic.ScoreMaxV4 と同じ)。</summary>
+        /// <summary>
+        /// スコア満点の v4 参照値 (2,000,000。V6GradeLogic.ScoreMaxV4 と
+        /// 同じ)。v6 の満点は譜面ごとの ScoreMaxV6(noteCount) で、
+        /// この定数は v4 帯のテスト等の参照用。
+        /// </summary>
         public const int ScoreMax = FlashBeat.UI.V6.Common.V6GradeLogic.ScoreMaxV4;
 
         /// <summary>
@@ -42,20 +46,58 @@ namespace FlashBeat.UI.V6.Select.Data
         /// <summary>
         /// スコアからグレード文字列を返す (記録なしは空文字)。
         /// scoringVersion で帯を切り替える (Issue #758 / ADR-0034):
-        /// v4 以降は <see cref="FlashBeat.UI.V6.Common.V6GradeLogic.GradeOfV4"/>
-        /// (満点 2,000,000 の帯)、v1–v3 は V5 SelectViewLogic.GradeOf の
+        /// v4/v5 以降は <see cref="FlashBeat.UI.V6.Common.V6GradeLogic"/>
+        /// (v6 は譜面満点 ScoreMaxV6(noteCount) の割合帯、v4/v5 は満点
+        /// 2,000,000 の帯)、v1–v3 は V5 SelectViewLogic.GradeOf の
         /// 閾値をそのまま使う (旧スコアを暗黙に再解釈しない)。
         /// 既定は最新の scoringVersion — ベストスコアもオンライン
         /// ランキング行も最新バージョンのスコープしか表示しないため。
+        /// <paramref name="noteCount"/> は scoring v6 のグレードにだけ
+        /// 使う譜面ノーツ数 (他バージョンでは無視される)。
         /// </summary>
-        public static string GradeOf(int score, int scoringVersion = FlashBeat.Gameplay.Scoring.LatestVersion)
+        public static string GradeOf(int score, int scoringVersion = FlashBeat.Gameplay.Scoring.LatestVersion,
+            int noteCount = 0)
         {
             if (score <= 0) return "";
+            if (scoringVersion >= FlashBeat.Gameplay.Scoring.Version6)
+            {
+                return FlashBeat.UI.V6.Common.V6GradeLogic.GradeOf(score, scoringVersion, noteCount);
+            }
             if (scoringVersion >= FlashBeat.Gameplay.Scoring.Version4)
             {
                 return FlashBeat.UI.V6.Common.V6GradeLogic.GradeOfV4(score);
             }
             return SongScoreLogic.GradeOf(score) ?? "";
+        }
+
+        /// <summary>
+        /// GET /api/v1/leaderboards の entry 配列を表示用の行へ変換する
+        /// (Issue #847)。表示順位は <see cref="RankingClient.BoardPosition"/>
+        /// が導出する (実 API の entry に rank は無いのでボード内の位置、
+        /// 1 始まり)。nickname が空でなければ一致する行を IsYou にする。
+        /// v6 のグレードは譜面満点 ScoreMaxV6(noteCount) に対する割合なので
+        /// その曲のノーツ数を渡す (ADR-0037 / Issue #825)。
+        /// </summary>
+        public static List<V6RankingRow> RankingRows(RankingClient.LeaderboardEntry[] entries,
+            int noteCount, string nickname)
+        {
+            var rows = new List<V6RankingRow>();
+            if (entries == null) return rows;
+            for (int i = 0; i < entries.Length; i++)
+            {
+                RankingClient.LeaderboardEntry entry = entries[i];
+                if (entry == null) continue;
+                rows.Add(new V6RankingRow
+                {
+                    Position = RankingClient.BoardPosition(entry, i),
+                    PlayerName = entry.nickname ?? "",
+                    Score = entry.score,
+                    Grade = GradeOf(entry.score,
+                        FlashBeat.Gameplay.Scoring.LatestVersion, noteCount),
+                    IsYou = !string.IsNullOrEmpty(nickname) && entry.nickname == nickname,
+                });
+            }
+            return rows;
         }
     }
 }

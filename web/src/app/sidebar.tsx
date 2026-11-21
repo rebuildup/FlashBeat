@@ -1,16 +1,23 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { Link } from "@void/react";
+import type { Href } from "void/routes";
 import { css } from "styled-system/css";
+import { auth } from "void/client/react";
 import {
   Archive,
   ChartColumnBig,
   ChevronDown,
   CloudUpload,
+  Library,
   ListMusic,
+  LogIn,
+  LogOut,
   PencilRuler,
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { BrandHeader } from "@/components/brand";
+import { useClientVisit } from "./client-visit";
 
 /**
  * Navigation of the Studio (issue #215): one visitor entry in front, the
@@ -36,7 +43,7 @@ export type StudioNavItem = {
   label: string;
   ja: string;
   en: string;
-  href: string;
+  href: Href;
   icon: LucideIcon;
   /** True when the route needs the admin token. */
   admin?: boolean;
@@ -102,6 +109,35 @@ const NAV_SONGS: StudioNavItem = {
   en: "Songs",
   href: "/songs",
   icon: Archive,
+};
+
+/**
+ * Per-account entries (issue #800): the user's own songs and the account
+ * page. These are NOT staff operations — they sit in their own group so
+ * the 制作/運営 split of the staff rail stays untouched.
+ */
+export const NAV_USER_GROUP: StudioNavGroup = {
+  value: "account",
+  ja: "マイページ",
+  en: "Account",
+  items: [
+    {
+      value: "my-songs",
+      label: "My songs",
+      ja: "マイソング",
+      en: "My songs",
+      href: "/my-songs",
+      icon: Library,
+    },
+    {
+      value: "account",
+      label: "Account",
+      ja: "アカウント",
+      en: "Account",
+      href: "/login",
+      icon: LogIn,
+    },
+  ],
 };
 
 export const NAV_STAFF_GROUPS: readonly StudioNavGroup[] = [
@@ -222,9 +258,9 @@ const staffGroup = css({
 });
 
 const groupLabel = css({
-  color: "fg.subtle",
+  color: "fg.muted",
   display: { base: "none", md: "block" },
-  fontSize: "2xs",
+  fontSize: "xs",
   letterSpacing: "0.08em",
   paddingInline: "3",
   paddingTop: "2",
@@ -248,8 +284,8 @@ const staffSubgroup = css({
  * at a glance.
  */
 const subgroupLabel = css({
-  color: "fg.subtle",
-  fontSize: "2xs",
+  color: "fg.muted",
+  fontSize: "xs",
   gridColumn: { base: "1 / -1", md: "auto" },
   letterSpacing: "0.08em",
   paddingInline: "3",
@@ -279,7 +315,10 @@ const navTrigger = css({
     outlineColor: "colorPalette.solid.bg",
     outlineOffset: "2px",
   },
-  "&[aria-current=page]": { bg: "colorPalette.subtle.bg", color: "colorPalette.subtle.fg" },
+  "&[aria-current=page]": {
+    bg: "colorPalette.subtle.bg",
+    color: "colorPalette.subtle.fg",
+  },
   justifyContent: "flex-start",
   textAlign: "left",
   width: { base: "auto", md: "100%" },
@@ -295,7 +334,14 @@ const visitorTrigger = css({
   fontWeight: "medium",
   minWidth: "0",
   _hover: { opacity: "0.9" },
-  "&[aria-current=page]": { opacity: "0.9" },
+  // Issue #802 review: the solid CTA always looks "selected". Mark the real
+  // current page with an inner ring so exactly one entry reads as active.
+  "&[aria-current=page]": {
+    opacity: "1",
+    outline: "2px solid",
+    outlineColor: "colorPalette.solid.fg",
+    outlineOffset: "-2px",
+  },
 });
 
 /**
@@ -338,6 +384,52 @@ const staffDivider = css({
   width: "100%",
 });
 
+/** The per-account group sits between the visitor entry and the staff rail. */
+const userGroup = css({
+  display: "contents",
+});
+
+const accountRow = css({
+  alignItems: "center",
+  borderTopColor: "gray.surface.border",
+  borderTopWidth: { base: "0px", md: "1px" },
+  color: "fg.subtle",
+  display: "flex",
+  fontSize: "xs",
+  gap: "2",
+  justifyContent: "space-between",
+  marginTop: "auto",
+  minWidth: "0",
+  paddingInline: "3",
+  paddingTop: "3",
+  width: "100%",
+});
+
+const accountName = css({
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+const accountButton = css({
+  alignItems: "center",
+  background: "transparent",
+  border: "none",
+  color: "fg.muted",
+  cursor: "pointer",
+  display: "inline-flex",
+  flexShrink: "0",
+  fontSize: "xs",
+  gap: "1",
+  padding: "1",
+  _hover: { color: "fg.default" },
+  _focusVisible: {
+    outline: "2px solid",
+    outlineColor: "colorPalette.solid.bg",
+    outlineOffset: "1px",
+  },
+});
+
 const labelGrid = css({
   display: "grid",
   lineHeight: "1.2",
@@ -348,9 +440,11 @@ const labelGrid = css({
 /** Visible admin-token badge on Publish: the boundary shows before the click. */
 const adminBadge = css({
   bg: "gray.subtle.bg",
+  borderColor: "gray.surface.border",
   borderRadius: "full",
-  color: "fg.muted",
-  fontSize: "2xs",
+  borderWidth: "1px",
+  color: "fg.default",
+  fontSize: "xs",
   marginLeft: "auto",
   paddingBlock: "0.5",
   paddingInline: "2",
@@ -363,21 +457,20 @@ const navIcon = css({
   flexShrink: "0",
 });
 
-export function Sidebar({ active }: { active?: string }) {
-  // The active entry follows the URL; the default covers the server-rendered
-  // first paint of `/` (the catalog). A page can pin it with `active`.
-  const [path, setPath] = useState("/");
+export function Sidebar() {
   // Narrow viewports keep the staff entries in a disclosure (issue #74).
   const [staffOpen, setStaffOpen] = useState(false);
-  useEffect(() => {
-    setPath(window.location.pathname);
-  }, []);
+  // Issue #800: the account widget reflects the Better Auth session. The
+  // hook stays pending until `/api/auth/get-session` answers; until then
+  // the row renders nothing rather than flashing a signed-out state.
+  const session = auth.useSession();
+  const visit = useClientVisit();
+  const accountUser = session.data?.user ?? null;
 
-  const isActive = (item: StudioNavItem): boolean => {
-    if (active !== undefined) return item.value === active;
-    if (item.href === "/") return path === "/";
-    return path.startsWith(item.href);
-  };
+  async function onSignOut() {
+    await auth.signOut();
+    visit("/");
+  }
 
   return (
     <aside className={sidebar}>
@@ -387,9 +480,12 @@ export function Sidebar({ active }: { active?: string }) {
 
       <nav aria-label="Studio" className={navList}>
         <div className={navTopRow}>
-          <a
+          {/* Issue #801: Void's Link marks the current page itself
+              (`aria-current`/`data-void-active`) and navigates without a
+              document reload, so the rail no longer tracks `location`. */}
+          <Link
             href={NAV_VISITOR.href}
-            aria-current={NAV_VISITOR.href === path ? "page" : undefined}
+            prefetch
             className={`${navTrigger} ${visitorTrigger}`}
             data-testid="nav-visitor"
           >
@@ -397,7 +493,7 @@ export function Sidebar({ active }: { active?: string }) {
             <span className={labelGrid}>
               <span>{NAV_VISITOR.ja}</span>
             </span>
-          </a>
+          </Link>
 
           <button
             type="button"
@@ -412,6 +508,27 @@ export function Sidebar({ active }: { active?: string }) {
             </span>
             <ChevronDown className={staffToggleIcon} size={16} aria-hidden="true" />
           </button>
+        </div>
+
+        {/* Issue #800: the per-account entries are always visible — unlike
+            the staff disclosure they are the general user's path. */}
+        <div className={userGroup} data-testid="nav-user-group">
+          <div className={staffDivider} aria-hidden="true" />
+          <p className={groupLabel}>{NAV_USER_GROUP.ja}</p>
+          {NAV_USER_GROUP.items.map((item) => (
+            <Link
+              key={item.value}
+              href={item.href}
+              prefetch
+              className={navTrigger}
+              data-testid={`nav-${item.value}`}
+            >
+              <item.icon className={navIcon} size={16} aria-hidden="true" />
+              <span className={labelGrid}>
+                <span>{item.ja}</span>
+              </span>
+            </Link>
+          ))}
         </div>
 
         <div
@@ -429,10 +546,10 @@ export function Sidebar({ active }: { active?: string }) {
                   2列グリッドの中でグループの切れ目が分かるようにする。 */}
               <p className={subgroupLabel}>{group.ja}</p>
               {group.items.map((item) => (
-                <a
+                <Link
                   key={item.value}
                   href={item.href}
-                  aria-current={isActive(item) ? "page" : undefined}
+                  prefetch
                   className={navTrigger}
                   data-testid={`nav-${item.value}`}
                 >
@@ -445,11 +562,43 @@ export function Sidebar({ active }: { active?: string }) {
                       要トークン
                     </span>
                   ) : null}
-                </a>
+                </Link>
               ))}
             </div>
           ))}
         </div>
+
+        {/* Issue #800: account state of the Better Auth session. Nothing
+            renders while the session is pending so a signed-in user never
+            sees a signed-out flash. */}
+        {!session.isPending ? (
+          <div className={accountRow} data-testid="account-widget">
+            {accountUser ? (
+              <>
+                <span className={accountName} title={accountUser.email ?? accountUser.name}>
+                  {accountUser.name || accountUser.email}
+                </span>
+                <button
+                  type="button"
+                  className={accountButton}
+                  onClick={() => void onSignOut()}
+                  data-testid="account-sign-out"
+                >
+                  <LogOut size={12} aria-hidden="true" />
+                  ログアウト
+                </button>
+              </>
+            ) : (
+              <>
+                <span className={accountName}>未ログイン</span>
+                <Link className={accountButton} href="/login" data-testid="account-sign-in">
+                  <LogIn size={12} aria-hidden="true" />
+                  ログイン
+                </Link>
+              </>
+            )}
+          </div>
+        ) : null}
       </nav>
     </aside>
   );

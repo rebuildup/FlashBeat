@@ -77,6 +77,43 @@ test("catalog → editor → publish → back to catalog", async ({ page }) => {
   ).toBeVisible();
 });
 
+test("client-side navigation keeps the shared layout mounted", async ({ page }) => {
+  await page.goto("/");
+  // The SSR markup is visible before hydration; a click that early is a
+  // plain document navigation and would defeat the probe below.
+  await expect(page.locator("#app")).toHaveAttribute("data-hydrated", "true");
+  const sidebar = page.locator("aside", { has: page.getByRole("navigation", { name: "Studio" }) });
+  await expect(sidebar).toBeVisible();
+
+  // Issue #801: the probe survives only while React keeps the same layout
+  // tree — a document reload or a layout remount drops the DOM marker and
+  // the window flag.
+  await page.evaluate(() => {
+    document
+      .querySelector('aside:has(nav[aria-label="Studio"])')!
+      .setAttribute("data-layout-probe", "mounted");
+    (window as unknown as { __layoutProbe?: boolean }).__layoutProbe = true;
+  });
+
+  const documentRequests: string[] = [];
+  page.on("request", (request) => {
+    if (
+      request.resourceType() === "document" &&
+      new URL(request.url()).origin === new URL(page.url()).origin
+    ) {
+      documentRequests.push(request.url());
+    }
+  });
+
+  await page.getByTestId("nav-dashboard").click();
+  await expect(page).toHaveURL(/\/dashboard/);
+  await expect(sidebar).toHaveAttribute("data-layout-probe", "mounted");
+  await expect
+    .poll(() => page.evaluate(() => (window as { __layoutProbe?: boolean }).__layoutProbe))
+    .toBe(true);
+  expect(documentRequests).toEqual([]);
+});
+
 test("forced catalog states render inside the shared shell", async ({ page }) => {
   await page.goto("/?state=empty");
   await expect(page.getByRole("navigation", { name: "Studio" })).toBeVisible();

@@ -39,6 +39,18 @@ namespace FlashBeat.UI.V6.Game.Hud
         private const int CacheLimit = 8;
 
         /// <summary>
+        /// パネルの枠として残す縁の太さ (canvas px)。
+        ///
+        /// Issue #789 (v0.2.1 実機受入): レーン回廊の抜きがパネルの内側の
+        /// 大部分を透明にするため、開始待ち・カウントダウン等で「パネル枠が
+        /// 見えない」と指摘された。角丸矩形の外縁からこの太さの内側は
+        /// 回廊の内外に関わらずアルファを残し、枠の輪郭を常に視認できる
+        /// ようにする。ノーツを暗くしないという回廊抜きの目的は内側の
+        /// 大部分で維持され、縁の細い帯だけが例外になる。
+        /// </summary>
+        public const float FrameThicknessPx = 6f;
+
+        /// <summary>
         /// テスト用: パネル用スプライトのキャッシュを空にする。
         /// レーンコリドー抜きは構築時のカメラで焼き込まれるため、カメラの
         /// 居ない EditMode テストが先に同じキーのスプライトを作ると、
@@ -57,15 +69,24 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// </summary>
         /// <param name="screenSize">HUD canvas の実ピクセル寸法。</param>
         /// <param name="cornerRadiusPx">角丸半径 (canvas px)。</param>
+        /// <param name="frameInsideCorridor">
+        /// レーン回廊の内側でもパネル縁 (<see cref="FrameThicknessPx"/>) の
+        /// アルファを残すか (Issue #789)。ノーツがパネル帯を通過し得る
+        /// 演奏中は false にして回廊を完全に抜き、枠がノーツを暗くする
+        /// のを防ぐ。開始待ち・曲終了などノーツが画面に無い状態では
+        /// true で枠の輪郭を保つ。
+        /// </param>
         public static Sprite ForPanel(float leftPx, float topPx,
-            float widthPx, float heightPx, Vector2 screenSize, float cornerRadiusPx)
+            float widthPx, float heightPx, Vector2 screenSize, float cornerRadiusPx,
+            bool frameInsideCorridor)
         {
             int w = Mathf.Max(2, Mathf.RoundToInt(widthPx));
             int h = Mathf.Max(2, Mathf.RoundToInt(heightPx));
             string key = leftPx.ToString("0.#") + "," + topPx.ToString("0.#")
                 + "," + w + "x" + h
                 + "," + screenSize.x.ToString("0") + "x" + screenSize.y.ToString("0")
-                + "," + cornerRadiusPx.ToString("0.#");
+                + "," + cornerRadiusPx.ToString("0.#")
+                + "," + (frameInsideCorridor ? "f" : "c");
             if (sprites.TryGetValue(key, out var cached) && cached != null)
             {
                 return cached;
@@ -97,8 +118,16 @@ namespace FlashBeat.UI.V6.Game.Hud
                     // 最終アルファ = 角丸被覆率 × (レーン帯の外なら 1 / 内なら 0)。
                     // RGB は白のまま — 色は Image.color (LyricBoxColor) が掛ける。
                     float sx = leftPx + x + 0.5f;
-                    float shape = RoundedAlpha(x + 0.5f, y + 0.5f, w, h, radius);
-                    float a = V6TopShadeHole.ShadeAlpha(sx, left, right, shape);
+                    // Issue #789: 角丸矩形の縁から FrameThicknessPx 以内は
+                    // 回廊帯の内側でもアルファを残し、パネル枠を常に見せる。
+                    // ただし frameInsideCorridor = false (ノーツが帯を通過
+                    // し得る演奏中) では回廊を完全に抜き、枠がノーツを
+                    // 暗くしないようにする (Issue #735/#760 の白さ契約)。
+                    float d = RoundedDistance(x + 0.5f, y + 0.5f, w, h, radius);
+                    float shape = Mathf.Clamp01(0.5f - d);
+                    float a = frameInsideCorridor && d >= -FrameThicknessPx
+                        ? shape
+                        : V6TopShadeHole.ShadeAlpha(sx, left, right, shape);
                     tex.SetPixel(x, y, new Color(1f, 1f, 1f, a));
                 }
             }
@@ -120,14 +149,16 @@ namespace FlashBeat.UI.V6.Game.Hud
         }
 
         /// <summary>
-        /// 角丸矩形の被覆率 (0..1、約 1px の AA 付き)。
+        /// 角丸矩形の符号付き距離 (外側が正、縁上 0、内側が負)。
         /// テクセル中心座標 (左下原点) で評価する。
+        /// パネル枠 (<see cref="FrameThicknessPx"/>) の判定と被覆率の両方に使う。
         /// </summary>
-        private static float RoundedAlpha(float px, float py, float w, float h, float radius)
+        private static float RoundedDistance(float px, float py, float w, float h, float radius)
         {
             if (radius <= 0f)
             {
-                return (px >= 0f && px <= w && py >= 0f && py <= h) ? 1f : 0f;
+                // 角丸なし: 矩形の縁までの距離 (内側が負)。
+                return -Mathf.Min(Mathf.Min(px, w - px), Mathf.Min(py, h - py));
             }
 
             // 角丸矩形の符号付き距離 (外側が正)。
@@ -135,9 +166,8 @@ namespace FlashBeat.UI.V6.Game.Hud
             float qy = Mathf.Abs(py - h * 0.5f) - (h * 0.5f - radius);
             float ox = Mathf.Max(qx, 0f);
             float oy = Mathf.Max(qy, 0f);
-            float d = Mathf.Min(Mathf.Max(qx, qy), 0f)
+            return Mathf.Min(Mathf.Max(qx, qy), 0f)
                 + Mathf.Sqrt(ox * ox + oy * oy) - radius;
-            return Mathf.Clamp01(0.5f - d);
         }
     }
 }

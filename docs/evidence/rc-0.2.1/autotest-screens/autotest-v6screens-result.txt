@@ -1,0 +1,41 @@
+[AutoTestV6Screens] SCREEN TitleScene pass=40 fail=0 symbols=0 shots=v6screen-TitleScene-1.png
+[AutoTestV6Screens] [clip] summary screen=3420x2148 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] SCREEN SelectScene pass=179 fail=0 symbols=12 shots=v6screen-SelectScene-2.png
+[AutoTestV6Screens] [clip] summary screen=3420x2148 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] SCREEN SelectScene-Refetch pass=6 fail=0 symbols=0 shots=v6screen-SelectScene-Refetch1-3.png,v6screen-SelectScene-Refetch2-4.png,v6screen-SelectScene-Refetch3-5.png
+[AutoTestV6Screens] SCREEN SelectScene-Skeleton pass=1 fail=1 symbols=0 shots=
+[AutoTestV6Screens] SCREEN SelectScene-LoadingKeepsRows pass=1 fail=1 symbols=0 shots=
+[AutoTestV6Screens] SCREEN SelectScene-Error pass=1 fail=1 symbols=0 shots=
+[AutoTestV6Screens] SCREEN SelectScene-Empty pass=113 fail=0 symbols=3 shots=v6screen-SelectScene-Empty-9.png
+[AutoTestV6Screens] [clip] summary screen=3420x2148 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] SCREEN SelectScene-Settings pass=193 fail=0 symbols=9 shots=v6screen-SelectScene-Settings-10.png
+[AutoTestV6Screens] [clip] summary screen=3420x2148 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] SCREEN SelectScene-History pass=96 fail=1 symbols=13 shots=
+[AutoTestV6Screens] [clip] summary screen=3420x2148 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] SCREEN SelectScene-Ranking pass=153 fail=0 symbols=9 shots=v6screen-SelectScene-Ranking-12.png
+[AutoTestV6Screens] [clip] summary screen=3420x2148 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] SCREEN OptionScene pass=165 fail=0 symbols=0 shots=v6screen-OptionScene-13.png
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Preview/Desc Viewport/Desc Content/Desc rect=(x:1758, y:712, width:464, height:70) "ノーツが出現してから判定線に届くまでの時間。数値"
+[AutoTestV6Screens] [clip] summary screen=3420x2148 selectables partial=0 outside=0 texts partial=1 outside=0
+[AutoTestV6Screens] SCREEN OptionScene-Display pass=94 fail=0 symbols=0 shots=v6screen-OptionScene-Display-14.png
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Preview/Desc Viewport/Desc Content/Desc rect=(x:1758, y:800, width:464, height:70) "ノーツ判定時の背景フラッシュの On/Off。"
+[AutoTestV6Screens] [clip] summary screen=3420x2148 selectables partial=0 outside=0 texts partial=1 outside=0
+[AutoTestV6Screens] SCREEN OptionScene-Sound pass=73 fail=0 symbols=0 shots=v6screen-OptionScene-Sound-15.png
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Preview/Desc Viewport/Desc Content/Desc rect=(x:1758, y:718, width:464, height:104) "全体の音量。スライダーをドラッグするか左右キーで"
+[AutoTestV6Screens] [clip] summary screen=3420x2148 selectables partial=0 outside=0 texts partial=1 outside=0
+[AutoTestV6Screens] SCREEN OptionScene-Data pass=51 fail=1 symbols=0 shots=
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Preview/Desc Viewport/Desc Content/Desc rect=(x:1758, y:842, width:464, height:104) "ダウンロードした楽曲映像のキャッシュ。消すと次回"
+[AutoTestV6Screens] [clip] summary screen=3420x2148 selectables partial=0 outside=0 texts partial=1 outside=0
+[AutoTestV6Screens] SCREEN ResultScene pass=95 fail=0 symbols=4 shots=v6screen-ResultScene-17.png
+[AutoTestV6Screens] [clip] summary screen=3420x2148 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] SCREEN ResultScene-RegisterModal pass=137 fail=0 symbols=5 shots=v6screen-ResultScene-RegisterModal-18.png
+[AutoTestV6Screens] [clip] summary screen=3420x2148 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] SCREEN GameScene-HUD pass=52 fail=0 symbols=0 shots=v6screen-GameScene-HUD-19.png
+[AutoTestV6Screens] [clip] summary screen=3420x2148 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] SCREEN GameScene-Pause pass=234 fail=0 symbols=0 shots=v6screen-GameScene-Pause-20.png
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Desc Viewport/Desc Content/Desc rect=(x:1758, y:712, width:464, height:70) "ノーツが出現してから判定線に届くまでの時間。数値"
+[AutoTestV6Screens] [clip] summary screen=3420x2148 selectables partial=0 outside=0 texts partial=1 outside=0
+[AutoTestV6Screens] SCREEN GameScene-LoadingVideo pass=2 fail=0 symbols=0 shots=
+[AutoTestV6Screens] SCREEN GameScene-Loading pass=62 fail=0 symbols=0 shots=v6screen-GameScene-Loading-21.png
+[AutoTestV6Screens] [clip] summary screen=3420x2148 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] RESULT pass=85 fail=5 symbols=55 screenshots=21 resolution=3420x2148

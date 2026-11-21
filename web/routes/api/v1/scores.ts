@@ -27,6 +27,7 @@
 import { defineHandler } from "void";
 import { and, count, db, desc, eq, gt } from "void/db";
 import { chartVersions, scores } from "@schema";
+import { readJsonLimited, SCORE_SUBMISSION_BODY_LIMIT } from "./_request-body";
 import {
   SCORING_VERSION_V1,
   SCORING_VERSION_V3,
@@ -43,20 +44,13 @@ import { SONG_ID_PATTERN } from "./_read-model";
 const DUPLICATE_WINDOW_SECONDS = 10;
 
 export const POST = defineHandler(async (c) => {
-  let body: unknown;
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json(
-      {
-        error: "request body is not valid JSON",
-        diagnostics: [
-          { path: "(body)", message: "must be a single JSON object" } satisfies ScoreDiagnostic,
-        ],
-      },
-      422,
-    );
+  // Bounded read (issue #799): the byte cap is enforced while streaming,
+  // before JSON.parse ever sees the body.
+  const limited = await readJsonLimited(c, SCORE_SUBMISSION_BODY_LIMIT);
+  if (!limited.ok) {
+    return limited.response;
   }
+  const body = limited.value;
 
   const validation = validateScoreRequest(body);
   if (!validation.ok) {

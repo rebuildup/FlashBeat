@@ -1,0 +1,99 @@
+[AutoTestV6Screens] SCREEN TitleScene pass=41 fail=0 symbols=0 shots=v6screen-TitleScene-1.png
+[AutoTestV6Screens] [clip] summary screen=2560x1440 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] [ink] text partial V6 Title Canvas/V6 Title View/V6 Title Frame 1728x972/Header/Exit/Label ink=(x:0.0, y:-34.4, width:54.6, height:34.4) rect=(x:0.0, y:-43.0, width:53.0, height:43.0) "Exit"
+[AutoTestV6Screens] [ink] summary inside=15 partial=1 outside=0 unmeasurable=0
+[AutoTestV6Screens] [overlap] summary groups=1 overlaps=0
+[AutoTestV6Screens] SCREEN SelectScene pass=182 fail=0 symbols=10 shots=v6screen-SelectScene-2.png
+[AutoTestV6Screens] [clip] summary screen=2560x1440 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] [ink] summary inside=72 partial=0 outside=0 unmeasurable=0
+[AutoTestV6Screens] [overlap] summary groups=5 overlaps=0
+[AutoTestV6Screens] SCREEN SelectScene-Refetch pass=6 fail=0 symbols=0 shots=v6screen-SelectScene-Refetch1-3.png,v6screen-SelectScene-Refetch2-4.png,v6screen-SelectScene-Refetch3-5.png
+[AutoTestV6Screens] SCREEN SelectScene-Skeleton pass=2 fail=0 symbols=0 shots=v6screen-SelectScene-Skeleton-6.png
+[AutoTestV6Screens] SCREEN SelectScene-LoadingKeepsRows pass=2 fail=0 symbols=0 shots=v6screen-SelectScene-LoadingKeepsRows-7.png
+[AutoTestV6Screens] SCREEN SelectScene-Error pass=2 fail=0 symbols=0 shots=v6screen-SelectScene-Error-8.png
+[AutoTestV6Screens] SCREEN SelectScene-Empty pass=114 fail=0 symbols=3 shots=v6screen-SelectScene-Empty-9.png
+[AutoTestV6Screens] [clip] summary screen=2560x1440 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] [ink] summary inside=38 partial=0 outside=0 unmeasurable=0
+[AutoTestV6Screens] [overlap] summary groups=3 overlaps=0
+[AutoTestV6Screens] SCREEN SelectScene-Settings pass=194 fail=0 symbols=8 shots=v6screen-SelectScene-Settings-10.png
+[AutoTestV6Screens] [clip] summary screen=2560x1440 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] [ink] summary inside=70 partial=0 outside=0 unmeasurable=0
+[AutoTestV6Screens] [overlap] summary groups=8 overlaps=0
+[AutoTestV6Screens] SCREEN SelectScene-History pass=98 fail=0 symbols=13 shots=v6screen-SelectScene-History-11.png
+[AutoTestV6Screens] [clip] summary screen=2560x1440 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] [ink] summary inside=48 partial=0 outside=0 unmeasurable=0
+[AutoTestV6Screens] [overlap] summary groups=3 overlaps=0
+[AutoTestV6Screens] SCREEN SelectScene-Ranking pass=154 fail=0 symbols=9 shots=v6screen-SelectScene-Ranking-12.png
+[AutoTestV6Screens] [clip] summary screen=2560x1440 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] [ink] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Score Ranking/Head/Label ink=(x:0.0, y:-21.6, width:141.6, height:21.6) rect=(x:0.0, y:-26.0, width:139.0, height:26.0) "SCORE RANKING"
+[AutoTestV6Screens] [ink] text partial V6 Select Canvas/V6 Ranking View/V6 Ranking Frame 1728x972/Main/Players/Head/Title ink=(x:0.0, y:-21.6, width:76.1, height:21.6) rect=(x:0.0, y:-26.0, width:74.0, height:26.0) "PLAYERS"
+[AutoTestV6Screens] [ink] summary inside=61 partial=2 outside=0 unmeasurable=0
+[AutoTestV6Screens] [overlap] summary groups=2 overlaps=0
+[AutoTestV6Screens] SCREEN OptionScene pass=169 fail=0 symbols=0 shots=v6screen-OptionScene-13.png
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Preview/Desc Viewport/Desc Content/Desc rect=(x:1328, y:358, width:464, height:70) "ノーツが出現してから判定線に届くまでの時間。数値"
+[AutoTestV6Screens] [clip] summary screen=2560x1440 selectables partial=0 outside=0 texts partial=1 outside=0
+[AutoTestV6Screens] [ink] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Preview/Key \/Label ink=(x:0.0, y:-22.8, width:21.2, height:22.8) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) "\"
+[AutoTestV6Screens] [ink] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Preview/Key Q/Label ink=(x:0.0, y:-23.1, width:24.4, height:23.1) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) "Q"
+[AutoTestV6Screens] [ink] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Preview/Key @/Label ink=(x:0.0, y:-22.9, width:26.1, height:22.9) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) "@"
+[AutoTestV6Screens] [ink] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Preview/Key [/Label ink=(x:0.0, y:-22.7, width:20.3, height:22.7) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) "["
+[AutoTestV6Screens] [ink] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Preview/Key ;/Label ink=(x:0.0, y:-23.2, width:19.4, height:23.2) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) ";"
+[AutoTestV6Screens] [ink] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Preview/Key ]/Label ink=(x:0.0, y:-22.7, width:19.0, height:22.7) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) "]"
+[AutoTestV6Screens] [ink] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Preview/Key ,/Label ink=(x:0.0, y:-23.2, width:19.4, height:23.2) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) ","
+[AutoTestV6Screens] [ink] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Preview/Key //Label ink=(x:0.0, y:-22.8, width:21.0, height:22.8) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) "/"
+[AutoTestV6Screens] [ink] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Preview/Key _/Label ink=(x:0.0, y:-22.2, width:22.9, height:22.2) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) "_"
+[AutoTestV6Screens] [ink] summary inside=67 partial=9 outside=0 unmeasurable=0
+[AutoTestV6Screens] [overlap] summary groups=5 overlaps=0
+[AutoTestV6Screens] SCREEN OptionScene-Display pass=93 fail=0 symbols=0 shots=v6screen-OptionScene-Display-14.png
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Preview/Desc Viewport/Desc Content/Desc rect=(x:1328, y:446, width:464, height:70) "ノーツ判定時の背景フラッシュの On/Off。"
+[AutoTestV6Screens] [clip] summary screen=2560x1440 selectables partial=0 outside=0 texts partial=1 outside=0
+[AutoTestV6Screens] [ink] summary inside=33 partial=0 outside=0 unmeasurable=0
+[AutoTestV6Screens] [overlap] summary groups=7 overlaps=0
+[AutoTestV6Screens] SCREEN OptionScene-Sound pass=86 fail=0 symbols=0 shots=v6screen-OptionScene-Sound-15.png
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Preview/Desc Viewport/Desc Content/Desc rect=(x:1328, y:364, width:464, height:104) "全体の音量。スライダーをドラッグするか左右キーで"
+[AutoTestV6Screens] [clip] summary screen=2560x1440 selectables partial=0 outside=0 texts partial=1 outside=0
+[AutoTestV6Screens] [ink] summary inside=34 partial=0 outside=0 unmeasurable=0
+[AutoTestV6Screens] [overlap] summary groups=6 overlaps=0
+[AutoTestV6Screens] SCREEN OptionScene-Data pass=54 fail=0 symbols=0 shots=v6screen-OptionScene-Data-16.png
+[AutoTestV6Screens] [clip] text partial V6 Option Canvas/V6 Option View/V6 Option Frame 1728x972/Main/Preview/Desc Viewport/Desc Content/Desc rect=(x:1328, y:488, width:464, height:104) "ダウンロードした楽曲映像のキャッシュ。消すと次回"
+[AutoTestV6Screens] [clip] summary screen=2560x1440 selectables partial=0 outside=0 texts partial=1 outside=0
+[AutoTestV6Screens] [ink] summary inside=24 partial=0 outside=0 unmeasurable=0
+[AutoTestV6Screens] [overlap] summary groups=2 overlaps=0
+[AutoTestV6Screens] SCREEN ResultScene pass=94 fail=0 symbols=4 shots=v6screen-ResultScene-17.png
+[AutoTestV6Screens] [clip] summary screen=2560x1440 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] [ink] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Bonus Line/Label ink=(x:0.0, y:-17.6, width:62.6, height:32.7) rect=(x:0.0, y:-14.0, width:100.0, height:28.0) "BASE + BONUS"
+[AutoTestV6Screens] [ink] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Bonus Line/Note Quality Label ink=(x:0.0, y:-15.5, width:54.2, height:15.5) rect=(x:0.0, y:-14.0, width:182.5, height:14.0) "QUALITY"
+[AutoTestV6Screens] [ink] summary inside=57 partial=2 outside=0 unmeasurable=0
+[AutoTestV6Screens] [overlap] summary groups=1 overlaps=0
+[AutoTestV6Screens] SCREEN ResultScene-RegisterModal pass=136 fail=0 symbols=5 shots=v6screen-ResultScene-RegisterModal-18.png
+[AutoTestV6Screens] [clip] summary screen=2560x1440 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] [ink] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Bonus Line/Label ink=(x:0.0, y:-17.6, width:62.6, height:32.7) rect=(x:0.0, y:-14.0, width:100.0, height:28.0) "BASE + BONUS"
+[AutoTestV6Screens] [ink] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Bonus Line/Note Quality Label ink=(x:0.0, y:-15.5, width:54.2, height:15.5) rect=(x:0.0, y:-14.0, width:182.5, height:14.0) "QUALITY"
+[AutoTestV6Screens] [ink] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Modal 05b/Dialog/Head ink=(x:0.0, y:-37.9, width:191.3, height:37.9) rect=(x:0.0, y:-43.0, width:180.0, height:43.0) "スコアを登録"
+[AutoTestV6Screens] [ink] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Modal 05b/Dialog/Name Prompt ink=(x:0.0, y:-39.5, width:378.8, height:39.5) rect=(x:0.0, y:-29.0, width:380.0, height:29.0) "プレイヤー名を入力"
+[AutoTestV6Screens] [ink] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Modal 05b/Dialog/Input Hints/Legend 削除/KeyCap/Key ink=(x:0.0, y:-25.3, width:91.5, height:25.3) rect=(x:0.0, y:-26.0, width:90.0, height:26.0) "Backspace"
+[AutoTestV6Screens] [ink] summary inside=72 partial=5 outside=0 unmeasurable=0
+[AutoTestV6Screens] [overlap] summary groups=2 overlaps=0
+[AutoTestV6Screens] SCREEN GameScene-HUD pass=51 fail=0 symbols=0 shots=v6screen-GameScene-HUD-19.png
+[AutoTestV6Screens] [clip] summary screen=2560x1440 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] [ink] summary inside=21 partial=0 outside=0 unmeasurable=0
+[AutoTestV6Screens] [overlap] summary groups=0 overlaps=0
+[AutoTestV6Screens] SCREEN GameScene-Pause pass=233 fail=0 symbols=0 shots=v6screen-GameScene-Pause-20.png
+[AutoTestV6Screens] [clip] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Desc Viewport/Desc Content/Desc rect=(x:1328, y:358, width:464, height:70) "ノーツが出現してから判定線に届くまでの時間。数値"
+[AutoTestV6Screens] [clip] summary screen=2560x1440 selectables partial=0 outside=0 texts partial=1 outside=0
+[AutoTestV6Screens] [ink] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key \/Label ink=(x:0.0, y:-22.8, width:21.2, height:22.8) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) "\"
+[AutoTestV6Screens] [ink] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key Q/Label ink=(x:0.0, y:-23.1, width:24.4, height:23.1) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) "Q"
+[AutoTestV6Screens] [ink] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key @/Label ink=(x:0.0, y:-22.9, width:26.1, height:22.9) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) "@"
+[AutoTestV6Screens] [ink] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key [/Label ink=(x:0.0, y:-22.7, width:20.3, height:22.7) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) "["
+[AutoTestV6Screens] [ink] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key ;/Label ink=(x:0.0, y:-23.2, width:19.4, height:23.2) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) ";"
+[AutoTestV6Screens] [ink] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key ]/Label ink=(x:0.0, y:-22.7, width:19.0, height:22.7) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) "]"
+[AutoTestV6Screens] [ink] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key ,/Label ink=(x:0.0, y:-23.2, width:19.4, height:23.2) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) ","
+[AutoTestV6Screens] [ink] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key //Label ink=(x:0.0, y:-22.8, width:21.0, height:22.8) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) "/"
+[AutoTestV6Screens] [ink] text partial V6GameUi/V6GamePauseCanvas/V6 Pause View/V6 Pause Frame 1728x972/Main/Preview/Key _/Label ink=(x:0.0, y:-22.2, width:22.9, height:22.2) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) "_"
+[AutoTestV6Screens] [ink] summary inside=100 partial=9 outside=0 unmeasurable=0
+[AutoTestV6Screens] [overlap] summary groups=6 overlaps=0
+[AutoTestV6Screens] SCREEN GameScene-LoadingVideo pass=2 fail=0 symbols=0 shots=
+[AutoTestV6Screens] SCREEN GameScene-Loading pass=62 fail=0 symbols=0 shots=v6screen-GameScene-Loading-21.png
+[AutoTestV6Screens] [clip] summary screen=2560x1440 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] [ink] summary inside=27 partial=0 outside=0 unmeasurable=0
+[AutoTestV6Screens] [overlap] summary groups=0 overlaps=0
+[AutoTestV6Screens] RESULT pass=105 fail=0 symbols=52 screenshots=21 resolution=2560x1440

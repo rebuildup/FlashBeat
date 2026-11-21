@@ -37,7 +37,7 @@ describe("SelectionPanel", () => {
   const selected = renderToStaticMarkup(
     createElement(SelectionPanel, {
       chart: SAMPLE_CHART,
-      // First note of the sample chart: lane 4 (displayed 5), line 48 at LPB 4.
+      // First note of the sample chart: lane 1 (displayed 2), line 8 at LPB 4.
       selectedIndex: 0,
       ...handlers,
     }),
@@ -45,12 +45,12 @@ describe("SelectionPanel", () => {
 
   it("names the lane, the beat and the time of the selection", () => {
     expect(selected).toContain('data-testid="selection-lane"');
-    expect(selected).toContain(">5<");
+    expect(selected).toContain(">2<");
     expect(selected).toContain('data-testid="selection-beat"');
-    expect(selected).toContain("12.00");
-    // 12 beats at 95 BPM = 7.58 s.
+    expect(selected).toContain("2.00");
+    // 2 beats at 128 BPM = 0.94 s.
     expect(selected).toContain('data-testid="selection-time"');
-    expect(selected).toContain("7.58秒");
+    expect(selected).toContain("0.94秒");
   });
 
   it("offers the mouse-only edits", () => {

@@ -24,10 +24,12 @@ public static class RankingClient
     public const string NicknamePrefsKey = "RankingNickname";
     /// <summary>
     /// scoringVersion sent with every submission (ADR-0028 / ADR-0029 /
-    /// ADR-0033): tracks <see cref="FlashBeat.Gameplay.Scoring.LatestVersion"/>
-    /// (4 = the v4 formula: judgment-derived base capped at 1,000,000 plus
-    /// additive combo/milestone bonuses, full combo exceeds 1,000,000). The
-    /// server treats an omitted field as 1 for old clients.
+    /// ADR-0033 / ADR-0035 / ADR-0037): tracks
+    /// <see cref="FlashBeat.Gameplay.Scoring.LatestVersion"/>
+    /// (6 = the v6 formula: judgment-derived base capped at 1,000,000 plus
+    /// an absolute additional score — quality points, milestone and
+    /// full-clear bonuses — whose chart maximum grows with the note
+    /// count). The server treats an omitted field as 1 for old clients.
     /// </summary>
     public const int ScoringVersion = FlashBeat.Gameplay.Scoring.LatestVersion;
     /// <summary>error set on transport failure (offline, DNS, timeout).</summary>
@@ -215,6 +217,21 @@ public static class RankingClient
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// ボード上の表示順位 (1 始まり) を返す (Issue #847)。
+    /// GET /api/v1/leaderboards の entry には rank フィールドが無く
+    /// (contracts/openapi.v1.yaml)、JsonUtility は未存在フィールドを
+    /// 0 にデシリアライズするため entry.rank は常に 0 になる。
+    /// rank が入っていればそれを優先し、無い (0 以下) ときはボード内の
+    /// 表示位置 (0 始まり index + 1) を使う — 旧 RankingPanel.ShowBoard
+    /// と同じ規則。ボードは位置順位 (score 降順・先着) で、POST /scores
+    /// が返す同点共有の rank とは別契約なので、ここでは順位の共有はしない。
+    /// </summary>
+    public static int BoardPosition(LeaderboardEntry entry, int index)
+    {
+        return entry != null && entry.rank > 0 ? entry.rank : index + 1;
     }
 
     // --- nickname persistence ------------------------------------------------

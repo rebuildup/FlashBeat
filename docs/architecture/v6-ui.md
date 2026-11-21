@@ -80,7 +80,7 @@ HUD 内の "Video Dim" は無効化されている (順序が崩れるため)。
 | ベストスコア | `GManager.BestScoreOf(songId)` (stable songId + 譜面版, Issue #189) |
 | ランキング | `RankingClient` (オンライン。取得失敗時は空リスト + エラー表示) |
 | リザルト | `GManager` のプレイセッション実値 (スコア / コンボ / 判定数) |
-| ジャケット | `Assets/Game/Resources/V6/select/jacket/` (Pencil 設計の正式画像 26 枚。無い曲だけ空枠) |
+| ジャケット | `V6JacketProvider` 経由の YouTube サムネイル (`videoId` → `i.ytimg.com`)。ローカル同梱画像は Issue #823/#794 で廃止。ジャケットは曲の識別表示専用で、背景・ローディング面には使わない (Issue #845) |
 
 固定データ (サンプル曲名・"988,513" 等の仮スコア) は表示しない。
 
@@ -107,15 +107,31 @@ HUD 内の "Video Dim" は無効化されている (順序が崩れるため)。
   `VerdictH` 1 個分) 下。`anchoredPosition.y` だけを動かしレイアウトは
   変えない。時系列の正本は `V6HudLogic` の純粋関数 `VerdictPoseAt`
   (判定線からのオフセット px と不透明度を返す)。本編 HUD
-  (`V6HudVerdict`) と Option プレビュー (`V6OptionViewPreviewOverlay`)
+  (`V6HudVerdict`) と設定プレビュー (`V6GamePreview`)
   は同じ関数・同じ定数を使う。旧 #671 の「静止位置の上から落下して
   着地 → 静止 → フェード」はオーナー要求に反するため廃止した。
 - **設定の Game Preview** (Issue #607): `V6OptionPreviewRig` が本編と同じ幾何の
   3D プレビュー (RenderTexture → RawImage) を独立セッションとして回し、
   レーンフラッシュ・判定ポップ・歌詞同期を再現する。判定ポップのラベル・色・
-  寿命は `V6HudLogic` の共有関数を使い、2D オーバーレイは
-  `V6OptionViewPreviewOverlay` / `V6OptionPreviewLyrics` が担う。
+  寿命は `V6HudLogic` の共有関数を使い、2D オーバーレイ (判定・歌詞) は
+  共有画面側の `V6GamePreview` が構築し、歌詞同期は
+  `V6OptionPreviewLyrics` が担う (Option/Pause 共通)。
   `GManager` のスコア・コンボ・セッション状態には書き戻さない。
+- **設定画面の共有 scaffold** (Issue #733 フォローアップ): Option
+  (`UI/V6/Option/`) と Pause (`UI/V6/Game/Pause/`) は同じ設定画面を出す
+  ため、タブ帯・設定パネル・行ビュー・プレビューパネル (Game Preview /
+  JIS キー一覧 / 判定凡例 / 音量スライダ / 説明ブロック)・選択とフォーカス・
+  レイアウト定数を `UI/V6/Common/V6SettingsScreen` +
+  `V6SettingsLayout` に集約し、両 View が同じコンポーネントを実際に
+  生成する (行カタログ共有だけでは不十分だった表示側の差分を解消)。
+  画面ごとの差分はホスト差し替え部だけ: Option はヘッダー/フッター・
+  キーコンフィグ/確認モーダル・Data タブのデータ管理操作 (メディア
+  キャッシュ / セーブデータ削除)、Pause は PauseGate の一時停止・
+  再開/リトライ/選曲の導線・ヘッダーの曲情報・Data タブの実行中
+  ランタイム統計 (この曲のベスト / スコア / コンボ / 判定 / 進捗)。
+  後者は「現在のプレイ」の情報で Option には存在しないため、
+  Pause 固有の正当な差分として残す (契約 §9 は Data タブの行内容を
+  規定していない)。
 - **ローディング画面** (Issue #606): 進捗バー・エラー表示・リトライ UI は
   design に無い要素として撤去済み。残るのは全画面 `loading.mp4`、フォールバック
   背景、ヘッダーの戻る、Esc フッター凡例だけ。進捗値とエラー状態の管理
@@ -158,6 +174,41 @@ HUD 内の "Video Dim" は無効化されている (順序が崩れるため)。
 
   検証スクリプト: `Assets/Game/Scripts/Common/AutoTestV6.cs`
 - 画面キャプチャ (シーン単位): `-autoshot <dir> -autoshot-scenes SelectScene,GameScene`
+
+### 画面監査 (`-autotest v6screens`) の検出範囲 (Issue #850)
+
+`AutoTestV6Screens` は画面ごとに `V6ScreenAudit` の判定式で機械チェックを行う。
+判定式は純ロジックとして `V6ScreenAudit` (`AutoTestV6Screens.cs` 末尾) に集約し、
+EditMode テスト (`V6FrameContainmentTests` / `V6ScreenAuditFitTests`) で固定する。
+
+| チェック | 内容 | FAIL 条件 |
+|---|---|---|
+| フレーム収まり | 全 Graphic のワールド矩形が 1728×972 フレーム (HUD/Dim は画面全体) 内。スクロール親内は許容 | フレーム外の Graphic / 描画物 0 枚 |
+| レガシー混在 | v6 Canvas 以外の可視 Graphic が無いこと | レガシー Graphic が可視 |
+| Unicode 記号 | Text に残るアイコン文字の列挙 | なし (記録のみ) |
+| 画面クリップ | Selectable / Text が実画面から完全に出ていないか (スクロール・パン到達性を考慮) | Outside の Selectable / Text |
+| テキスト・インク収まり | TMP の実メッシュ頂点 (インク) が割当 RectTransform 内に収まるか | インクが割当と交差しない Outside のみ。Partial (はみ出し) は記録のみ |
+| 要素重なり | 同一親の interactable な Selectable 同士の矩形交差 | なし (記録のみ) |
+| Canvas 重複 | 同名 v6 Canvas が同一シーンに複数ある兆候 | なし (記録のみ) |
+
+検出**できない**もの (既知の穴):
+
+- **テキストインク vs 近傍要素**: インクが自分の RectTransform を出ることは
+  Partial として記録するが、他要素への実害 (重なり) までは見ない。
+  Partial の FAIL 化は実機ベースラインでノイズを確認してから判断する。
+- **テキスト同士・テキストと Selectable の重なり**: 誤検出が多いため
+  兄弟 Selectable 同士の交差のみ記録する。
+- **セーフエリア**: ノッチ等の概念は無く、1728×972 固定 + コンパクト時
+  パン (`V6CompactScreen` / `V6FramePan`) が前提。
+- **デザイン忠実度**: 色・余白の Pencil との一致は目視頼み。
+- **ボタン最小サイズ**: 「内容より小さいボタン」はインク収まり監査が
+  ラベル側から間接的に拾うのみで、ボタン寸法の下限規則は未整備
+  (共通規則化は今後の課題)。
+
+再構築時の二重世代 (旧世代 + 新世代が同時に audit され pass が倍増する
+flake) は、子の破棄を必ず `V6Hierarchy.DetachAndDestroy` (階層から外して
+から破棄予約) に通す契約で防ぐ。`NoteDuplicateCanvases` が同名 Canvas の
+複数存在を結果ファイルへ記録するので、契約外の経路があれば追跡できる。
 
 ### ゲートは独立
 

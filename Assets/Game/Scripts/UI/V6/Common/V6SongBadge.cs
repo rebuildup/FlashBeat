@@ -39,8 +39,9 @@ namespace FlashBeat.UI.V6.Common
     ///   取得経路が違うため画面側のまま。ここでは構造だけを共通化する。
     ///
     /// 画像の適用は <see cref="ApplyJacket"/> に一本化 (Issue #398 の
-    /// V6JacketProvider 経路。Select の V6JacketResources.LoadSprite と
-    /// 同一実体)。遠隔画像を使う画面は自前の更新を持つ。
+    /// V6JacketProvider 経路。Issue #823 でローカル Resources ジャケットは
+    /// 撤去し、YouTube サムネイルの遠隔取得に統一した)。
+    /// Loading の起動時ジャケットだけは Texture が要るため画面側の更新を持つ。
     /// </summary>
     public static class V6SongBadge
     {
@@ -167,15 +168,29 @@ namespace FlashBeat.UI.V6.Common
         }
 
         /// <summary>
-        /// ジャケット枠へローカル Resources の画像を適用する
+        /// ジャケット枠へ画像を適用する
         /// (Select / Ranking / History / Result の SetJacket/SetThumb の共通実装)。
-        /// 画像があれば Simple + preserveAspect、無ければ Sliced の空枠
+        /// 画像があればスロットのアスペクトへ cover crop した Simple
+        /// (Issue #848。4:3 の hqdefault が 16:9 枠で縮んで見えていた)、
+        /// 無ければ Sliced の空枠
         /// (RoundedSprite(4)、色は fallback ?? $k3)。Sprite の所有は
         /// <see cref="V6JacketProvider"/> (Issue #398)。
         /// </summary>
         public static void ApplyJacket(GameObject thumbGo, int songId, string title, Color? fallback = null)
         {
             ApplyJacket(thumbGo != null ? thumbGo.GetComponent<Image>() : null, songId, title, fallback);
+        }
+
+        /// <summary>
+        /// ApplyJacket で最後にバインドした曲。行の使い回しで遅れて届いた
+        /// 遠隔結果が別の曲のジャケットを上書きしないための照合キー。
+        /// Issue #848: videoId も保持する。同じ SongId で videoId が差し替わった
+        /// (カタログ更新) あとも、旧 videoId の遅延結果は弾ける。
+        /// </summary>
+        private sealed class JacketBinding : MonoBehaviour
+        {
+            public int SongId;
+            public string VideoId;
         }
 
         /// <summary><see cref="ApplyJacket(GameObject, int, string, Color?)"/> の Image 版。</summary>
@@ -186,21 +201,77 @@ namespace FlashBeat.UI.V6.Common
                 return;
             }
 
-            Sprite sprite = V6JacketProvider.Local(songId, title);
-            if (sprite != null)
+            // Issue #823: ローカル (Resources) ジャケットは撤去し、YouTube
+            // サムネイルの遠隔取得に一本化した。まず空枠を出し、届いたら差し替える
+            // (未取得・失敗・オフラインでは空枠のまま = design の「無し」)。
+            thumb.type = Image.Type.Sliced;
+            thumb.sprite = V5Ui.RoundedSprite(4);
+            thumb.color = fallback ?? V6Tokens.Key3;
+
+            SongData song = GManager.GetSong(songId);
+            string videoId = song != null ? song.videoId : null;
+            if (string.IsNullOrEmpty(videoId))
             {
-                thumb.type = Image.Type.Simple;
-                thumb.sprite = sprite;
-                thumb.color = Color.white;
-                thumb.preserveAspect = true;
+                // 行スロットの使い回しで videoId 無しの曲へ差し替わったとき、
+                // 前の曲の JacketBinding が残っていると遅延結果を誤って通す。
+                // 無効値へ戻して弾く (Issue #848)。
+                var stale = thumb.GetComponent<JacketBinding>();
+                if (stale != null)
+                {
+                    stale.SongId = -1;
+                    stale.VideoId = null;
+                }
+
+                return;
             }
-            else
+
+            var binding = thumb.GetComponent<JacketBinding>();
+            if (binding == null)
             {
-                // ジャケット無しは空枠 ($k3。Pause は呼び出し側が遠隔画像を使うので来ない)。
-                thumb.type = Image.Type.Sliced;
-                thumb.sprite = V5Ui.RoundedSprite(4);
-                thumb.color = fallback ?? V6Tokens.Key3;
+                binding = thumb.gameObject.AddComponent<JacketBinding>();
             }
+            binding.SongId = songId;
+            binding.VideoId = videoId;
+
+            V6JacketProvider.RequestRemote(videoId, sprite =>
+            {
+                ApplyRemoteJacket(thumb, songId, videoId, sprite);
+            });
+        }
+
+        /// <summary>
+        /// 遠隔ジャケットを枠へ適用する。最後にバインドした (songId, videoId) と
+        /// 一致するときだけ適用し、行スロットの使い回し・曲差し替えで遅れて
+        /// 届いた別の曲の結果は捨てる (Issue #848)。
+        ///
+        /// 画像はスロットのアスペクトへ cover crop してから敷く
+        /// (<see cref="V6JacketFit.CoverSprite"/>)。hqdefault (4:3) を
+        /// 16:9 枠へ preserveAspect で入れるとレターボックス状に縮んでいた
+        /// 不具合の修正。プレート (角丸・fallback 色) は画像未到着のあいだだけ
+        /// 見え、到着後は画像が枠いっぱいを覆う (design の "cover")。
+        /// </summary>
+        internal static void ApplyRemoteJacket(Image thumb, int songId, string videoId, Sprite sprite)
+        {
+            // 行の使い回し・画面破棄のあとに届いた結果は捨てる。
+            if (thumb == null || sprite == null)
+            {
+                return;
+            }
+
+            var current = thumb.GetComponent<JacketBinding>();
+            if (current == null
+                || current.SongId != songId
+                || !string.Equals(current.VideoId, videoId, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            thumb.type = Image.Type.Simple;
+            thumb.sprite = V6JacketFit.CoverSprite(thumb, sprite);
+            thumb.color = Color.white;
+            // crop 後の sprite は枠と同じアスペクトなので preserveAspect は
+            // 実質フィルとなる (crop 不能な退避時だけ従来どおり内接表示)。
+            thumb.preserveAspect = true;
         }
 
         // --- 内部 ---

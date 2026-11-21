@@ -210,8 +210,12 @@ public class AutoTestV6Interact : MonoBehaviour
         Check("no row shows F2 as its value", !f2Shown);
 
         int keyRow = labels.IndexOf("キー設定");
-        Check("the key config row reads '開く ›'",
-            keyRow >= 0 && option.RowValueForAudit(keyRow) == "開く ›");
+        // Issue #798: 「開く」は値テキスト+アイコンではなく、行右端の
+        // 小型共通ボタン (V6SettingRowView.BuildActionButton) として描画
+        // される。ラベルはボタン内の ValueText で "開く"。
+        Check("the key config row reads '開く' as an action button",
+            keyRow >= 0 && option.RowValueForAudit(keyRow) == "開く"
+            && option.RenderedRowValueForAudit(keyRow) == "開く");
 
         // NoteSpeed: ←→ と同じ AdjustSelected 経路で変更し、値・保存値・表示が一致する。
         int speedRow = labels.IndexOf("NoteSpeed");
@@ -813,21 +817,25 @@ public class AutoTestV6Interact : MonoBehaviour
             V6ContentCaches.InvalidateAll();
             float cold = 0f;
             yield return TimedSelect("cold", v => cold = v);
+            // Issue #863: 遠隔ジャケットは同時 2 本までで超過分はキュー滞留する。
+            // スナップショット前にキューが空になるまで待たないと、cold 訪問の
+            // 未消化分が warm の計測窓で RemoteFetchCount を押し上げ、
+            // 「2 回目で再取得しない」の判定が false FAIL する。
+            yield return WaitForJacketFetchDrain(10f);
             var before = CacheCounts();
 
             yield return LoadScene("TitleScene");
             float warm = 0f;
             yield return TimedSelect("warm", v => warm = v);
+            yield return WaitForJacketFetchDrain(10f);
             var after = CacheCounts();
 
             Debug.Log(Tag + " cache cold=" + cold.ToString("F2") + "s warm=" + warm.ToString("F2") + "s"
                 + " first=" + before.Describe() + " second=" + after.Describe());
 
-            Check("the first visit loads charts", before.ChartMetaLoads + before.ChartExistsLoads > 0);
+            Check("the first visit loads charts", before.ChartMetaLoads > 0);
             Check("the second visit reloads no chart meta",
                 after.ChartMetaLoads == before.ChartMetaLoads);
-            Check("the second visit reloads no chart existence",
-                after.ChartExistsLoads == before.ChartExistsLoads);
             Check("the second visit reloads no jacket", after.JacketLoads == before.JacketLoads);
             Check("the jackets stay cached", after.JacketCount > 0 && after.JacketCount >= before.JacketCount);
         }
@@ -943,14 +951,27 @@ public class AutoTestV6Interact : MonoBehaviour
     private struct Counts
     {
         public int ChartMetaLoads;
-        public int ChartExistsLoads;
         public int JacketLoads;
         public int JacketCount;
 
         public string Describe()
         {
-            return "chartMeta=" + ChartMetaLoads + " chartExists=" + ChartExistsLoads
+            return "chartMeta=" + ChartMetaLoads
                 + " jacket=" + JacketLoads + "/cached=" + JacketCount;
+        }
+    }
+
+    /// <summary>
+    /// ジャケット遠隔取得の in-flight + キューが空になるまで待つ (Issue #863)。
+    /// 応答しない要求で永久に待たないよう timeout で打ち切る。
+    /// </summary>
+    private IEnumerator WaitForJacketFetchDrain(float timeoutSeconds)
+    {
+        float deadline = Time.unscaledTime + timeoutSeconds;
+        while (FlashBeat.UI.V6.V6JacketProvider.RemotePendingCountForAudit > 0
+            && Time.unscaledTime < deadline)
+        {
+            yield return null;
         }
     }
 
@@ -959,7 +980,6 @@ public class AutoTestV6Interact : MonoBehaviour
         return new Counts
         {
             ChartMetaLoads = V6ContentCaches.ChartMetaLoadCount,
-            ChartExistsLoads = V6ContentCaches.ChartExistsLoadCount,
             JacketLoads = V6ContentCaches.JacketLoadCount,
             JacketCount = V6ContentCaches.JacketCount,
         };

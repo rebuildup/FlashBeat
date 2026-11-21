@@ -1063,7 +1063,7 @@ describe("POST /api/v1/scores", () => {
   });
 
   it("answers 422 for a scoring version the server cannot recompute", async () => {
-    for (const scoringVersion of [0, 5]) {
+    for (const scoringVersion of [0, 7]) {
       const body = submission(
         "zz-second-song",
         1,
@@ -1247,7 +1247,7 @@ describe("GET /api/v1/leaderboards/{songId}", () => {
     // 10 notes: maxScore 50 under the v1 formula. Perfect play = 1000000,
     // 9 perfect + 1 great = 48/50 = 960000, 9 perfect + 1 bad = 46/50 = 920000,
     // all miss = 0. These are v1 scores, so the board is read with
-    // scoringVersion=1 (the default is the latest version, 4).
+    // scoringVersion=1 (the default is the latest version, 6).
     await submitScore(
       "lb-order-song",
       "Late Perfect",
@@ -1373,8 +1373,42 @@ describe("GET /api/v1/leaderboards/{songId}", () => {
       }),
     });
     assert.equal(v4.status, 201);
+    const v5 = await fetch(`${baseUrl}/api/v1/scores`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        songId: "lb-version-song",
+        chartVersion: 1,
+        nickname: "V5 Perfect",
+        perfect: 10,
+        great: 0,
+        bad: 0,
+        miss: 0,
+        maxCombo: 10,
+        scoringVersion: 5,
+      }),
+    });
+    assert.equal(v5.status, 201);
+    const v6 = await fetch(`${baseUrl}/api/v1/scores`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        songId: "lb-version-song",
+        chartVersion: 1,
+        nickname: "V6 Perfect",
+        perfect: 10,
+        great: 0,
+        bad: 0,
+        miss: 0,
+        maxCombo: 10,
+        scoringVersion: 6,
+      }),
+    });
+    assert.equal(v6.status, 201);
 
-    // The default board is the latest scoring version (4): only the v4 row.
+    // The default board is the latest scoring version (6, ADR-0037): only
+    // the v6 row. Its perfect 10-note play scores base 1000000 + quality
+    // 10000 + clear 25000 = 1035000.
     const latest = await fetch(`${baseUrl}/api/v1/leaderboards/lb-version-song?version=1`);
     assert.equal(latest.status, 200);
     const latestBody = (await latest.json()) as {
@@ -1383,9 +1417,33 @@ describe("GET /api/v1/leaderboards/{songId}", () => {
     validateLeaderboard(latestBody);
     assert.deepEqual(
       latestBody.entries.map((entry) => entry.nickname),
+      ["V6 Perfect"],
+    );
+    assert.equal(latestBody.entries[0]?.score, 1035000);
+
+    // Asking for version 5 shows only the v5 row (records keep their own
+    // board — v6 never reinterprets them).
+    const v5Board = await fetch(
+      `${baseUrl}/api/v1/leaderboards/lb-version-song?version=1&scoringVersion=5`,
+    );
+    assert.equal(v5Board.status, 200);
+    const v5Body = (await v5Board.json()) as { entries: { nickname: string }[] };
+    assert.deepEqual(
+      v5Body.entries.map((entry) => entry.nickname),
+      ["V5 Perfect"],
+    );
+
+    // Asking for version 4 shows only the v4 row (ADR-0033 records keep
+    // their own board — v5 never reinterprets them).
+    const v4Board = await fetch(
+      `${baseUrl}/api/v1/leaderboards/lb-version-song?version=1&scoringVersion=4`,
+    );
+    assert.equal(v4Board.status, 200);
+    const v4Body = (await v4Board.json()) as { entries: { nickname: string }[] };
+    assert.deepEqual(
+      v4Body.entries.map((entry) => entry.nickname),
       ["V4 Perfect"],
     );
-    assert.equal(latestBody.entries[0]?.score, 2000000);
 
     // Asking for version 3 shows only the v3 row.
     const v3Board = await fetch(
@@ -1420,14 +1478,14 @@ describe("GET /api/v1/leaderboards/{songId}", () => {
       ["V1 Perfect"],
     );
 
-    // The statistics aggregate only the latest scoring version: this song
-    // has four plays stored but counts one.
+    // The statistics aggregate only the latest scoring version (6 since
+    // ADR-0037): this song has six plays stored but counts one.
     const stats = (await (await fetch(`${baseUrl}/api/v1/stats`)).json()) as {
       perSong: { songId: string; plays: number; bestScore: number | null }[];
     };
     const song = stats.perSong.find((row) => row.songId === "lb-version-song");
     assert.equal(song?.plays, 1);
-    assert.equal(song?.bestScore, 2000000);
+    assert.equal(song?.bestScore, 1035000);
   });
 
   it("answers 404 for an unknown song or version and 400 for a bad version", async () => {
@@ -1633,7 +1691,7 @@ describe("GET /api/v1/rankings and GET /api/v1/stats", () => {
           great: 0,
           bad: 0,
           miss: 0,
-          scoringVersion: 4,
+          scoringVersion: 6,
           ...counts,
         }),
       });
@@ -1887,9 +1945,9 @@ describe("POST /api/v1/admin/songs/{songId} (archive)", () => {
         body: JSON.stringify({ archived }),
       });
 
-    // One counted play: scoring version 4 (the stats scope) on the current
-    // chart version of zz-second-song (1 note). v4: base 1000000 + bonus
-    // 1000000 = 2000000.
+    // One counted play: scoring version 6 (the stats scope) on the current
+    // chart version of zz-second-song (1 note). v6: base 1000000 + quality
+    // 1000 + clear 25000 = 1026000.
     const submit = await fetch(`${baseUrl}/api/v1/scores`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -1902,8 +1960,8 @@ describe("POST /api/v1/admin/songs/{songId} (archive)", () => {
         bad: 0,
         miss: 0,
         maxCombo: 1,
-        score: 2000000,
-        scoringVersion: 4,
+        score: 1026000,
+        scoringVersion: 6,
       }),
     });
     assert.equal(submit.status, 201);

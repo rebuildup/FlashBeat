@@ -102,19 +102,52 @@ namespace FlashBeat.Tests.Editor
         [Test]
         public void ParseLeaderboard_ReadsEntries()
         {
+            // Issue #847: 実 API (contracts/openapi.v1.yaml) の leaderboard
+            // entry は [nickname, score] のみで rank フィールドを持たない。
+            // 以前の fixture は実在しない "rank":N を含んでいた。
             string json = "{\"songId\":\"test-song\",\"chartVersion\":2,\"entries\":[" +
-                          "{\"rank\":1,\"nickname\":\"one\",\"score\":900000}," +
-                          "{\"rank\":2,\"nickname\":\"two\",\"score\":100}]}";
+                          "{\"nickname\":\"one\",\"score\":900000}," +
+                          "{\"nickname\":\"two\",\"score\":100}]}";
 
             var entries = RankingClient.ParseLeaderboard(json);
 
             Assert.IsNotNull(entries);
             Assert.AreEqual(2, entries.Length);
-            Assert.AreEqual(1, entries[0].rank);
+            Assert.AreEqual(0, entries[0].rank, "実 API は rank を送らないので 0 になる");
             Assert.AreEqual("one", entries[0].nickname);
             Assert.AreEqual(900000, entries[0].score);
-            Assert.AreEqual(2, entries[1].rank);
+            Assert.AreEqual(0, entries[1].rank);
             Assert.AreEqual(100, entries[1].score);
+        }
+
+        // --- ボード表示順位 (Issue #847) ---
+
+        [Test]
+        public void BoardPosition_RankMissing_FallsBackToBoardIndex()
+        {
+            // 実 API の entry は rank を持たない (常に 0) ので、表示順位は
+            // ボード内の位置 (1 始まり) になる。
+            var first = new RankingClient.LeaderboardEntry { nickname = "one", score = 900000 };
+            var second = new RankingClient.LeaderboardEntry { nickname = "two", score = 100 };
+
+            Assert.AreEqual(1, RankingClient.BoardPosition(first, 0));
+            Assert.AreEqual(2, RankingClient.BoardPosition(second, 1));
+        }
+
+        [Test]
+        public void BoardPosition_RankPresent_IsHonored()
+        {
+            // 万一 API が rank を返す場合はそれを優先する
+            // (旧 RankingPanel.ShowBoard と同じ規則)。
+            var entry = new RankingClient.LeaderboardEntry { rank = 7, nickname = "x", score = 1 };
+
+            Assert.AreEqual(7, RankingClient.BoardPosition(entry, 0));
+        }
+
+        [Test]
+        public void BoardPosition_NullEntry_UsesIndex()
+        {
+            Assert.AreEqual(3, RankingClient.BoardPosition(null, 2));
         }
 
         [Test]

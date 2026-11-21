@@ -489,7 +489,7 @@ namespace FlashBeat.UI.V6.Select.View
         private void SetJacket(GameObject thumbPanel, V6SongEntry song, Color? fallback = null)
         {
             // Issue #385: ジャケットの適用手順は V6SongBadge.ApplyJacket に一本化
-            // (V6JacketResources.LoadSprite は V6JacketProvider.Local と同一実体)。
+            // (Issue #823: ローカル Resources ジャケットは撤去、遠隔取得に統一)。
             V6SongBadge.ApplyJacket(thumbPanel,
                 song != null ? song.SongId : 0, song != null ? song.Title : null, fallback);
         }

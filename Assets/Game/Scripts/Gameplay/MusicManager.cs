@@ -5,7 +5,6 @@ using System.IO;
 using System.Threading;
 using TMPro;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.Video;
 using YoutubePlayer.Components;
 using FlashBeat.Gameplay;
@@ -49,10 +48,15 @@ public class MusicManager : MonoBehaviour
     // 十分長くする (メディアは再生前にローカルへダウンロード済み)。
     const float StallFailSeconds = 30f;
     const string DirectUrlProbeKeyPrefix = "FlashBeat.DirectUrlProbed.";
-    const string GameSceneName = "GameScene";
-    const string SelectSceneName = "SelectScene";
 
     VideoPlayer songVideo;
+
+    /// <summary>
+    /// Issue #849: Start で選んだ映像プレイヤーの経路 ("scene" / "remote")。
+    /// Player.log から「どの経路・renderMode・player 名を通ったか」を
+    /// 区別するための診断値。prepare / wire のログに添える。
+    /// </summary>
+    string videoPlayerPath = "-";
 
     /// <summary>
     /// 映像プレーンを有効化したか (Issue #233)。
@@ -115,7 +119,7 @@ public class MusicManager : MonoBehaviour
     bool endOverlayShown;
     bool endFadeApplied;
     /// <summary>終端フェードで掛けている音量係数。ポーズ中の音量変更で
-    /// フェード進行を壊さないよう <see cref="ApplyMainVolume"/> が参照する。</summary>
+    /// フェード進行を壊さないよう <see cref="ApplySongVolume"/> が参照する。</summary>
     float endFadeFactor = 1f;
     V6GameHudView hudCache;
 
@@ -139,7 +143,9 @@ public class MusicManager : MonoBehaviour
     NotesManager notesManager;
     /// <summary>Issue #632: 不正譜面の拒否処理は 1 回だけ。</summary>
     bool chartRejectionHandled;
-    ResourceRequest musicRequest;
+    /// <summary>Issue #792: パイプラインが「この曲は再生できない」と判定済み。
+    /// Space による開始を止める (音の無い曲を壁時計で走らせない)。</summary>
+    bool pipelineFailed;
 
     /// <summary>
     /// Wall clock of the moment the song was started. It is the reference for
@@ -208,11 +214,22 @@ public class MusicManager : MonoBehaviour
 
     /// <summary>
     /// True while the pipeline has decided that the song cannot be played and
-    /// the automatic return to the song list is pending. The HUD (HudPlayState)
-    /// reads it so the failure is shown at once instead of when its own timeout
-    /// runs out.
+    /// the failure is being shown (Issue #792). The HUD (HudPlayState) reads it
+    /// so the failure is shown at once instead of when its own timeout runs
+    /// out. かつてはこのフラグが立つと数秒後に選曲画面へ自動復帰していたが、
+    /// 説明のない復帰は実機受入で不合格になったため、自動遷移は廃止した。
+    /// 失敗時はローディング画面のエラー表示が理由と再試行 / 戻る導線を出し、
+    /// Space による開始も <c>pipelineFailed</c> で止める。
     /// </summary>
-    public static bool SelectReturnPending { get; private set; }
+    public static bool PlaybackFailed { get; private set; }
+
+    /// <summary>
+    /// 直近の再生不能のユーザー向け説明 (Issue #792)。
+    /// ローディング画面のエラー表示 (<c>V6LoadingView.SetError</c>) がそのまま
+    /// 出す文言。正常時・準備中は null。メディア失敗は
+    /// <see cref="PlaybackRecovery.StartHint"/>、譜面拒否は拒否理由を持つ。
+    /// </summary>
+    public static string LastFailureMessage { get; private set; }
 
     void Start()
     {
@@ -233,44 +250,53 @@ public class MusicManager : MonoBehaviour
         SongData sessionSong = PlaySessionSnapshot.ResolveSong(GManager.songID);
         songName = sessionSong != null ? sessionSong.title : "";
         audioS = GetComponent<AudioSource>();
-        // 同期 Resources.Load は最初のフレームを止めていたため非同期にする。
-        // 決定 (audioMode) の前に PrepareMediaCoroutine 内で完了を待つ。
-        // Issue #651: songName は SongData.title 由来 (リモート曲は API の
-        // メタデータ)。'/' 等を含むと Resources path が別階層を指して
-        // 必ず見つからないため、path 区切りを含む名前は load 自体を省く
-        // (Music == null の既存経路 = YouTube 音声のみ、へそのまま流れる)。
-        if (songName.IndexOfAny(new[] { '/', '\\' }) < 0)
-        {
-            musicRequest = Resources.LoadAsync<AudioClip>("Musics/" + songName);
-        }
+        // Issue #823: ローカル同梱の第三者楽曲 wav (Resources/Musics) は撤去した。
+        // 音源は常に YouTube メディア (ストリーム) のみ。無音時の wav
+        // フォールバックも廃止し、無音なら AudioSilent として失敗処理する。
         notesManager = FindFirstObjectByType<NotesManager>();
         GManager.played = false;
         GManager.nextNotes = 1;
         GManager.settledNoteCount = 0;
-        audioS.volume = GManager.mainVolume;
+        audioS.volume = GManager.songVolume;
         StartText.SetActive(true);
 
         kakusi.SetActive(true);
         for (int i = 0; i < YPlayer.Length; i++)
         {
-            YPlayer[i].SetActive(false);
+            if (YPlayer[i] != null) YPlayer[i].SetActive(false);
         }
-        if (GManager.songID < YPlayer.Length)
+        // Issue #849: プレイヤー選択は songID の位置ではなく videoId で行う。
+        // クラウドカタログが未知の曲を末尾に追記すると index がずれ、
+        // index >= YPlayer.Length の曲は未検証の CameraNearPlane 経路に落ちて
+        // いた。videoId が一致するシーンプレイヤーがあればそれを使い、
+        // 無ければ実行時にテンプレート平面を複製して同じ描画契約に載せる。
+        string sessionVideoId = sessionSong != null ? sessionSong.videoId : "";
+        int sceneIndex = ResolveScenePlayerIndex(GManager.songID, YPlayer.Length, sessionVideoId, SceneVideoIdAt);
+        if (sceneIndex >= 0)
         {
-            YPlayer[GManager.songID].SetActive(true);
+            GameObject plane = YPlayer[sceneIndex];
+            if (plane != null) plane.SetActive(true);
 
-            songVideo = VPlayer[GManager.songID];
-            if (songVideo == null)
+            songVideo = (VPlayer != null && sceneIndex < VPlayer.Length) ? VPlayer[sceneIndex] : null;
+            if (songVideo == null && plane != null)
             {
-                songVideo = YPlayer[GManager.songID].GetComponent<VideoPlayer>();
+                songVideo = plane.GetComponent<VideoPlayer>();
             }
+            videoPlayerPath = "scene";
+            Debug.Log($"[MusicManager] video player: songID={GManager.songID} scenePlayers={YPlayer.Length} " +
+                      $"path={videoPlayerPath} index={sceneIndex} player='{(songVideo != null ? songVideo.gameObject.name : "<null>")}' " +
+                      $"renderMode={(songVideo != null ? songVideo.renderMode.ToString() : "-")} videoId={sessionVideoId}");
         }
         else
         {
-            // Cloud Catalog song (#17): no per-song object exists in the scene,
-            // so one dynamic VideoPlayer is created for the remote stream
-            // instead of one object per song.
+            // シーンに対応する平面が無い曲 (クラウド追加曲など):
+            // テンプレート平面を実行時に複製し、内蔵曲と同じ
+            // quad + MaterialOverride の契約で映像を出す。
             songVideo = CreateRemoteVideoPlayer();
+            videoPlayerPath = "remote";
+            Debug.Log($"[MusicManager] video player: songID={GManager.songID} scenePlayers={YPlayer.Length} " +
+                      $"path={videoPlayerPath} player='{(songVideo != null ? songVideo.gameObject.name : "<null>")}' " +
+                      $"renderMode={(songVideo != null ? songVideo.renderMode.ToString() : "-")} videoId={sessionVideoId}");
         }
 
         sceneStartTime = Time.time;
@@ -315,16 +341,95 @@ public class MusicManager : MonoBehaviour
         mediaCancellation = null;
     }
 
+    /// <summary>
+    /// Issue #849: シーンの映像プレイヤー (YPlayer) のうち、再生する曲に
+    /// 割り当てる index を決める。
+    ///
+    /// 優先順位:
+    ///   1. videoId が一致するシーンプレイヤー (index 非依存。クラウド
+    ///      カタログの追記やエディタ追加で並びがずれても正しい平面を選ぶ)
+    ///   2. videoId が取れない / 一致が無い場合は従来どおり songID の位置
+    ///      (内蔵曲はシーンの並び = カタログの並びで一致する)
+    ///   3. どちらも駄目なら -1 (呼び出し側が実行時複製の経路を使う)
+    ///
+    /// EditMode テストから検証できるよう、シーン参照は
+    /// <paramref name="sceneVideoIdAt"/> 経由で注入する。
+    /// </summary>
+    public static int ResolveScenePlayerIndex(int songID, int playerCount, string songVideoId, Func<int, string> sceneVideoIdAt)
+    {
+        if (!string.IsNullOrEmpty(songVideoId) && sceneVideoIdAt != null)
+        {
+            for (int i = 0; i < playerCount; i++)
+            {
+                string sceneId = sceneVideoIdAt(i);
+                if (!string.IsNullOrEmpty(sceneId) && sceneId == songVideoId) return i;
+            }
+        }
+        if (songID >= 0 && songID < playerCount) return songID;
+        return -1;
+    }
+
+    /// <summary>YPlayer[index] が持つ InvidiousVideoPlayer の VideoId (無ければ null)。</summary>
+    string SceneVideoIdAt(int index)
+    {
+        if (YPlayer == null || index < 0 || index >= YPlayer.Length) return null;
+        var plane = YPlayer[index];
+        if (plane == null) return null;
+        var invidious = plane.GetComponent<InvidiousVideoPlayer>();
+        return invidious != null ? invidious.VideoId : null;
+    }
+
     VideoPlayer CreateRemoteVideoPlayer()
     {
-        // Cloud Catalog (#17): one reusable player for songs that have no
-        // per-song object in the scene. Rendering follows the default
-        // camera-plane mode; audio goes through the existing AudioSource.
-        GameObject playerObject = new GameObject("FlashBeatRemoteVideo");
-        VideoPlayer player = playerObject.AddComponent<VideoPlayer>();
+        // Issue #849: index >= YPlayer.Length の曲 (クラウド追加曲) も内蔵曲と
+        // 同じ描画契約に載せる。かつては targetCamera 無しの CameraNearPlane
+        // で映像が出ない未検証経路だった。ここではシーンのテンプレート平面
+        // (YPlayer の先頭) を実行時に複製し、同じ親・同じ local pose・同じ
+        // quad + MaterialOverride の経路 (WireVideoPicture) を使う。
+        GameObject template = FindTemplatePlane();
+        GameObject clone;
+        if (template != null)
+        {
+            clone = UnityEngine.Object.Instantiate(template);
+            clone.name = "YoutubePlayer_remote";
+            // Instantiate は local TRS をそのまま複製するので、同じ親の下に
+            // worldPositionStays:false で置けばテンプレートと同じ pose になる
+            // (YouTubeSceneWiring と同じ約束)。
+            var parent = template.transform.parent;
+            if (parent != null)
+            {
+                clone.transform.SetParent(parent, false);
+            }
+            // シーンの選択済み平面と同じく、prepare 中は有効にしておく
+            // (板は Start 後半の VideoPicture.HideBoard が隠す)。
+            clone.SetActive(true);
+        }
+        else
+        {
+            // テンプレートが無い異常系: 映像は出ないが音声経路は維持する。
+            Debug.LogWarning("[MusicManager] no YPlayer template - the remote song gets a bare VideoPlayer (no picture)");
+            clone = new GameObject("FlashBeatRemoteVideo");
+        }
+
+        var player = clone.GetComponent<VideoPlayer>();
+        if (player == null) player = clone.AddComponent<VideoPlayer>();
         player.playOnAwake = false;
-        player.renderMode = VideoRenderMode.CameraNearPlane;
+        // シーンのプレイヤーと同じアスペクト設定 (FitHorizontally)。
+        // renderMode / targetMaterialRenderer は WireVideoPicture が
+        // MaterialOverride で配線する (内蔵曲と同一経路)。
+        player.aspectRatio = VideoAspectRatio.FitHorizontally;
         return player;
+    }
+
+    /// <summary>実行時複製のテンプレートにする平面 (YPlayer の最初の非 null 要素)。</summary>
+    GameObject FindTemplatePlane()
+    {
+        if (YPlayer == null) return null;
+        for (int i = 0; i < YPlayer.Length; i++)
+        {
+            if (YPlayer[i] != null) return YPlayer[i];
+        }
+        return null;
     }
 
     void AttachLevelProbe()
@@ -352,7 +457,9 @@ public class MusicManager : MonoBehaviour
         // A new run starts without a failure: the HUD shows the state of the
         // current pipeline.
         LastFailure = MediaFailure.None;
-        SelectReturnPending = false;
+        PlaybackFailed = false;
+        LastFailureMessage = null;
+        pipelineFailed = false;
         failure = MediaFailure.None;
 
         // The Invidious player of the package cannot resolve anything today
@@ -485,6 +592,16 @@ public class MusicManager : MonoBehaviour
         bool videoReady = false;
         if (videoFile.Ok && songVideo != null)
         {
+            // Issue #796: 過去にダウンロード済みのファイルも、映像 time_base が
+            // Unity の時計を破壊するものならここで正規化する (ffmpeg がある
+            // 環境のみ。既に正規化済みなら ffprobe の結果ですぐ戻る)。
+            if (!string.IsNullOrEmpty(videoFile.Path))
+            {
+                var normalizeTask = MediaNormalizer.NormalizeVideoAsync(videoFile.Path, mediaToken);
+                while (!normalizeTask.IsCompleted) yield return null;
+                if (mediaToken.IsCancellationRequested) { yield break; }
+            }
+
             stage = MediaStage.PreparingVideo;
             yield return PrepareLocalVideo(videoFile.Path, combined);
             videoReady = videoPrepared;
@@ -525,25 +642,9 @@ public class MusicManager : MonoBehaviour
             }
         }
 
-        // 6. Decide where the sound comes from (a missing wav yields None
-        //    instead of throwing - the recovery then takes over).
-        // The bundled wav is loaded asynchronously (Start); the decision needs
-        // to know whether it exists, so wait for the request here.
-        if (musicRequest != null)
-        {
-            while (!musicRequest.isDone) yield return null;
-            Music = musicRequest.asset as AudioClip;
-            if (Music == null)
-            {
-                // The release build ships no third party media: the build moves
-                // Assets/Game/Resources/Musics out of the build, so the wav that
-                // belongs to the chart is not there. The YouTube media is then the
-                // only sound source - that is the wanted state, it is only logged so
-                // that the player log shows where the sound comes from.
-                Debug.Log($"[MusicManager] no bundled wav for '{songName}' - the YouTube media is the only sound source");
-            }
-        }
-        audioMode = PlaybackRecovery.DecideAudioSource(combined, videoReady, audioReady, Music != null);
+        // 6. Decide where the sound comes from. Issue #823: bundled wav は
+        //    撤去済みなので音源は YouTube メディアのみ (hasBundledWave = false)。
+        audioMode = PlaybackRecovery.DecideAudioSource(combined, videoReady, audioReady, false);
 
         mediaReady = true;
         PerfMarks.Hit("media-ready");
@@ -577,11 +678,11 @@ public class MusicManager : MonoBehaviour
 
         if (failure != MediaFailure.None)
         {
-            if (PlaybackRecovery.NeedsSelectReturn(failure, hasSound))
+            if (PlaybackRecovery.IsUnplayable(failure, hasSound))
             {
-                // Without a sound track the song cannot be played. The player is
-                // taken back to the song list instead of sitting in front of a
-                // song he cannot play.
+                // 音声トラックが無い曲は演奏できない。Issue #792: 説明のない
+                // 自動復帰はやめ、ローディング画面のエラー表示
+                // (理由 + 再試行 / 戻る) に任せる。
                 HandlePlaybackFailure(failure, videoReady);
             }
             else
@@ -606,14 +707,16 @@ public class MusicManager : MonoBehaviour
         }
 
         Debug.Log($"[MusicManager] media ready: song='{songName}' audioMode={audioMode} video={(videoReady ? "ok" : "missing")} " +
-                  $"(bundled wav {(Music != null ? "present" : "missing")}) - press Space to start");
+                  "- press Space to start");
     }
 
     /// <summary>
     /// The media pipeline failed and the song cannot be played. The failure is
-    /// logged with its stage, the player gets a message and - after a short
-    /// grace period - the game goes back to the song list, where another song
-    /// can be picked directly.
+    /// logged with its stage, the player gets a message and stays on the
+    /// loading screen: the v6 error view (<see cref="V6LoadingView"/>) shows
+    /// <see cref="LastFailureMessage"/> with retry / back-to-select actions
+    /// (Issue #792 - the old automatic return to the song list was removed
+    /// because it gave no explanation).
     /// </summary>
     void HandlePlaybackFailure(MediaFailure reason, bool hasPicture)
     {
@@ -622,57 +725,27 @@ public class MusicManager : MonoBehaviour
         Debug.Log(PlaybackRecovery.FailureLog(stage, reason, hasPicture));
         stage = MediaStage.Failed;
         failure = reason;
-        SelectReturnPending = true;
+        LastFailure = reason;
+        PlaybackFailed = true;
+        pipelineFailed = true;
+        LastFailureMessage = PlaybackRecovery.StartHint(reason);
 
-        SetStartMessage(PlaybackRecovery.StartHint(reason));
-
-        StartCoroutine(ReturnToSelectScene());
+        SetStartMessage(LastFailureMessage);
     }
 
     /// <summary>
     /// Issue #632: 拒否された譜面の曲は開始できない。開始メッセージを
-    /// 差し替え、メディア失敗と同じ経路で選曲画面へ戻す。
+    /// 差し替え、メディア失敗と同じエラー表示経路で理由を見せる
+    /// (Issue #792: 自動復帰はしない)。
     /// </summary>
     void HandleChartRejection()
     {
-        Debug.LogError($"[MusicManager] chart rejected ({notesManager.ChartRejectionReason}) - returning to the select screen");
-        SetStartMessage("譜面データが不正なため、この曲は開始できません");
-        SelectReturnPending = true;
-        StartCoroutine(ReturnToSelectScene());
-    }
-
-    /// <summary>
-    /// Takes the player back to the song list. A fade that is still running is
-    /// skipped by the fade system, so the attempt is repeated a few times.
-    /// </summary>
-    IEnumerator ReturnToSelectScene()
-    {
-        yield return new WaitForSeconds(PlaybackRecovery.SelectReturnDelaySeconds);
-
-        for (int attempt = 1; PlaybackRecovery.ShouldRetrySelectReturn(attempt); attempt++)
-        {
-            if (playbackStarted)
-            {
-                // The player started the song anyway. The song then ends on the
-                // wall clock (Issue #48/#31) and the result screen offers the
-                // way back to the song list - the song is not interrupted.
-                Debug.Log("[MusicManager] the song is already running - it ends on the wall clock, Esc opens the menu to go back to the song list");
-                yield break;
-            }
-
-            Debug.Log(PlaybackRecovery.SelectReturnLog(attempt));
-            Initiate.Fade(SelectSceneName, Color.black, 1.0f);
-
-            float waited = 0f;
-            while (waited < PlaybackRecovery.SelectReturnRetrySeconds && SceneManager.GetActiveScene().name == GameSceneName)
-            {
-                waited += Time.deltaTime;
-                yield return null;
-            }
-            if (SceneManager.GetActiveScene().name != GameSceneName) yield break;
-        }
-
-        Debug.Log("[MusicManager] the automatic return to the select screen failed - Esc opens the menu, Backspace goes back to the song list");
+        Debug.LogError($"[MusicManager] chart rejected ({notesManager.ChartRejectionReason}) - showing the error instead of auto-returning (issue #792)");
+        LastFailure = MediaFailure.ChartRejected;
+        PlaybackFailed = true;
+        pipelineFailed = true;
+        LastFailureMessage = "譜面データが不正なため、この曲は開始できません";
+        SetStartMessage(LastFailureMessage);
     }
 
     /// <summary>
@@ -694,10 +767,13 @@ public class MusicManager : MonoBehaviour
 
     void DisableInvidiousPlayer()
     {
-        if (GManager.songID >= YPlayer.Length) return;
+        // Issue #849: 選択済みの平面 (シーン or 実行時複製) から外す。
+        // songID >= YPlayer.Length の曲も同じ経路を通る。
+        var plane = songVideo != null ? songVideo.gameObject : null;
+        if (plane == null) return;
 
         // 実装は VideoPicture 側に一本化している (レビュー S6: 二重に壊さない)。
-        if (!VideoPicture.RemoveDeadInvidiousPlayer(YPlayer[GManager.songID])) return;
+        if (!VideoPicture.RemoveDeadInvidiousPlayer(plane)) return;
 
         Debug.Log($"[MusicManager] InvidiousVideoPlayer removed for '{songName}' (yt-dlp takes over)");
     }
@@ -828,7 +904,7 @@ public class MusicManager : MonoBehaviour
             Debug.Log($"[Perf] video activate {wireWatch.ElapsedMilliseconds}ms");
         }
 
-        Debug.Log($"[MusicManager] VideoPlayer prepared={songVideo.isPrepared} file={Path.GetFileName(path)} after {waited:F1}s");
+        Debug.Log($"[MusicManager] VideoPlayer prepared={songVideo.isPrepared} path={videoPlayerPath} file={Path.GetFileName(path)} after {waited:F1}s");
         videoPrepared = songVideo.isPrepared;
     }
 
@@ -846,7 +922,7 @@ public class MusicManager : MonoBehaviour
         var renderer = songVideo.GetComponent<Renderer>();
         if (renderer == null)
         {
-            Debug.LogWarning("[MusicManager] the song object has no renderer - the picture stays invisible");
+            Debug.LogWarning($"[MusicManager] the song object '{songVideo.gameObject.name}' (path={videoPlayerPath}) has no renderer - the picture stays invisible");
             return;
         }
 
@@ -877,7 +953,7 @@ public class MusicManager : MonoBehaviour
         }
 
         Debug.Log($"[MusicManager] picture wired to the renderer of '{songVideo.gameObject.name}' " +
-                  $"({textureProperty}, renderMode={songVideo.renderMode})");
+                  $"(path={videoPlayerPath}, {textureProperty}, renderMode={songVideo.renderMode})");
     }
 
     static bool TryGetMaterialRenderMode(out VideoRenderMode mode)
@@ -898,7 +974,13 @@ public class MusicManager : MonoBehaviour
         streamAudioObject = new GameObject("FlashBeatStreamAudio");
         streamAudioPlayer = streamAudioObject.AddComponent<VideoPlayer>();
         streamAudioSource = streamAudioObject.AddComponent<AudioSource>();
-        streamAudioSource.volume = GManager.mainVolume;
+        streamAudioSource.volume = GManager.songVolume;
+        // Issue #851: audioS と同じ mixer group (Main) へ流す。未設定だと
+        // mixer ルーティングを素通りして他経路と扱いがずれる。
+        if (audioS != null && audioS.outputAudioMixerGroup != null)
+        {
+            streamAudioSource.outputAudioMixerGroup = audioS.outputAudioMixerGroup;
+        }
 
         streamAudioPlayer.audioOutputMode = VideoAudioOutputMode.AudioSource;
         streamAudioPlayer.SetTargetAudioSource(0, streamAudioSource);
@@ -947,7 +1029,7 @@ public class MusicManager : MonoBehaviour
             // 「URL を解決し直して 1 回だけ再 prepare」は、Windows 実機で効果を
             // 確かめられるまで接続しない (未検証の分岐を展示経路に入れない)。
             bool isWindows = WindowsMediaRecovery.CurrentPlatformIsWindows();
-            string hint = WindowsMediaRecovery.VideoFailureHint(isWindows, Music != null);
+            string hint = WindowsMediaRecovery.VideoFailureHint(isWindows, false);
             if (!string.IsNullOrEmpty(hint))
             {
                 Debug.Log("[MusicManager] video recovery: " + hint);
@@ -1142,8 +1224,11 @@ public class MusicManager : MonoBehaviour
             // chart (notes) finished loading - otherwise the judge would miss
             // the first notes. ポーズメニューが開いている間は開始しない。
             bool notesReady = notesManager == null || notesManager.IsReady;
+            // Issue #792: 再生不能と判定した曲は Space でも開始しない
+            // (かつては自動復帰までの猶予として開始できたが、無音の曲を
+            // 壁時計で完走させる経路はエラー表示と矛盾するため閉じた)。
             bool canStart = (mediaReady || Time.time - sceneStartTime > FallbackStartTimeout)
-                && notesReady && !startTimingPending;
+                && notesReady && !startTimingPending && !pipelineFailed;
             // Issue #351: the prompt is visible before the media is ready, so the
             // press must not be thrown away. PlaybackStartGate holds it until
             // canStart and then starts the song exactly once.
@@ -1264,18 +1349,18 @@ public class MusicManager : MonoBehaviour
         }
 
         // The split stream can end up silent (Unity's Windows decoder does not
-        // accept every audio only container). Measure the mix and fall back to the
-        // wav that ships with the chart when it stays quiet.
-        if (audioMode == PlaybackSource.StreamSeparate && !fallbackChecked && mediaTime > 3f)
+        // accept every audio only container). Issue #823: bundled wav fallback
+        // is gone, so a silent stream is a hard failure (error view offers
+        // retry / back-to-select).
+        // 楽曲音量 0 は利用者が選べる正常な設定で、プローブは音量適用後の
+        // ミックスを測るため RMS≈0 になる。音量 0 の間は無音判定を行わず、
+        // 音量を上げた最初のフレームで検査する (PR #787 review)。
+        if (audioMode == PlaybackSource.StreamSeparate && !fallbackChecked && mediaTime > 3f
+            && GManager.songVolume > 0f)
         {
             fallbackChecked = true;
             float rms = levelProbe != null ? levelProbe.LastRms : 0f;
-            if (rms < 0.001f && Music != null)
-            {
-                Debug.LogWarning($"[MusicManager] stream audio is silent (rms={rms:F5}) - falling back to the bundled wav");
-                SwitchToBundledAudio(mediaTime);
-            }
-            else if (rms < 0.001f)
+            if (rms < 0.001f)
             {
                 // There is no wav to fall back to: the song would run silent,
                 // which is not playable. The song ends on the wall clock and
@@ -1416,13 +1501,17 @@ public class MusicManager : MonoBehaviour
     }
 
     /// <summary>
-    /// <see cref="GManager.mainVolume"/> の即時反映 (ポーズ画面の音量変更など)。
+    /// プレイ楽曲チャンネル音量 (<see cref="GManager.songVolume"/>) の即時反映
+    /// (ポーズ/オプション画面の音量変更など)。Main Volume は
+    /// AudioListener.volume が担うため、ここの AudioSource には
+    /// songVolume だけを掛ける (二重適用しない。メニュー BGM は
+    /// <see cref="GManager.BGMVolume"/> を使う別チャンネル — Issue #851)。
     /// 演奏中の音源は <see cref="audioS"/> と <see cref="streamAudioSource"/>
     /// (StreamSeparate 経路) の 2 系統あるため、AudioSource を 1 つだけ
     /// 探して書き換える呼び出し側では片方が取り残される。
     /// 終端フェード中は最後に適用した係数を維持する。
     /// </summary>
-    public void ApplyMainVolume()
+    public void ApplySongVolume()
     {
         float factor = endFadeApplied ? endFadeFactor : 1f;
         // audioS は Start で解決される。Start 前 (ポーズ画面が先に開く経路や
@@ -1430,11 +1519,11 @@ public class MusicManager : MonoBehaviour
         var source = audioS != null ? audioS : GetComponent<AudioSource>();
         if (source != null)
         {
-            source.volume = GManager.mainVolume * factor;
+            source.volume = GManager.songVolume * factor;
         }
         if (streamAudioSource != null)
         {
-            streamAudioSource.volume = GManager.mainVolume * factor;
+            streamAudioSource.volume = GManager.songVolume * factor;
         }
     }
 
@@ -1481,11 +1570,11 @@ public class MusicManager : MonoBehaviour
         endFadeFactor = factor;
         if (audioS != null)
         {
-            audioS.volume = GManager.mainVolume * factor;
+            audioS.volume = GManager.songVolume * factor;
         }
         if (streamAudioSource != null)
         {
-            streamAudioSource.volume = GManager.mainVolume * factor;
+            streamAudioSource.volume = GManager.songVolume * factor;
         }
         if (songVideo != null && songVideo.audioTrackCount > 0)
         {
@@ -1529,10 +1618,9 @@ public class MusicManager : MonoBehaviour
 
         playbackStarted = true;
         PerfMarks.Hit("playback-start");
-        // The player started the song anyway: the pending return is cancelled
-        // (its coroutine yields break on playbackStarted) and the HUD goes
-        // back to the play view.
-        SelectReturnPending = false;
+        // 開始が確定したので失敗表示の旗は下ろす (canStart が pipelineFailed を
+        // 見るため通常ここには来ないが、縮退再生の経路でも状態を一貫させる)。
+        PlaybackFailed = false;
         GManager.Start = true;
         GManager.played = true;
         playbackStartWallTime = Time.time;
@@ -1587,26 +1675,6 @@ public class MusicManager : MonoBehaviour
         SongData playbackSong = PlaySessionSnapshot.ResolveSong(GManager.songID);
         Debug.Log($"[MusicManager] PLAYBACK_START song='{songName}' videoId='{(playbackSong != null ? playbackSong.videoId : "")}' " +
                   $"source={audioMode} mediaTime={mediaTime:F3} wallClock={DateTime.Now:yyyy-MM-ddTHH:mm:ss.fff} gameTime={Time.time:F3}");
-    }
-
-    void SwitchToBundledAudio(float atMediaTime)
-    {
-        if (streamAudioPlayer != null) streamAudioPlayer.Stop();
-        if (streamAudioObject != null)
-        {
-            Destroy(streamAudioObject);
-            streamAudioObject = null;
-            streamAudioPlayer = null;
-            streamAudioSource = null;
-        }
-
-        audioMode = PlaybackSource.BundledWave;
-        audioS.clip = Music;
-        audioS.time = Mathf.Max(0f, atMediaTime);
-        audioS.volume = GManager.mainVolume;
-        audioS.Play();
-
-        Debug.Log($"[MusicManager] switched to the bundled wav at mediaTime={atMediaTime:F2}");
     }
 
     /// <summary>

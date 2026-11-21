@@ -60,6 +60,17 @@ namespace FlashBeat.UI.V6.Game.Hud
             var img = dim.AddComponent<Image>();
             img.color = V6LaneGeometry.VideoDimColor;
             img.raycastTarget = false;
+            // Issue #735: この HUD 内蔵ディムは出荷経路では常に無効。
+            // 減光レイヤーの正本は V6GameRuntime.BuildDimLayer の
+            // "V6GameDimCanvas" (sortingOrder -3、V6UiMode.VideoDim が
+            // 有効なときだけ出る) で、こちらは V6GameRuntime.DisableInternalDim
+            // が起動時に一度だけ切るだけだった。解像度・プロファイル変更で
+            // Rebuild() が走ると子が全て作り直され、無効化が効かず
+            // 黒 α≈0.5 の全画面板が復活してノーツを灰色に沈める
+            // (実機で「ノーツが白く見えない」として報告)。
+            // 生成時から無効にして自己修復させる。ノード自体は
+            // 監査 (Find("Video Dim")) が参照するので残す。
+            dim.gameObject.SetActive(false);
         }
 
         private Image topShadeImage;

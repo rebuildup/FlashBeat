@@ -1,3 +1,4 @@
+using FlashBeat.UI.V6;
 using FlashBeat.UI.V6.Common;
 using NUnit.Framework;
 using TMPro;
@@ -29,6 +30,10 @@ namespace FlashBeat.Tests.Editor
             {
                 Object.DestroyImmediate(parent);
             }
+
+            // Issue #848 のテストが V6JacketProvider の遠隔キャッシュを使うので
+            // 画面間で持ち越さない (seed した Texture は provider が破棄する)。
+            V6JacketProvider.DestroyAll();
         }
 
         private static RectTransform Rect(Transform root, string path)
@@ -245,6 +250,157 @@ namespace FlashBeat.Tests.Editor
         {
             Assert.DoesNotThrow(() => V6SongBadge.ApplyJacket((GameObject)null, 1, "x"));
             Assert.DoesNotThrow(() => V6SongBadge.ApplyJacket((Image)null, 1, "x"));
+        }
+
+        // --- Issue #848: cover フィットと (songId, videoId) バインド照合 ---
+
+        /// <summary>videoId を持つ曲をカタログから 1 件探す (リモート曲を含む)。</summary>
+        private static bool TryFindSongWithVideoId(out int songId, out string videoId)
+        {
+            int count = GManager.ActiveSongs != null ? GManager.ActiveSongs.Length : 0;
+            for (int i = 0; i < count; i++)
+            {
+                SongData song = GManager.GetSong(i);
+                if (song != null && !string.IsNullOrEmpty(song.videoId))
+                {
+                    songId = i;
+                    videoId = song.videoId;
+                    return true;
+                }
+            }
+
+            songId = -1;
+            videoId = null;
+            return false;
+        }
+
+        private GameObject CreateThumb(float w, float h)
+        {
+            var badge = V6SongBadge.Create(parent, new V6SongBadge.Spec
+            {
+                ThumbSize = new Vector2(w, h),
+            });
+            return badge.Thumb;
+        }
+
+        [Test]
+        public void ApplyJacket_RemoteThumbnail_AppliesCoverCroppedSprite()
+        {
+            int songId;
+            string videoId;
+            Assert.IsTrue(TryFindSongWithVideoId(out songId, out videoId),
+                "videoId を持つ曲がカタログに必要");
+
+            // hqdefault 相当の 4:3 テクスチャを遠隔キャッシュへ seed する
+            // (EditMode では HTTP を回せないため、取得済み経路を直接使う)。
+            var tex = new Texture2D(480, 360, TextureFormat.RGBA32, false);
+            V6JacketProvider.SeedRemoteEntryForAudit(videoId, tex, 0f);
+
+            GameObject thumb = CreateThumb(512f, 288f);
+            V6SongBadge.ApplyJacket(thumb, songId, "テスト");
+
+            var img = thumb.GetComponent<Image>();
+            Assert.AreEqual(Image.Type.Simple, img.type);
+            Assert.IsNotNull(img.sprite);
+            Assert.AreEqual(480f, img.sprite.rect.width, 0.01f);
+            Assert.AreEqual(270f, img.sprite.rect.height, 0.01f,
+                "4:3 を 16:9 枠へ cover crop する (上下を削る)");
+            Assert.IsTrue(img.preserveAspect);
+            Assert.AreEqual(Color.white, img.color);
+        }
+
+        [Test]
+        public void ApplyRemoteJacket_RejectsStaleCallbacks()
+        {
+            int songId;
+            string videoId;
+            Assert.IsTrue(TryFindSongWithVideoId(out songId, out videoId));
+
+            var tex = new Texture2D(480, 360, TextureFormat.RGBA32, false);
+            V6JacketProvider.SeedRemoteEntryForAudit(videoId, tex, 0f);
+
+            GameObject thumb = CreateThumb(512f, 288f);
+            V6SongBadge.ApplyJacket(thumb, songId, "テスト");
+            var img = thumb.GetComponent<Image>();
+            Sprite applied = img.sprite;
+            Assert.IsNotNull(applied, "seed 済みなら ApplyJacket は同期で画像を適用する");
+
+            // 遅れて届いた別画像 (16:9 → スロットと同アスペクトなので crop 無し)。
+            var otherTex = new Texture2D(640, 360, TextureFormat.RGBA32, false);
+            var other = Sprite.Create(otherTex,
+                new Rect(0f, 0f, otherTex.width, otherTex.height),
+                new Vector2(0.5f, 0.5f), 100f);
+
+            // 同じ SongId でも videoId が違う結果は捨てる (カタログ更新後の遅延)。
+            V6SongBadge.ApplyRemoteJacket(img, songId, "other-video-id", other);
+            Assert.AreSame(applied, img.sprite,
+                "videoId が違う遅延結果でジャケットを上書きしてはいけない");
+
+            // 別 SongId の結果も捨てる (行スロットの使い回し)。
+            V6SongBadge.ApplyRemoteJacket(img, songId + 1, videoId, other);
+            Assert.AreSame(applied, img.sprite,
+                "SongId が違う遅延結果でジャケットを上書きしてはいけない");
+
+            // 正しい (songId, videoId) の結果は適用する。
+            V6SongBadge.ApplyRemoteJacket(img, songId, videoId, other);
+            Assert.AreSame(other, img.sprite,
+                "アスペクト一致なら crop 無しでそのまま適用される");
+
+            Object.DestroyImmediate(other);
+            Object.DestroyImmediate(otherTex);
+        }
+
+        [Test]
+        public void ApplyJacket_SongWithoutVideoId_InvalidatesPreviousBinding()
+        {
+            int songId;
+            string videoId;
+            Assert.IsTrue(TryFindSongWithVideoId(out songId, out videoId));
+
+            var tex = new Texture2D(480, 360, TextureFormat.RGBA32, false);
+            V6JacketProvider.SeedRemoteEntryForAudit(videoId, tex, 0f);
+
+            GameObject thumb = CreateThumb(512f, 288f);
+            V6SongBadge.ApplyJacket(thumb, songId, "テスト");
+            var img = thumb.GetComponent<Image>();
+            Assert.AreEqual(Image.Type.Simple, img.type);
+
+            // videoId を解決できない曲へスロットを差し替えると空枠に戻り、
+            // 前の曲のバインドも無効化される。
+            V6SongBadge.ApplyJacket(thumb, 999999, "存在しない曲");
+            Assert.AreEqual(Image.Type.Sliced, img.type, "画像無しは角丸プレートに戻る");
+
+            // 無効化後に前の曲の遅延結果が届いても適用されない。
+            var otherTex = new Texture2D(64, 64, TextureFormat.RGBA32, false);
+            var other = Sprite.Create(otherTex, new Rect(0f, 0f, 64f, 64f),
+                new Vector2(0.5f, 0.5f), 100f);
+            Sprite plate = img.sprite;
+            V6SongBadge.ApplyRemoteJacket(img, songId, videoId, other);
+            Assert.AreSame(plate, img.sprite,
+                "videoId 無しへ差し替えたあとの遅延結果は捨てる");
+
+            Object.DestroyImmediate(other);
+            Object.DestroyImmediate(otherTex);
+        }
+
+        [Test]
+        public void ApplyRemoteJacket_WithoutBinding_DoesNothing()
+        {
+            // ApplyJacket を通っていない枠にはバインドが無いので何も起きない。
+            var img = new GameObject("Thumb", typeof(RectTransform), typeof(Image))
+                .GetComponent<Image>();
+            var tex = new Texture2D(64, 64, TextureFormat.RGBA32, false);
+            var sprite = Sprite.Create(tex, new Rect(0f, 0f, 64f, 64f),
+                new Vector2(0.5f, 0.5f), 100f);
+
+            V6SongBadge.ApplyRemoteJacket(img, 1, "video", sprite);
+
+            Assert.IsNull(img.sprite);
+            Assert.AreEqual(Image.Type.Simple, img.type);
+
+            Object.DestroyImmediate(img.gameObject);
+            Object.DestroyImmediate(sprite);
+            Object.DestroyImmediate(tex);
         }
     }
 }

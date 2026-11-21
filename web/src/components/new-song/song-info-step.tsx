@@ -41,12 +41,12 @@ const suggestions = css({
 });
 
 const suggestionButton = css({
-  bg: "#3a3a3a",
+  bg: "gray.8",
   borderRadius: "8px",
-  color: "#ffffff",
+  color: "fg.default",
   fontSize: "2xs",
   paddingInline: "2",
-  _hover: { bg: "#454545" },
+  _hover: { bg: "gray.9" },
 });
 
 const note = css({
@@ -55,15 +55,15 @@ const note = css({
 });
 
 const noteMuted = css({
-  color: "#8c8c8c",
+  color: "fg.subtle",
 });
 
 const noteError = css({
-  color: "#ff6b6b",
+  color: "red.9",
 });
 
 const noteOk = css({
-  color: "#9ad3fa",
+  color: "blue.11",
 });
 
 const footer = css({
@@ -83,11 +83,11 @@ const buttonIcon = css({
 
 /** v5 Button Secondary: raised #3A3A3A with white label. */
 const raisedButton = css({
-  bg: "#3a3a3a",
-  color: "#ffffff",
+  bg: "gray.8",
+  color: "fg.default",
   borderRadius: "8px",
   borderColor: "transparent",
-  _hover: { bg: "#454545" },
+  _hover: { bg: "gray.9" },
   _disabled: { opacity: 0.4 },
 });
 

@@ -74,14 +74,16 @@ public class GManager : MonoBehaviour
     public static readonly SongData[] Songs = BuildSongs();
 
     // Cloud Catalog (#17): the fixed arrays above are the original song list of
-    // the game and stay the authoritative list - every song has to be playable
-    // whether the cloud API can be reached or not.
+    // the game. Issue #823: 実曲の譜面はクラウドカタログ経由でのみ供給
+    // されるため、固定行は曲情報 (タイトル・アーティスト・動画 ID) の
+    // フォールバックであり、ローカル譜面は持たない。リモートカタログの
+    // 曲が取れた行は isRemote = true になり、そちらが実際に再生できる。
     // RemoteSongs is a snapshot built from GET /api/v1/catalog (index 0 = the
     // noSong placeholder, remote songs from index 1); it is null until a
     // catalog fetch succeeds. Everything that shows or plays a song indexes
     // ActiveSongs: the cloud snapshot only *updates* the songs it knows
     // (chart version, chart id and song info), the songs that are not
-    // published in the cloud yet keep their local data.
+    // published in the cloud yet keep their local data (ただし譜面は無い)。
     public static SongData[] RemoteSongs;
     public static bool HasRemoteCatalog => RemoteSongs != null && RemoteSongs.Length > 1;
 
@@ -417,40 +419,71 @@ public class GManager : MonoBehaviour
     public static int miss;
 
     /// <summary>
-    /// scoring v2/v3/v4 (ADR-0028 / ADR-0029 / ADR-0033) の加点内訳
-    /// (ratio points)。
-    /// Judge が毎フレーム書き、結果画面の内訳表示とローカル検証が読む。
-    /// comboBonus / noMissBonus / milestoneBonus / finalBonus は送信
-    /// フィールドには含めない (サーバは P/G/B/M/maxCombo/comboMilestones
-    /// から再計算する)。comboMilestones は節目到達回数で、送信フィールド
-    /// comboMilestones と同じ値。
+    /// scoring v2–v6 (ADR-0028 / ADR-0029 / ADR-0033 / ADR-0035 / ADR-0037)
+    /// の加点内訳。Judge が毎フレーム書き、結果画面の内訳表示とローカル
+    /// 検証が読む。comboBonus / noMissBonus / milestoneBonus / finalBonus
+    /// は送信フィールドには含めない (サーバは P/G/B/M/maxCombo/
+    /// comboMilestones から再計算する)。comboMilestones は節目到達回数で、
+    /// 送信フィールド comboMilestones と同じ値。
+    /// scoring v5 では連続コンボ・ノーミスのボーナスが無く comboBonus /
+    /// noMissBonus は常に 0、コンボ由来の獲得済みは milestoneBonus が保持
+    /// する (ADR-0035)。scoring v6 (ADR-0037) ではこれらの欄は
+    /// **絶対スコア点** を保持する: milestoneBonus = 節目点の合計
+    /// (comboMilestones * 5000)、finalBonus = フルクリア点 (25,000)。
     /// </summary>
     public static int comboBonus;
     public static int noMissBonus;
-    /// <summary>節目到達回数 (scoring v3)。ランキング送信の comboMilestones。</summary>
+    /// <summary>節目到達回数 (scoring v3–v6)。ランキング送信の comboMilestones。</summary>
     public static int comboMilestones;
-    /// <summary>節目ボーナス合計 (ratio points = comboMilestones * 25)。</summary>
+    /// <summary>
+    /// 節目ボーナス合計。v5 までは ratio points (comboMilestones * 250)、
+    /// v6 では絶対スコア点 (comboMilestones * 5000、ADR-0037)。
+    /// </summary>
     public static int milestoneBonus;
     /// <summary>
-    /// フルコンボ終了ボーナス (miss == 0 かつ全ノーツ判定確定のとき 100、
-    /// ratio points)。確定は曲終了時に一度だけ (Issue #618)。
+    /// フルコンボ終了ボーナス。v3–v5 は ratio points (miss == 0 かつ全
+    /// ノーツ判定確定のとき 100)、v6 は絶対スコア点 (同条件で 25,000、
+    /// ADR-0037)。確定は曲終了時に一度だけ (Issue #618)。
     /// </summary>
     public static int finalBonus;
 
     /// <summary>
-    /// scoring v4 (ADR-0033) の基礎スコアと加算ボーナス。score =
-    /// baseScore + bonusScore で、baseScore は判定由来のみ (上限
-    /// 1,000,000)、bonusScore はコンボ継続・ノーミス・節目・フルコンボの
-    /// 合計 (上限 1,000,000)。結果画面の内訳表示が読む。Judge が
-    /// FlushScore のたびに書く。
+    /// scoring v4/v5 (ADR-0033 / ADR-0035) の基礎スコアと加算ボーナス、
+    /// および scoring v6 (ADR-0037) の基礎スコアと絶対追加スコア。
+    /// score = baseScore + bonusScore で、baseScore は判定由来のみ (上限
+    /// 1,000,000)。v4/v5 の bonusScore はボーナス ratio points を
+    /// 1,000,000 で正規化した値 (上限 1,000,000)、v6 の bonusScore は
+    /// 実プレイで獲得した絶対スコア点 (品質点 + 節目 + フルクリア、
+    /// 上限は scoreMaxV6 - 1,000,000)。結果画面の内訳表示が読む。
+    /// Judge が FlushScore のたびに書く。
     /// </summary>
     public static int baseScore;
     public static int bonusScore;
     /// <summary>
-    /// scoring v4 のボーナス分母 (Scoring.MaxBonusRatioV4(noteCount))。
-    /// HUD のボーナス獲得点表示が ratio points → スコア点の換算に使う。
+    /// scoring v4/v5 (ADR-0033 / ADR-0035) のボーナス分母
+    /// (Scoring.MaxBonusRatioV4/V5(noteCount))。scoring v6 (ADR-0037)
+    /// では追加スコアが絶対点なので、この欄には
+    /// <see cref="Scoring.MaxAdditionalV6"/> と同じ値
+    /// (<see cref="maxAdditionalScore"/>) が入る。HUD のボーナス獲得点
+    /// 表示が ratio points → スコア点の換算に使う。
     /// </summary>
     public static float maxBonusRatio;
+
+    /// <summary>
+    /// scoring v6 (ADR-0037) の譜面ごとの追加スコア上限
+    /// (Scoring.MaxAdditionalV6(chartNoteCount))。Judge が FlushScore の
+    /// たびに書く。v6 のグレード・ゲージ正規化は
+    /// <see cref="scoreMaxV6"/> を使う。
+    /// </summary>
+    public static int maxAdditionalScore;
+
+    /// <summary>
+    /// scoring v6 (ADR-0037) の譜面ごとのスコア上限
+    /// (Scoring.ScoreMaxV6(chartNoteCount) = 1,000,000 + maxAdditionalScore)。
+    /// v6 には固定の合計上限が無いため、ゲージ・グレードはこの値で
+    /// 正規化する。Judge が FlushScore のたびに書く。
+    /// </summary>
+    public static int scoreMaxV6;
 
     /// <summary>
     /// 全ノーツの判定が確定したか (perfect + great + bad + miss == 譜面
@@ -459,6 +492,13 @@ public class GManager : MonoBehaviour
     /// (Issue #618)。
     /// </summary>
     public static bool judgmentsComplete;
+
+    /// <summary>
+    /// 現在の譜面のノーツ数 (NotesManager.noteNum)。Judge が FlushScore の
+    /// たびに書く。HUD が「次の節目がまだ到達可能か」を判定するのに使う
+    /// (ADR-0035)。
+    /// </summary>
+    public static int chartNoteCount;
 
     public static float MainSound;
     public static float EffectSound;
@@ -489,10 +529,13 @@ public class GManager : MonoBehaviour
 
     public static float mainVolume = 1.0f;
     public static float effectVolume = 1.0f;
-    /// <summary>Non-gameplay BGM volume (Title/Select/Option background
-    /// video audio). GameScene video audio follows <see cref="mainVolume"/>
-    /// instead — the Option slider labeled BGM therefore does not affect
-    /// in-game audio (accepted semantics, issue #651).</summary>
+    /// <summary>プレイ楽曲 (GameScene の演奏音源 audioS / streamAudioSource)
+    /// の音量 (Issue #851)。リズムゲームの主体なので十分に聞こえる 1.0 を
+    /// 既定にする。Main Volume (AudioListener) とは別チャンネル。</summary>
+    public static float songVolume = 1.0f;
+    /// <summary>メニュー画面 (Title/Select/Option/Result) の背景動画音声の
+    /// 音量。プレイ楽曲は <see cref="songVolume"/> を使う (Issue #851 で
+    /// 分離。かつては演奏音源もこの値を使っていた)。</summary>
     public static float BGMVolume = 0.3f;
     public static float BGMtime = 0f;
 
@@ -529,7 +572,10 @@ public class GManager : MonoBehaviour
         baseScore = 0;
         bonusScore = 0;
         maxBonusRatio = 0f;
+        maxAdditionalScore = 0;
+        scoreMaxV6 = 0;
         judgmentsComplete = false;
+        chartNoteCount = 0;
         settledNoteCount = 0;
         BeginPlaySession();
     }
@@ -560,7 +606,11 @@ public class GManager : MonoBehaviour
         }
         if (row != null)
         {
-            // ローカル譜面 (Resources) の曲: 行の内容をそのまま固定する。
+            // Issue #823: 譜面はクラウドカタログ経由でのみ供給される。
+            // リモート化されていない行 (カタログ未取得の固定曲) は
+            // ローカル譜面を持たず、譜面 JSON 無しで固定する
+            // (NotesManager.ParseChart は null を返し、開始経路は
+            // 選曲画面側で既にエラーになる)。
             PlaySessionSnapshot.Begin(row, row.chartVersion, null);
             return;
         }

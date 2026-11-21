@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -13,8 +13,11 @@ namespace FlashBeat.UI.V6.Game.Pause
 {
     /// <summary>
     /// V6PauseView の表示更新部分 (Issue #385 Phase 2.3 で分割)。
-    /// Refresh から呼ばれるヘッダー / タブ / 行 / キー割当プレビューの再描画と、
-    /// 行選択・ジャケット取得を持つ。
+    /// Refresh から呼ばれるヘッダー (曲情報・ジャケット) の再描画を持つ。
+    ///
+    /// Issue #733 フォローアップ: タブ・設定行・プレビューの更新は
+    /// 共有部品 <see cref="V6SettingsScreen"/> (Option と同一実装) が担うため、
+    /// ここには Pause 固有のヘッダー更新だけが残る。
     /// partial class のためフィールド・メソッドは V6PauseView 本体と共有する。
     /// </summary>
     public sealed partial class V6PauseView
@@ -73,113 +76,12 @@ namespace FlashBeat.UI.V6.Game.Pause
                     return; // プレースホルダのまま (design の空枠)
                 }
 
-                thumbImage.sprite = sprite;
+                // Issue #848: 選曲画面と同じ cover 規則でスロットのアスペクトへ
+                // 切り抜く (hqdefault 4:3 のレターボックス縮小を防ぐ)。
+                thumbImage.sprite = V6JacketFit.CoverSprite(thumbImage, sprite);
                 thumbImage.preserveAspect = true;
                 thumbImage.color = Color.white;
             });
-        }
-
-        private void RefreshTabs()
-        {
-            for (int i = 0; i < tabPanels.Count && i < tabLabels.Count; i++)
-            {
-                bool active = i == selectedTab;
-                var img = tabPanels[i].GetComponent<Image>();
-                if (img != null)
-                {
-                    img.color = active ? V5Tokens.Key6 : V5Tokens.Key2;
-                }
-
-                tabLabels[i].color = active ? V5Tokens.Text : V5Tokens.TextMuted;
-                tabLabels[i].fontStyle = active ? FontStyles.Bold : FontStyles.Normal;
-            }
-
-            for (int i = 0; i < pages.Count; i++)
-            {
-                pages[i].SetActive(i == selectedTab);
-            }
-
-            if (settingsTitle != null && selectedTab < TabNames.Length)
-            {
-                settingsTitle.text = TabNames[selectedTab];
-            }
-        }
-
-        private void RefreshRows()
-        {
-            for (int page = 0; page < pageRows.Count; page++)
-            {
-                var views = pageRowViews[page];
-                for (int i = 0; i < views.Count; i++)
-                {
-                    views[i].RefreshValue();
-                }
-            }
-
-            RefreshRowHighlight();
-        }
-
-        private void RefreshRowHighlight()
-        {
-            for (int page = 0; page < pageRowViews.Count; page++)
-            {
-                var views = pageRowViews[page];
-                for (int i = 0; i < views.Count; i++)
-                {
-                    views[i].SetSelected(page == selectedTab && i == selectedRow);
-                }
-            }
-        }
-
-        private void SelectRow(int page, int index)
-        {
-            if (page != selectedTab)
-            {
-                SelectTab(page);
-                return;
-            }
-
-            selectedRow = V6PauseViewLogic.ClampIndex(index, pageRows[selectedTab].Count);
-            RefreshRowHighlight();
-            if (volumeSlider != null && selectedTab == VolumePage)
-            {
-                volumeSlider.Refresh();
-            }
-        }
-
-        /// <summary>KeyBindings の変更 (キー設定 / レイアウト) をプレビューへ即時反映。</summary>
-        private void RefreshKeyBindings()
-        {
-            // 見出しは RefreshPreviewForPage がタブごとに決める (Sound では「音量」)。
-            KeyCode[][] bindings = KeyBindings.Current;
-            for (int i = 0; i < keyLabels.Count && i < keyCaps.Count; i++)
-            {
-                char c = KeyCharAt(i);
-                int lane = V6PauseViewLogic.LaneOfKey(bindings, c);
-                keyLabels[i].text = lane >= 0 ? (lane + 1).ToString() : "";
-                if (keyCaps[i] != null)
-                {
-                    keyCaps[i].color = lane >= 0 ? V5Tokens.Key4 : V5Tokens.Key2;
-                }
-            }
-        }
-
-        /// <summary>JIS 全段を通しで並べたときの i 番目の刻印。</summary>
-        private static char KeyCharAt(int index)
-        {
-            int i = index;
-            for (int row = 0; row < V6PauseViewLogic.JisKeyRows.Length; row++)
-            {
-                char[] keys = V6PauseViewLogic.JisKeyRows[row];
-                if (i < keys.Length)
-                {
-                    return keys[i];
-                }
-
-                i -= keys.Length;
-            }
-
-            return '\0';
         }
     }
 }

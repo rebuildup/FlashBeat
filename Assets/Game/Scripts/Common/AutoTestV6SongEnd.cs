@@ -80,6 +80,31 @@ public class AutoTestV6SongEnd : MonoBehaviour
     int pass;
     int fail;
     int shot;
+
+    // v0.2.1: 判定ポップ・歌詞パネル・コンボボーナス・ノーツ白さの
+    // 実描画証跡用。最初の判定が出てから 240 レンダリングフレーム
+    // (60fps で約 4 秒) を 4 フレーム毎に連写する (60fps で約 15fps、
+    // 最大 60 コマ)。静止画 1 枚では軌道や発色を判断できないため、
+    // 連続コマで残す (ffmpeg で動画化する前提)。
+    // 起動直後はメディア準備で FPS が落ちることがあるため、
+    // 実時間ではなくレンダリングフレーム数で窓を決める。
+    bool burstStarted;
+    int burstFramesLeft;
+    int burstShot;
+    // Issue #789/#824: 歌詞区間の実描画証跡。メディア時刻 10〜45 秒を
+    // 2 秒毎に 1 枚ずつ撮る (曲の歌詞区間をカバーする汎用窓)。
+    float nextLyricShotTime = 10f;
+    int lyricShotCount;
+
+    // Issue #846: 歌詞本文の実描画 assert。v0.2.5 実機指摘の
+    // 「枠は出るが本文が空」(HasLyrics と表示可能行の不整合) を
+    // スクリーンショットではなくテキスト値で検出する。
+    bool lyricChartResolved;
+    bool lyricChartHasText;
+    List<LyricLine> lyricAuditLines;
+    FlashBeat.UI.V6.Game.Hud.V6GameHudView lyricHud;
+    float lyricTextEmptySeconds;
+    int lyricTextExpectedFrames;
     string outDir;
     string songTitle;
 
@@ -161,6 +186,13 @@ public class AutoTestV6SongEnd : MonoBehaviour
         // AutoTestV6 と同じ引数 (-playfield 1) を読む。GameScene のシーン読み込み
         // より前 (Start) に立てる必要があるため、ここで設定する。
         FlashBeat.UI.V6.V6UiMode.Playfield = GetArg("-playfield") == "1";
+
+        // Issue #789: "-autotest-lyrics off" で歌詞パネルを OFF にした
+        // 対照ランを撮れる (設定 OFF で枠が消えることの証跡)。
+        if (GetArg("-autotest-lyrics") == "off")
+        {
+            PlaySession.SetLyricsEnabled(false);
+        }
 
         try { Directory.CreateDirectory(outDir); }
         catch (Exception) { }
@@ -327,6 +359,7 @@ public class AutoTestV6SongEnd : MonoBehaviour
         //    ポーリングは **毎フレーム** (0.25 秒ごとだと 0.05 秒の注入窓を
         //    跨ぐノーツを取りこぼす = Scores が欠ける)。
         NotesManager notes = FindFirstObjectByType<NotesManager>();
+        FlashBeat.Gameplay.VideoFrameAudit.ResetForAudit();
         bool mediaClockAdvanced = false;
         float lastMediaTime = -1f;
         float loopStart = Time.realtimeSinceStartup;
@@ -342,9 +375,73 @@ public class AutoTestV6SongEnd : MonoBehaviour
                 if (lastMediaTime >= 0f && mediaTime > lastMediaTime + 0.01f) { mediaClockAdvanced = true; }
                 if (lastMediaTime < 0f || mediaTime > lastMediaTime) { lastMediaTime = mediaTime; }
 
-                if (notes != null && notes.noteNum > 0) { runtimeNoteCount = notes.noteNum; }
+                if (notes != null && notes.noteNum > 0)
+                {
+                    runtimeNoteCount = notes.noteNum;
+                    // クラウド譜面は選択直後には未取得なので、セッション固定後の
+                    // ここで改めて読む (Issue #823: ローカル Resources 経路は無い)。
+                    if (chartNoteCount == 0) { chartNoteCount = ChartNoteCount(songTitle); }
+                }
 
                 AutoHit(notes);
+
+                // v0.2.1: 判定バースト撮影 (上のフィールドコメント参照)。
+                // 判定開始後の 240 レンダリングフレーム (=60fps で約 4 秒) を
+                // 4 フレーム毎に撮り、最大 60 コマ。低 FPS でも撮影間隔は
+                // フレーム基準なのでコマ落ちしない。
+                int judgedNow = GManager.perfect + GManager.great + GManager.bad + GManager.miss;
+                if (!burstStarted && judgedNow > 0)
+                {
+                    burstStarted = true;
+                    burstFramesLeft = 240;
+                    // 同じ outDir の前回実行の連写が残ると枚数が混ざるので消す
+                    // (PR #787 review)。
+                    try
+                    {
+                        foreach (string old in Directory.GetFiles(outDir, "autotest-v6songend-*-05-burst-*.png"))
+                        {
+                            File.Delete(old);
+                        }
+                    }
+                    catch (Exception) { }
+                }
+                if (burstStarted && burstFramesLeft > 0 && burstShot < 60
+                    && Time.frameCount % 4 == 0)
+                {
+                    burstFramesLeft -= 4;
+                    burstShot++;
+                    CaptureScreenshot("05-burst-" + burstShot.ToString("00"));
+                }
+
+                // Issue #789: 歌詞パネルの実描画を歌詞区間の通しで残す。
+                // 判定バーストは開始直後の 4 秒しか撮らないので、歌詞が
+                // 出る中盤以降はこちらで拾う。設定 OFF 確認用に
+                // "-autotest-lyrics off" で PlaySession.LyricsEnabled を
+                // 落とせる (枠が消えることの対照証跡)。
+                if (mediaTime >= nextLyricShotTime && mediaTime < 45f
+                    && lyricShotCount < 20)
+                {
+                    nextLyricShotTime = mediaTime + 2f;
+                    lyricShotCount++;
+                    CaptureScreenshot("06-lyrics-" + lyricShotCount.ToString("00"));
+                }
+
+                // Issue #846: 歌詞区間で本文が実際に出ているかを検査する。
+                AuditLyricText();
+
+                // Issue #844: 背景映像テクスチャの破損フレームを定量観測する
+                // (約 4 回/秒。suspect は FAIL にせず計測値として残す)。
+                if (Time.frameCount % 15 == 0)
+                {
+                    bool videoSuspect;
+                    FlashBeat.Gameplay.VideoFrameAudit.Sample(
+                        music.SongVideoForAudit, mediaTime, out videoSuspect);
+                    if (videoSuspect)
+                    {
+                        Debug.LogWarning(Tag + " video frame suspect at mediaTime="
+                            + mediaTime.ToString("F2", CultureInfo.InvariantCulture));
+                    }
+                }
 
                 if (GManager.combo > comboPeak) { comboPeak = GManager.combo; }
 
@@ -390,6 +487,20 @@ public class AutoTestV6SongEnd : MonoBehaviour
         Check("the song end state machine completes", songEndCompleted);
         Check("the song end is not a forced deadline completion", songEndCompleted && !songEndForcedByDeadline);
         Check("the result scene is loaded", SceneManager.GetActiveScene().name == "ResultScene");
+
+        // Issue #846: 歌詞本文の assert。表示可能な歌詞行を持つ曲でだけ
+        // 判定する (歌詞なし曲・Pending のまま終わった場合は skip)。
+        if (lyricChartResolved && lyricChartHasText)
+        {
+            Check("lyric text is rendered during lyric windows (Issue #846)",
+                lyricTextExpectedFrames > 0 && lyricTextEmptySeconds < 1f);
+            Debug.Log(Tag + " lyric audit: expectedFrames=" + lyricTextExpectedFrames +
+                      " emptySeconds=" + lyricTextEmptySeconds.ToString("F2"));
+        }
+        else
+        {
+            Debug.Log(Tag + " lyric audit: skipped (chart has no displayable lyric text)");
+        }
 
         // 7. Result 画面が実際に描画されているか (v6 の Result Canvas の中で)。
         if (SceneManager.GetActiveScene().name == "ResultScene")
@@ -470,16 +581,17 @@ public class AutoTestV6SongEnd : MonoBehaviour
     }
 
     /// <summary>
-    /// 譜面 (Resources) の総ノーツ数。譜面が無い / 読めないときは 0。
+    /// 譜面の総ノーツ数。保持中のクラウド譜面 (Issue #823 でローカル
+    /// Resources 経路は撤去) から読む。読めないときは 0。
     /// 「判定された数」と比べる基準 (Issue: 判定が 5/130 でも通っていた)。
     /// </summary>
     static int ChartNoteCount(string title)
     {
         try
         {
-            TextAsset asset = Resources.Load<TextAsset>(title);
-            if (asset == null) { return 0; }
-            Data chart = JsonUtility.FromJson<Data>(asset.text);
+            SongData song = GManager.GetSong(GManager.songID);
+            if (song == null) { return 0; }
+            Data chart = NotesManager.ParseChart(song);
             if (chart == null || chart.notes == null) { return 0; }
             return chart.notes.Length;
         }
@@ -487,6 +599,73 @@ public class AutoTestV6SongEnd : MonoBehaviour
         {
             Debug.LogWarning(Tag + " could not read the chart '" + title + "': " + e.Message);
             return 0;
+        }
+    }
+
+    /// <summary>
+    /// Issue #846: 再生中の各フレームで、いま歌詞行が出るべき時刻
+    /// (HUD が使うのと同じ <see cref="GManager.step_time"/> クロック) に
+    /// HUD の歌詞本文 (<see cref="FlashBeat.UI.V6.Game.Hud.V6GameHudView.LyricTextForAudit"/>)
+    /// が空でないかを確かめる。
+    ///
+    /// 枠 (lyricBox) は #734 のポリシーで行間・歌詞なし区間でも出続けるため、
+    /// 枠の有無では「本文が出ない」バグを検出できない。本文テキストだけを見る。
+    /// 行の切れ目 1 フレームの表示ラグを許容するため、空のままの時間が
+    /// 1 秒を超えた場合だけ終了時の Check で落とす。
+    /// "-autotest-lyrics off" (PlaySession.LyricsEnabled = false) の対照実行では
+    /// 本文が空なのが正しいので何もしない。
+    /// </summary>
+    void AuditLyricText()
+    {
+        if (!PlaySession.LyricsEnabled) { return; }
+
+        if (!lyricChartResolved)
+        {
+            SongData song = PlaySessionSnapshot.ResolveSong(GManager.songID);
+            if (song != null)
+            {
+                ChartLyricsResult lyrics = ChartLyrics.Resolve(song);
+                if (lyrics != null && lyrics.State != ChartLyricsState.Pending
+                    && lyrics.Lyrics != null)
+                {
+                    lyricChartResolved = true;
+                    lyricAuditLines = LyricsTimeline.Build(
+                        lyrics.Lyrics.StartTime ?? new float[0],
+                        lyrics.Lyrics.EndTime ?? new float[0],
+                        lyrics.Lyrics.Mondai ?? new string[0],
+                        null, null);
+                    lyricChartHasText = false;
+                    foreach (LyricLine line in lyricAuditLines)
+                    {
+                        if (line.HasText) { lyricChartHasText = true; break; }
+                    }
+                    Debug.Log(Tag + " lyrics audit: state=" + lyrics.State +
+                              " lines=" + lyricAuditLines.Count +
+                              " hasText=" + lyricChartHasText);
+                }
+            }
+            if (!lyricChartResolved) { return; }
+        }
+
+        if (!lyricChartHasText || lyricAuditLines == null) { return; }
+
+        if (lyricHud == null)
+        {
+            lyricHud = FindFirstObjectByType<FlashBeat.UI.V6.Game.Hud.V6GameHudView>();
+            if (lyricHud == null) { return; }
+        }
+
+        int index = LyricsTimeline.IndexAt(lyricAuditLines, GManager.step_time);
+        if (index < 0 || !lyricAuditLines[index].HasText) { return; }
+
+        lyricTextExpectedFrames++;
+        if (string.IsNullOrEmpty(lyricHud.LyricTextForAudit))
+        {
+            lyricTextEmptySeconds += Time.unscaledDeltaTime;
+        }
+        else
+        {
+            lyricTextEmptySeconds = 0f;
         }
     }
 
@@ -742,6 +921,8 @@ public class AutoTestV6SongEnd : MonoBehaviour
 
     private void Finish()
     {
+        // Issue #844: 終了時に未確定の suspect ランをイベントとして確定する。
+        FlashBeat.Gameplay.VideoFrameAudit.FinalizeAudit();
         Debug.Log(Tag + " RESULT pass=" + pass + " fail=" + fail);
         try
         {
@@ -761,7 +942,15 @@ public class AutoTestV6SongEnd : MonoBehaviour
                 "rankingMode=" + rankingMode + "\n" +
                 "loadingObserved=" + loadingObserved + "\n" +
                 "loadingVisibleSeconds=" + loadingVisibleSeconds.ToString("F2", CultureInfo.InvariantCulture) + "\n" +
-                "judgedMatchesChart=" + judgedMatchesChart + "\n");
+                "judgedMatchesChart=" + judgedMatchesChart + "\n" +
+                "videoAuditSamples=" + FlashBeat.Gameplay.VideoFrameAudit.Samples + "\n" +
+                "videoAuditSuspects=" + FlashBeat.Gameplay.VideoFrameAudit.Suspects + "\n" +
+                "videoAuditEvents=" + FlashBeat.Gameplay.VideoFrameAudit.SuspectEvents + "\n" +
+                "videoAuditIsolatedEvents=" + FlashBeat.Gameplay.VideoFrameAudit.IsolatedSuspectEvents + "\n" +
+                "videoAuditMaxRatio=" + FlashBeat.Gameplay.VideoFrameAudit.MaxRatio.ToString("F2", CultureInfo.InvariantCulture) + "\n" +
+                "videoAuditMaxRatioAt=" + FlashBeat.Gameplay.VideoFrameAudit.MaxRatioAtMediaTime.ToString("F2", CultureInfo.InvariantCulture) + "\n" +
+                "videoAuditMinRatio=" + FlashBeat.Gameplay.VideoFrameAudit.MinRatio.ToString("F2", CultureInfo.InvariantCulture) + "\n" +
+                "videoAuditMinRatioAt=" + FlashBeat.Gameplay.VideoFrameAudit.MinRatioAtMediaTime.ToString("F2", CultureInfo.InvariantCulture) + "\n");
         }
         catch (Exception e) { Debug.LogWarning(Tag + " could not write the result file: " + e.Message); }
 

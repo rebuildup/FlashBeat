@@ -66,7 +66,7 @@ namespace FlashBeat.UI.V5
             if (mediaLoading && !GManager.played) loadingSeconds += Time.unscaledDeltaTime;
 
             var play = HudPlayState.Evaluate(videoError, GManager.played, mediaLoading, loadingSeconds,
-                MusicManager.SelectReturnPending);
+                MusicManager.PlaybackFailed);
             LastPhase = play;
             LegacyMediaLoading = mediaLoading;
             if (play != HudPlayPhase.Preparing) loadingSeconds = 0f;

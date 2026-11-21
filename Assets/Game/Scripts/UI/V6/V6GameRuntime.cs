@@ -228,6 +228,15 @@ namespace FlashBeat.UI.V6
                 return;
             }
 
+            // Issue #792: ローディングのエラー表示中は Esc = 選曲へ戻る
+            // (フッター凡例どおり)。このときポーズは開かない。
+            if (loading != null && loading.ErrorActive &&
+                KeyActions.IsDown(KeyActions.KeyAction.Back))
+            {
+                loading.Back();
+                return;
+            }
+
             if (KeyActions.IsDown(KeyActions.KeyAction.Back))
             {
                 if (pause.IsOpen)
@@ -280,10 +289,10 @@ namespace FlashBeat.UI.V6
             else if (phase == HudPlayPhase.Failed)
             {
                 // v5 と同じ: 失敗時はポーズを閉じ、選曲への導線を優先する。
-                // v6 ローディング画面にエラー専用 UI は無い (Issue #606) —
-                // 戻る導線はヘッダーの戻るボタンと Esc (HudPlayStatus) が担う。
+                // Issue #792: エラー専用パネル (理由 + 再試行 / 戻る) を出す。
+                // 文言は MusicManager.LastFailureMessage (無ければ既定文言)。
                 if (pause != null && pause.IsOpen) pause.Close();
-                loading.SetError();
+                loading.SetError(MusicManager.LastFailureMessage);
                 loading.SetVisible(true);
             }
             else
@@ -359,27 +368,32 @@ namespace FlashBeat.UI.V6
         // --- ジャケット (Issue #224) ---
 
         readonly Dictionary<int, Texture2D> jacketCache = new Dictionary<int, Texture2D>();
+        readonly HashSet<int> jacketRequested = new HashSet<int>();
 
         /// <summary>
-        /// 選択中の曲のジャケットを Resources から解決する
-        /// (<see cref="V6LoadingViewLogic.JacketResourcePathOf"/>= 選曲画面と同じ対応表)。
-        /// 無い曲は null — ビューが「無し」と正直に表示する。null もキャッシュする
-        /// (毎フレームの Resources.Load を避ける)。
+        /// 選択中の曲のジャケットを YouTube サムネイルから非同期で解決する
+        /// (Issue #823: ローカル Resources ジャケットは撤去済み)。
+        /// 取得前・失敗時は null — ビューが「無し」と正直に表示する。
+        /// null もキャッシュする (要求は曲ごとに 1 回だけ)。
         /// </summary>
         private Texture2D LoadJacket(SongData song)
         {
             if (song == null) return null;
             if (jacketCache.TryGetValue(song.id, out var cached)) return cached;
 
-            Texture2D texture = null;
-            string path = V6LoadingViewLogic.JacketResourcePathOf(song.id);
-            if (!string.IsNullOrEmpty(path))
+            jacketCache[song.id] = null;
+            string videoId = song.videoId;
+            if (!string.IsNullOrEmpty(videoId) && jacketRequested.Add(song.id))
             {
-                texture = Resources.Load<Texture2D>(path);
+                V6JacketProvider.RequestRemoteTexture(videoId, texture =>
+                {
+                    if (texture != null)
+                    {
+                        jacketCache[song.id] = texture;
+                    }
+                });
             }
-
-            jacketCache[song.id] = texture;
-            return texture;
+            return null;
         }
 
         /// <summary>動画を減光するレイヤー (プレイフィールドより下)。</summary>

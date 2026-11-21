@@ -25,7 +25,13 @@ export const button = defineRecipe({
       flexShrink: "0",
     },
     _disabled: {
-      layerStyle: "disabled",
+      // Issue #802 review: the shared `disabled` layer style only dims the
+      // variant colors (opacity + grayscale), which left dark text on a muddy
+      // dark surface. Disabled buttons get one explicit muted pair instead.
+      // NOTE: base-level `_disabled` lands in the `recipes` layer while the
+      // variant colors live in the later `variants` layer, so the color
+      // overrides must be repeated inside each variant below to win.
+      cursor: "not-allowed",
     },
     focusVisibleRing: "outside",
   },
@@ -38,6 +44,11 @@ export const button = defineRecipe({
       solid: {
         bg: "colorPalette.solid.bg",
         color: "colorPalette.solid.fg",
+        _disabled: {
+          bg: "gray.a3",
+          color: "fg.muted",
+          borderColor: "border",
+        },
         _hover: {
           bg: "colorPalette.solid.bg.hover",
         },
@@ -47,6 +58,11 @@ export const button = defineRecipe({
         borderWidth: "1px",
         borderColor: "colorPalette.surface.border",
         color: "colorPalette.surface.fg",
+        _disabled: {
+          bg: "gray.a3",
+          color: "fg.muted",
+          borderColor: "border",
+        },
         _hover: {
           borderColor: "colorPalette.surface.border.hover",
         },
@@ -60,6 +76,11 @@ export const button = defineRecipe({
       subtle: {
         bg: "colorPalette.subtle.bg",
         color: "colorPalette.subtle.fg",
+        _disabled: {
+          bg: "gray.a3",
+          color: "fg.muted",
+          borderColor: "border",
+        },
         _hover: {
           bg: "colorPalette.subtle.bg.hover",
         },
@@ -74,6 +95,11 @@ export const button = defineRecipe({
         borderWidth: "1px",
         borderColor: "colorPalette.outline.border",
         color: "colorPalette.outline.fg",
+        _disabled: {
+          bg: "gray.a3",
+          color: "fg.muted",
+          borderColor: "border",
+        },
         _hover: {
           bg: "colorPalette.outline.bg.hover",
         },
@@ -86,6 +112,11 @@ export const button = defineRecipe({
       },
       plain: {
         color: "colorPalette.plain.fg",
+        _disabled: {
+          bg: "gray.a3",
+          color: "fg.muted",
+          borderColor: "border",
+        },
         _hover: {
           bg: "colorPalette.plain.bg.hover",
         },

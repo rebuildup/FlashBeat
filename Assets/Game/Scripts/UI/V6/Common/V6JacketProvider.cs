@@ -17,8 +17,9 @@ namespace FlashBeat.UI.V6
     ///   - <c>ResultSceneManager</c> が v6 有効でも別経路で同じ画像を取る。
     ///
     /// ここに集約するもの:
-    ///   - **ローカル (Resources)** と **遠隔 (YouTube hqdefault)** の 2 経路。
-    ///     ローカルを優先し、無い曲だけ遠隔へフォールバックする。
+    ///   - **遠隔 (YouTube hqdefault) のみ**。Issue #823 でローカル
+    ///     (Resources) のジャケット画像は第三者素材として撤去した。
+    ///     画像が無い / 未取得の曲は null (呼び出し側が空枠を出す)。
     ///   - **原 Texture は 1 枚だけ**保持し、表示 variant (crop / 角丸) は
     ///     原 Texture から作る。同じ画像を何度もデコードしない。
     ///   - **同時要求の dedupe**: 同じ映像 ID を 2 画面が同時に欲しがっても
@@ -36,9 +37,9 @@ namespace FlashBeat.UI.V6
     ///     View 側に残す (この provider は「画像が無い」を null で返すだけ)。
     ///
     /// Issue #385 Phase 2.11: 領域ごとに partial class へ分割した
-    /// (ローカル Resources 経路 = V6JacketProviderLocal.cs、
-    /// crop variant = V6JacketProviderCrop.cs、遠隔 YouTube 経路と LRU 退避 =
+    /// (crop variant = V6JacketProviderCrop.cs、遠隔 YouTube 経路と LRU 退避 =
     /// V6JacketProviderRemote.cs、無効化/破棄 = V6JacketProviderLifecycle.cs)。
+    /// Issue #823: ローカル (Resources) ジャケット経路は撤去済み。
     /// このファイルは定数・計測カウンタ・コルーチンホスト (RemoteHost) を持つ。
     /// </summary>
     public static partial class V6JacketProvider
@@ -74,9 +75,6 @@ namespace FlashBeat.UI.V6
 
         // --- 計測点 (Issue #397 の before/after 用) ---
 
-        /// <summary>ローカル画像を実際に Resources から読んだ回数。</summary>
-        public static int LocalLoadCount { get; private set; }
-
         /// <summary>遠隔画像の HTTP を実際に開始した回数。</summary>
         public static int RemoteFetchCount { get; private set; }
 
@@ -91,15 +89,6 @@ namespace FlashBeat.UI.V6
 
         /// <summary>crop variant を実際に Sprite.Create した回数。</summary>
         public static int CropCreateCount { get; private set; }
-
-        /// <summary>
-        /// このプロセスが保持している **ローカル** Sprite の枚数 (リーク監査用)。
-        /// Resources の中身が変わらないことを見るときの計算に使う (遠隔Sprite は含まない)。
-        /// </summary>
-        public static int CachedSpriteCount
-        {
-            get { return localSpriteCache.Count + localCropCache.Count; }
-        }
 
         /// <summary>このプロセスが保持している遠隔エントリの枚数 (上限の検証用、Issue #416)。</summary>
         public static int RemoteCacheEntryCount
