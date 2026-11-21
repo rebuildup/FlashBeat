@@ -68,16 +68,5 @@ namespace FlashBeat.UI.V6.Game.Loading
         {
             return V6JacketProvider.CoverCropRect(width, height);
         }
-
-        /// <summary>
-        /// カタログ index → ジャケットの Resources 相対パス (拡張子なし)。
-        /// 1..26 はすべて画像あり (22 = 灰Φ倶楽部も含む)。表に無い index は空文字
-        /// (呼び出し側は「無し」を正直に表示する)。
-        /// 解決は <see cref="V6JacketResources"/> に一本化している。
-        /// </summary>
-        public static string JacketResourcePathOf(int songId)
-        {
-            return V6JacketResources.PathOf(songId);
-        }
     }
 }

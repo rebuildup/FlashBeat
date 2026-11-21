@@ -39,8 +39,9 @@ namespace FlashBeat.UI.V6.Common
     ///   取得経路が違うため画面側のまま。ここでは構造だけを共通化する。
     ///
     /// 画像の適用は <see cref="ApplyJacket"/> に一本化 (Issue #398 の
-    /// V6JacketProvider 経路。Select の V6JacketResources.LoadSprite と
-    /// 同一実体)。遠隔画像を使う画面は自前の更新を持つ。
+    /// V6JacketProvider 経路。Issue #823 でローカル Resources ジャケットは
+    /// 撤去し、YouTube サムネイルの遠隔取得に統一した)。
+    /// Loading の起動時ジャケットだけは Texture が要るため画面側の更新を持つ。
     /// </summary>
     public static class V6SongBadge
     {
@@ -178,6 +179,15 @@ namespace FlashBeat.UI.V6.Common
             ApplyJacket(thumbGo != null ? thumbGo.GetComponent<Image>() : null, songId, title, fallback);
         }
 
+        /// <summary>
+        /// ApplyJacket で最後にバインドした曲。行の使い回しで遅れて届いた
+        /// 遠隔結果が別の曲のジャケットを上書きしないための照合キー。
+        /// </summary>
+        private sealed class JacketBinding : MonoBehaviour
+        {
+            public int SongId;
+        }
+
         /// <summary><see cref="ApplyJacket(GameObject, int, string, Color?)"/> の Image 版。</summary>
         public static void ApplyJacket(Image thumb, int songId, string title, Color? fallback = null)
         {
@@ -186,21 +196,46 @@ namespace FlashBeat.UI.V6.Common
                 return;
             }
 
-            Sprite sprite = V6JacketProvider.Local(songId, title);
-            if (sprite != null)
+            // Issue #823: ローカル (Resources) ジャケットは撤去し、YouTube
+            // サムネイルの遠隔取得に一本化した。まず空枠を出し、届いたら差し替える
+            // (未取得・失敗・オフラインでは空枠のまま = design の「無し」)。
+            thumb.type = Image.Type.Sliced;
+            thumb.sprite = V5Ui.RoundedSprite(4);
+            thumb.color = fallback ?? V6Tokens.Key3;
+
+            SongData song = GManager.GetSong(songId);
+            string videoId = song != null ? song.videoId : null;
+            if (string.IsNullOrEmpty(videoId))
             {
+                return;
+            }
+
+            var binding = thumb.GetComponent<JacketBinding>();
+            if (binding == null)
+            {
+                binding = thumb.gameObject.AddComponent<JacketBinding>();
+            }
+            binding.SongId = songId;
+
+            V6JacketProvider.RequestRemote(videoId, sprite =>
+            {
+                // 行の使い回し・画面破棄のあとに届いた結果は捨てる。
+                if (thumb == null || sprite == null)
+                {
+                    return;
+                }
+
+                var current = thumb.GetComponent<JacketBinding>();
+                if (current == null || current.SongId != songId)
+                {
+                    return;
+                }
+
                 thumb.type = Image.Type.Simple;
                 thumb.sprite = sprite;
                 thumb.color = Color.white;
                 thumb.preserveAspect = true;
-            }
-            else
-            {
-                // ジャケット無しは空枠 ($k3。Pause は呼び出し側が遠隔画像を使うので来ない)。
-                thumb.type = Image.Type.Sliced;
-                thumb.sprite = V5Ui.RoundedSprite(4);
-                thumb.color = fallback ?? V6Tokens.Key3;
-            }
+            });
         }
 
         // --- 内部 ---

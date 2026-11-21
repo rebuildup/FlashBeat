@@ -71,9 +71,9 @@ namespace FlashBeat.UI.V6
 
         /// <summary>
         /// 既知の原 Texture からの切り抜き。このメソッドは既存の公開 API として残す。
-        /// ローカル/遠隔の区別は <see cref="IsRemoteTexture"/> で判定する
-        /// (遠隔テクスチャは <see cref="RequestRemote"/> の破棄後も他画面が参照しうるので、
-        /// 遠隔由来の切り抜きは InvalidateLocal では消さない)。
+        /// 遠隔/非遠隔の区別は <see cref="IsRemoteTexture"/> で判定する
+        /// (遠隔テクスチャは <see cref="RequestRemote"/> の退避後も他画面が参照しうるので、
+        /// 遠隔由来の切り抜きは退避対象にしない)。
         /// </summary>
         private static Sprite Crop(Texture2D texture, Rect rect, string name, bool forceRemote)
         {

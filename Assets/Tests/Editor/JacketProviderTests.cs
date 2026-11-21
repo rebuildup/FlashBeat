@@ -28,47 +28,34 @@ namespace FlashBeat.Tests
             V6JacketProvider.DestroyAll();
         }
 
-        [Test]
-        public void Local_ReturnsTheSameInstanceForTheSameSong()
+        private readonly List<Texture2D> createdTextures = new List<Texture2D>();
+
+        private Texture2D NewTexture(int w, int h)
         {
-            Sprite first = V6JacketProvider.Local(10, "チュートリアル");
-            Assert.IsNotNull(first, "テスト用ジャケット (10) が Resources に無い");
-
-            int loads = V6JacketProvider.LocalLoadCount;
-            Sprite second = V6JacketProvider.Local(10, "チュートリアル");
-
-            Assert.AreSame(first, second, "同じ曲に別の Sprite を返している");
-            Assert.AreEqual(loads, V6JacketProvider.LocalLoadCount,
-                "キャッシュに当たったのに Resources から読み直している");
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            createdTextures.Add(tex);
+            return tex;
         }
 
-        [Test]
-        public void Local_NegativeResultIsRemembered()
+        [TearDown]
+        public void TearDownTextures()
         {
-            // 対応表に無い曲 (存在しない index)。
-            Assert.IsNull(V6JacketProvider.Local(9999, "存在しない曲"));
+            for (int i = 0; i < createdTextures.Count; i++)
+            {
+                Object.DestroyImmediate(createdTextures[i]);
+            }
 
-            Sprite again = V6JacketProvider.Local(9999, "存在しない曲");
-            Assert.IsNull(again);
+            createdTextures.Clear();
         }
 
-        [Test]
-        public void Local_IsSharedAcrossViewsThatUsedToHaveOwnCaches()
-        {
-            // History / Ranking / Select / Result は以前それぞれ別の辞書を持っていた。
-            // いまは同じ provider を通るので、同一曲は同一実体になる。
-            Sprite viaResources = V6JacketResources.LoadSprite(10, "チュートリアル");
-            Sprite viaProvider = V6JacketProvider.Local(10, "チュートリアル");
-
-            Assert.AreSame(viaResources, viaProvider,
-                "V6JacketResources と V6JacketProvider が別実体を返している");
-        }
+        // Issue #823: ローカル (Resources) ジャケット経路は撤去した。
+        // 画像は YouTube サムネイルの遠隔取得のみ (HTTP は EditMode では
+        // 回せないため、crop/キャッシュの検証は自前 Texture で行う)。
 
         [Test]
         public void Crop_ReturnsTheSameInstanceForTheSameTextureAndRect()
         {
-            Texture2D texture = V6JacketProvider.LocalTexture(10, "チュートリアル");
-            Assert.IsNotNull(texture);
+            Texture2D texture = NewTexture(320, 180);
 
             Rect rect = V6JacketProvider.CoverCropRect(texture.width, texture.height);
             Sprite first = V6JacketProvider.Crop(texture, rect, "cover");
@@ -80,10 +67,10 @@ namespace FlashBeat.Tests
         [Test]
         public void SquareCrop_UsesTheSameTextureButASeparateVariant()
         {
-            Texture2D texture = V6JacketProvider.LocalTexture(10, "チュートリアル");
-            Assert.IsNotNull(texture);
+            Texture2D texture = NewTexture(320, 180);
 
-            Sprite full = V6JacketProvider.Local(10, "チュートリアル");
+            Sprite full = V6JacketProvider.Crop(texture,
+                new Rect(0f, 0f, texture.width, texture.height), "full");
             Sprite square = V6JacketProvider.SquareCrop(texture, "square");
 
             Assert.IsNotNull(square);
@@ -130,25 +117,18 @@ namespace FlashBeat.Tests
         }
 
         [Test]
-        public void InvalidateLocal_DropsSpritesButKeepsOwnershipSane()
-        {
-            Sprite first = V6JacketProvider.Local(10, "チュートリアル");
-            Assert.IsNotNull(first);
-
-            V6JacketProvider.InvalidateLocal();
-            Sprite second = V6JacketProvider.Local(10, "チュートリアル");
-
-            Assert.IsNotNull(second);
-            Assert.AreNotSame(first, second, "無効化したら次の読み込みで引き直す");
-        }
-
-        [Test]
         public void DestroyAll_LeavesNoCachedSprites()
         {
-            V6JacketProvider.Local(10, "チュートリアル");
+            // 遠隔エントリを監査シードで注入し、その Texture 由来の crop を作る。
+            Texture2D texture = NewTexture(320, 180);
+            V6JacketProvider.SeedRemoteEntryForAudit("audit-video", texture, 0f);
+            V6JacketProvider.SquareCrop(texture, "audit-crop");
+            Assert.Greater(V6JacketProvider.RemoteCachedSpriteCount, 0);
+
             V6JacketProvider.DestroyAll();
 
-            Assert.AreEqual(0, V6JacketProvider.CachedSpriteCount);
+            Assert.AreEqual(0, V6JacketProvider.RemoteCachedSpriteCount);
+            Assert.AreEqual(0, V6JacketProvider.RemoteCacheEntryCount);
         }
 
         /// <summary>
