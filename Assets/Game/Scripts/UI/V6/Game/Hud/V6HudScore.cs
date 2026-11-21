@@ -32,8 +32,11 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// Combo Status (NO MISS / FULL COMBO) とは独立に miss 後も表示を続ける。
         /// </summary>
         private GameObject comboBonusBlock;
-        /// <summary>コンボボーナスの獲得スコア点表示 ("+N")。</summary>
-        private TextMeshProUGUI comboBonusValueText;
+        /// <summary>
+        /// コンボボーナスの獲得スコア点表示 ("+N")。Issue #784: スコア /
+        /// コンボと同じ桁別ストリップで、変わった桁だけがポップ + 発光する。
+        /// </summary>
+        private ValueStrip comboBonusStrip;
         /// <summary>次の節目到達で確定するボーナス点 (ADR-0035、v5 のみ表示)。</summary>
         private TextMeshProUGUI nextBonusText;
         private int lastNextBonusPoints = int.MinValue;
@@ -293,14 +296,15 @@ namespace FlashBeat.UI.V6.Game.Hud
             bonusLabelRt.anchoredPosition = Vector2.zero;
             bonusLabelRt.sizeDelta = new Vector2(m.StatusTrackW * 0.5f, m.BonusRowH);
 
-            comboBonusValueText = V5Ui.Text(bonus, "Value", "+0", m.BonusFs,
-                V5Tokens.WarnLight, TextAlignmentOptions.TopRight);
-            var bonusValueRt = comboBonusValueText.rectTransform;
-            bonusValueRt.anchorMin = new Vector2(0f, 1f);
-            bonusValueRt.anchorMax = new Vector2(0f, 1f);
-            bonusValueRt.pivot = new Vector2(1f, 1f);
-            bonusValueRt.anchoredPosition = new Vector2(m.StatusTrackW, 0f);
-            bonusValueRt.sizeDelta = new Vector2(m.StatusTrackW * 0.5f, m.BonusRowH);
+            // Issue #784: 獲得済みボーナス点もスコア / コンボと同じ桁別
+            // アニメーションにする。加点のたびに変わった桁だけがポップ +
+            // 発光し、累計・次の節目ゲージの変化と同じフレームで連動する。
+            // 右半分の領域に右寄せで置く (旧来の右寄せ Text と同じ見た目)。
+            comboBonusStrip = CreateValueStrip(bonus, "Value",
+                new Vector2(m.StatusTrackW * 0.5f, 0f),
+                new Vector2(m.StatusTrackW * 0.5f, m.BonusRowH),
+                m.BonusFs, V5Tokens.WarnLight, V5Tokens.AccentLight,
+                rightAlign: true);
 
             // 下段 (契約 §8 "Next Bonus" y44): 次の節目
             // (Scoring.MilestoneInterval コンボ) までの進捗ゲージ。
@@ -472,6 +476,7 @@ namespace FlashBeat.UI.V6.Game.Hud
         {
             UpdateStripAnim(scoreStrip, Time.unscaledTime);
             UpdateStripAnim(comboStrip, Time.unscaledTime);
+            UpdateStripAnim(comboBonusStrip, Time.unscaledTime);
         }
 
         private void UpdateStripAnim(ValueStrip strip, float now)
@@ -514,7 +519,7 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// ASCII 送り幅 (0.62em) で固定し、桁の位置が値の変化でずれないようにする。
         /// </summary>
         private ValueStrip CreateValueStrip(GameObject parent, string name, Vector2 pos, Vector2 size,
-            float fontSize, Color baseColor, Color flashColor)
+            float fontSize, Color baseColor, Color flashColor, bool rightAlign = false)
         {
             var container = V5Ui.Node(parent, name);
             var rt = container.GetComponent<RectTransform>();
@@ -528,6 +533,8 @@ namespace FlashBeat.UI.V6.Game.Hud
                 FontSize = fontSize,
                 BaseColor = baseColor,
                 FlashColor = flashColor,
+                Width = size.x,
+                RightAlign = rightAlign,
             };
         }
 
@@ -554,6 +561,10 @@ namespace FlashBeat.UI.V6.Game.Hud
             public readonly List<Slot> Slots = new List<Slot>(16);
             /// <summary>1 スロットの幅 (px)。</summary>
             public float SlotWidth;
+            /// <summary>コンテナ幅 (px)。右寄せ配置の計算に使う。</summary>
+            public float Width;
+            /// <summary>右端揃えにするか (コンボボーナス値など)。</summary>
+            public bool RightAlign;
             public float FontSize;
             public Color BaseColor;
             /// <summary>ポップ中に発光させる色 (終わると BaseColor へ戻る)。</summary>
@@ -608,6 +619,18 @@ namespace FlashBeat.UI.V6.Game.Hud
                     if (i < changed.Length && changed[i])
                     {
                         slot.AnimStart = now;
+                    }
+
+                    // 右寄せ (コンボボーナス値): 文字数が変わると右端が
+                    // 動かないよう、毎回右端基準で x を置き直す。
+                    if (RightAlign)
+                    {
+                        float x = Width - (value.Length - i - 0.5f) * SlotWidth;
+                        if (slot.Rt.anchoredPosition.x != x)
+                        {
+                            slot.Rt.anchoredPosition = new Vector2(
+                                x, slot.Rt.anchoredPosition.y);
+                        }
                     }
                 }
             }
