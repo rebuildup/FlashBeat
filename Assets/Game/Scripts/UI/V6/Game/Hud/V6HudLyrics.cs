@@ -509,7 +509,31 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// </summary>
         private LyricDataPresence PlaybackLyricPresence()
         {
-            if (lyricSource == null || lyricSource.InputJson == null)
+            if (lyricSource == null)
+            {
+                return LyricDataPresence.Pending;
+            }
+
+            // Issue #789: GameSceneManager.Load が ChartLyrics.Resolve の
+            // 結果を保持している場合は、その明示状態をそのまま使う
+            // (未到着 / なし確定 / あり を推測しない)。
+            ChartLyricsResult result = lyricSource.LyricsResult;
+            if (result != null)
+            {
+                switch (result.State)
+                {
+                    case ChartLyricsState.Pending:
+                        return LyricDataPresence.Pending;
+                    case ChartLyricsState.HasLyrics:
+                        return LyricDataPresence.Some;
+                    default:
+                        return LyricDataPresence.None;
+                }
+            }
+
+            // テスト等で InputJson が直接差し込まれた経路 (LyricsResult なし):
+            // 従来どおり行データの有無から判定する。
+            if (lyricSource.InputJson == null)
             {
                 return LyricDataPresence.Pending;
             }
