@@ -137,6 +137,25 @@ Test-Path .\flashbeat-media-policy.json
 - ルーズなメディアが ZIP 直下にある Release は **1 件も無い** (17/17 で 0 件)。
   メディアは常に `resources.resource` に焼き込まれている。
 
+## 3.3 追記 (2026-11-22): v0.2.6 公開時の再監査
+
+`v0.2.6` 公開にあたり全 Release を再監査した。新規 2 件はいずれも
+**song-free**。`v0.2.1`〜`v0.2.5` の Release も同スクリプトで
+song-free を確認 (第三者楽曲同梱は引き続き `v0.1.0-win64-743c88d` のみ)。
+
+| Release タグ | prerelease | ZIP size (bytes) | resources.resource | ルーズなメディア | version.json | update-channel | 判定 |
+|---|---|---|---|---|---|---|---|
+| `v0.2.6-win64-1a504a37` | no | 236,469,855 | 25,484,646 | 0 | ✓ | ✓ | song-free |
+| `v0.2.6-macos-1a504a37` | no | 332,032,220 | (なし — `.app` 構造のためスクリプト非検出。パッケージ時に song-free 検査済み) | 0 | ✓ | ✓ | song-free |
+
+- ビルド元 commit: `1a504a37f7d653a4ec0b2d420cb5c6418559a324` (VERSION=0.2.6、
+  mediaPolicy=song-free)。win64 は Mac 上のクロスビルド
+  (`script/win64-build-mac.sh`) で生成し、macOS は `Builds/macOS` の
+  RC 検証済みビルドを `tools/release/package-macos.sh` で梱包。
+- macOS の `resources.resource` / media manifest は §3.1 と同じく
+  スクリプト非検出の盲点あり。パッケージスクリプト側の song-free
+  検査 (第三者メディア除外 manifest + サイズ上限) は通過済み。
+
 ## 4. 再現時の注意
 
 - 判定は **中央ディレクトリに記録された非圧縮サイズ** に基づく。
