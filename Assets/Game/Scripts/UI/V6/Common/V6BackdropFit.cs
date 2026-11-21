@@ -39,5 +39,17 @@ namespace FlashBeat.UI.V6
             float h = texAspect / viewAspect;
             return new UnityEngine.Rect(0f, (1f - h) * 0.5f, 1f, h);
         }
+
+        /// <summary>
+        /// <see cref="CoverUV"/> と同じ cover 規則を、テクスチャのピクセル座標
+        /// (左下原点、<c>Sprite.Create</c> の rect と同じ系) で返す。
+        /// uGUI の <c>Image</c> は UV を直接いじれないため、ジャケットのように
+        /// 表示側がスプライトを要求する経路ではこちらで切り抜く (Issue #848)。
+        /// </summary>
+        public static UnityEngine.Rect CoverRect(float texW, float texH, float viewW, float viewH)
+        {
+            UnityEngine.Rect uv = CoverUV(texW, texH, viewW, viewH);
+            return new UnityEngine.Rect(uv.x * texW, uv.y * texH, uv.width * texW, uv.height * texH);
+        }
     }
 }
