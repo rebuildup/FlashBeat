@@ -96,11 +96,12 @@ so `void db migrate --remote` and `cf d1 migrations apply` read the same SQL fil
 and share the `d1_migrations` bookkeeping table. Never reset the remote database:
 ship a follow-up migration instead.
 
-`db/fixtures/who.chart.json` is a byte-identical copy of the notes of
-`Assets/Game/Resources/Who.json` (the `lyrics` block is not seeded)
-and `db/fixtures/who.song.json` carries the matching metadata from
-`Assets/Game/Scripts/Songs/GManager.cs`. The seed stores the chart file text
-verbatim, so the published chart is identical to the one the Unity player ships.
+`db/fixtures/seed.chart.json` is a byte-identical copy of the rights-cleared
+contract chart `contracts/charts/seed-chart.json` (no `lyrics` block) and
+`db/fixtures/seed.song.json` carries synthetic fixture metadata. The seed
+stores the chart file text verbatim. Since issue #823 the Unity project ships
+no local song charts — charts are delivered by the cloud catalog — so the
+seed exists for local development and tests only.
 
 ### Chart editor (`/chart`)
 
@@ -122,9 +123,10 @@ writes it back unchanged.
   (`routes/api/v1/_publish-model.ts`) stays strict, and so do the validator tests.
 - `src/lib/chart/chart.v1.schema.json` and `src/lib/chart/fixtures/sample-chart.json`
   are byte copies of `contracts/schemas/chart.v1.schema.json` and
-  `Assets/Game/Resources/チュートリアル.json`. `.prettierignore` keeps the formatter
+  `contracts/charts/sample-chart.json`. `.prettierignore` keeps the formatter
   away from them and `src/lib/chart/__tests__/contract-schema.test.ts` fails when they
-  drift apart.
+  drift apart. Chart tests read the rights-cleared corpus in `contracts/charts/`
+  through `src/lib/chart/__tests__/repository-charts.ts` (issue #823/#794).
 - The grid is `react-konva`. Konva needs a canvas, so the grid is loaded lazily and the
   route is not server rendered (`ssr = false` in `pages/chart.server.ts`).
 - The preview is the YouTube IFrame API. The media is never proxied.

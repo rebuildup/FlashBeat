@@ -3,36 +3,48 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
- * Access to the real charts of the Unity project.
+ * Access to the contract chart corpus.
  *
- * The tests must run against the files Unity actually ships, not against
- * hand written fixtures, so the repository charts are read from disk.
+ * Since issue #823 the Unity project ships no local song charts: charts are
+ * delivered by the cloud catalog and pinned per session. The tests therefore
+ * run against the rights-cleared synthetic charts of `contracts/charts/`,
+ * which cover the same shapes the legacy files exercised (lyrics blocks,
+ * ragged lyric arrays, empty note lists, fewer lanes, holds).
  */
 const REPO_ROOT = fileURLToPath(new URL("../../../../..", import.meta.url));
 
-/** Directory with the legacy charts: `Assets/Game/Resources`. */
-export const CHART_DIR = path.join(REPO_ROOT, "Assets/Game/Resources");
+/** Directory with the synthetic contract charts: `contracts/charts`. */
+export const CHART_DIR = path.join(REPO_ROOT, "contracts", "charts");
 
 /** Directory with the frozen contract schemas. */
-export const CONTRACT_DIR = path.join(REPO_ROOT, "contracts/schemas");
+export const CONTRACT_DIR = path.join(REPO_ROOT, "contracts", "schemas");
 
-/** Read one repository chart as raw text. */
+/** Read one contract chart as raw text. `name` may be a nested path. */
 export function readRepositoryChart(name: string): string {
   return readFileSync(path.join(CHART_DIR, name), "utf8");
 }
 
 /**
- * Names of every chart in `Assets/Game/Resources`.
- *
- * The folder also holds runtime configuration (for example
- * `CloudCatalogConfig.json`), so a file only counts as a chart when it carries
- * the `notes` array of the legacy chart format.
+ * Names of every chart in `contracts/charts`, including the `corpus/`
+ * subdirectory. Paths are returned relative to `CHART_DIR` with `/`
+ * separators so they work on every platform.
  */
 export function listRepositoryCharts(): string[] {
-  return readdirSync(CHART_DIR)
-    .filter((entry) => entry.endsWith(".json"))
-    .filter((entry) => isChartFile(path.join(CHART_DIR, entry)))
-    .sort();
+  const out: string[] = [];
+  const walk = (dir: string, prefix: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) =>
+      a.name.localeCompare(b.name),
+    )) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full, `${prefix}${entry.name}/`);
+      } else if (entry.name.endsWith(".json") && isChartFile(full)) {
+        out.push(`${prefix}${entry.name}`);
+      }
+    }
+  };
+  walk(CHART_DIR, "");
+  return out.sort();
 }
 
 /** True when the file is a legacy chart (it has the `notes` array). */

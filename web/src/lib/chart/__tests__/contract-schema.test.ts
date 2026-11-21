@@ -16,8 +16,8 @@ describe("contract copies", () => {
     expect(copy).toBe(contract);
   });
 
-  it("keeps the sample chart identical to the repository chart", () => {
-    const repository = readRepositoryChart("チュートリアル.json");
+  it("keeps the sample chart identical to the contract chart", () => {
+    const repository = readRepositoryChart("sample-chart.json");
     const fixture = readFileSync(
       path.join(import.meta.dirname, "..", "fixtures", "sample-chart.json"),
       "utf8",

@@ -93,15 +93,15 @@ describe("time input", () => {
 });
 
 describe("reading the repository lyrics", () => {
-  it("keeps Who's repaired intervals readable", () => {
-    const chart = readChart("Who.json");
+  it("keeps the clean fixture intervals readable", () => {
+    const chart = readChart("sample-chart.json");
     const document = readLyrics(chart.lyrics);
 
     expect(document.rows).toHaveLength(28);
-    expect(document.rows[0]?.mondai).toBe("交わした約束の言葉の始末");
+    expect(document.rows[0]?.mondai).toBe("合成歌詞の1行目");
 
     const summary = summarizeLyrics(document);
-    // Issue #154 repaired the shipped data: no line ends before it starts.
+    // The fixture ships clean intervals: no line ends before it starts.
     expect(summary.legacyIntervals).toBe(0);
     expect(summary.arrayLengthMismatch).toBe(false);
     expect(summary.missingStart).toBe(0);
@@ -138,8 +138,8 @@ describe("reading the repository lyrics", () => {
     expect(first.derived).toBe(true);
   });
 
-  it("shows GURU's four text-only rows instead of dropping them", () => {
-    const chart = readChart("GURU.json");
+  it("shows the ragged fixture's four text-only rows instead of dropping them", () => {
+    const chart = readChart("lyrics-ragged.json");
     const document = readLyrics(chart.lyrics);
 
     expect(document.rows).toHaveLength(54);
@@ -165,8 +165,8 @@ describe("reading the repository lyrics", () => {
 });
 
 describe("editing a real chart", () => {
-  it("preserves Who's raw times when only the text is edited", () => {
-    const chart = readChart("Who.json");
+  it("preserves the raw times when only the text is edited", () => {
+    const chart = readChart("sample-chart.json");
     const original = chart.lyrics as Required<ChartLyrics>;
     const document = readLyrics(chart.lyrics);
 
@@ -191,7 +191,7 @@ describe("editing a real chart", () => {
   });
 
   it("writes only the edited time of a well formed chart", () => {
-    const chart = readChart("チュートリアル.json");
+    const chart = readChart("lyrics-mismatch.json");
     const original = chart.lyrics as Required<ChartLyrics>;
     const document = readLyrics(chart.lyrics);
 
@@ -201,7 +201,7 @@ describe("editing a real chart", () => {
     expect(lyrics.startTime![0]).toBe(original.startTime[0]);
     expect(lyrics.startTime![1]).toBe(3.25);
     expect(lyrics.startTime!.slice(2)).toEqual(original.startTime.slice(2));
-    // `チュートリアル` ships 53 starts but only 52 ends, so the save writes the
+    // The fixture ships 53 starts but only 52 ends, so the save writes the
     // derived end of the last line. Every other end stays byte identical.
     expect(lyrics.endTime!.slice(0, original.endTime.length)).toEqual(original.endTime);
     expect(lyrics.endTime).toHaveLength(lyrics.startTime!.length);
@@ -210,8 +210,8 @@ describe("editing a real chart", () => {
     expect(lyrics.romaji).toEqual(original.romaji);
   });
 
-  it("normalizes every array after editing GURU's ragged lyrics", () => {
-    const chart = readChart("GURU.json");
+  it("normalizes every array after editing the ragged fixture's lyrics", () => {
+    const chart = readChart("lyrics-ragged.json");
     const original = chart.lyrics as Required<ChartLyrics>;
     const document = readLyrics(chart.lyrics);
 
@@ -235,7 +235,7 @@ describe("editing a real chart", () => {
   });
 
   it("repairs an edited interval on save and reports it beforehand", () => {
-    const chart = readChart("チュートリアル.json");
+    const chart = readChart("lyrics-mismatch.json");
     const document = readLyrics(chart.lyrics);
     const row = document.rows[0]!;
 
@@ -252,7 +252,7 @@ describe("editing a real chart", () => {
   });
 
   it("round trips an edit through export and import", () => {
-    const chart = readChart("まにまに.json");
+    const chart = readChart("lyrics-roundtrip.json");
     const document = readLyrics(chart.lyrics);
 
     const edited = updateLyricRow(document, document.rows[3]!.id, {
@@ -277,7 +277,7 @@ describe("editing a real chart", () => {
 });
 
 describe("line operations", () => {
-  const chart = readChart("チュートリアル.json");
+  const chart = readChart("lyrics-mismatch.json");
 
   it("adds a line after the requested row", () => {
     const document = readLyrics(chart.lyrics);

@@ -13,7 +13,7 @@ import { readRepositoryChart } from "./repository-charts";
  */
 describe("editing a real chart", () => {
   it("exports the edits and keeps every other note", () => {
-    const imported = importChartJson(readRepositoryChart("Who.json"));
+    const imported = importChartJson(readRepositoryChart("sample-chart.json"));
     expect(imported.ok).toBe(true);
     if (!imported.ok) {
       return;
@@ -59,7 +59,7 @@ describe("editing a real chart", () => {
   });
 
   it("keeps the chart metadata and the lyrics when notes change", () => {
-    const imported = importChartJson(readRepositoryChart("Who.json"));
+    const imported = importChartJson(readRepositoryChart("sample-chart.json"));
     expect(imported.ok).toBe(true);
     if (!imported.ok) {
       return;
@@ -81,13 +81,13 @@ describe("editing a real chart", () => {
     expect(reimported.chart.lyrics).toEqual(imported.chart.lyrics);
   });
 
-  it("writes the file name Unity expects", () => {
-    const imported = importChartJson(readRepositoryChart("Who.json"));
+  it("writes the chart name the fixture carries", () => {
+    const imported = importChartJson(readRepositoryChart("sample-chart.json"));
     expect(imported.ok).toBe(true);
     if (!imported.ok) {
       return;
     }
 
-    expect(imported.chart.name).toBe("Who");
+    expect(imported.chart.name).toBe("Fixture");
   });
 });

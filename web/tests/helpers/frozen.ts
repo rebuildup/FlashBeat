@@ -23,7 +23,7 @@ const chartSchemaPath = fileURLToPath(
   new URL("../../../contracts/schemas/chart.v1.schema.json", import.meta.url),
 );
 const chartFixturePath = fileURLToPath(
-  new URL("../../db/fixtures/who.chart.json", import.meta.url),
+  new URL("../../db/fixtures/seed.chart.json", import.meta.url),
 );
 
 /**
