@@ -240,25 +240,42 @@ namespace FlashBeat.UI.V6.Common
             float keyboardX = 28f;
             float keyboardY = 116f;
 
+            // Issue #862: JIS 配列の最も広い行 (下段 1038px) が LaneRowW (784px)
+            // を超えると、中央揃えのはみ出し分がダイアログ枠の外へそのまま
+            // 描画される (マスク無し)。全行が収まるようキー幅・間隔・文字を
+            // 一様に縮小する。行データや定数ではなく実測最大幅から求めるので、
+            // 配列定義が変わっても自動で収まる。
+            float maxRowW = 0f;
+            for (int r = 0; r < V6JisKeyboard.Rows.Length; r++)
+            {
+                maxRowW = Mathf.Max(maxRowW, V6JisKeyboard.RowWidth(V6JisKeyboard.Rows[r]));
+            }
+            float fit = maxRowW > 0f ? Mathf.Min(1f, LaneRowW / maxRowW) : 1f;
+            float keyW = V6JisKeyboard.KeyW * fit;
+            float keyGap = V6JisKeyboard.KeyGap * fit;
+            float fontSize = 20f * fit;
+            float badgeSize = 20f * fit;
+
             for (int r = 0; r < V6JisKeyboard.Rows.Length; r++)
             {
                 V6JisKeyboard.Key[] row = V6JisKeyboard.Rows[r];
                 // 行ごとに中央揃え (JIS 配列の段差をそのまま見せる)。
-                float x = keyboardX + (LaneRowW - V6JisKeyboard.RowWidth(row)) * 0.5f;
+                float rowW = V6JisKeyboard.RowWidth(row) * fit;
+                float x = keyboardX + (LaneRowW - rowW) * 0.5f;
                 for (int i = 0; i < row.Length; i++)
                 {
                     V6JisKeyboard.Key def = row[i];
-                    float w = def.Width * V6JisKeyboard.KeyW;
+                    float w = def.Width * keyW;
                     var capGo = V6Controls.Panel(dialogGo, "Key " + def.Label,
                         new Vector2(x, keyboardY + r * (V6JisKeyboard.KeyH + V6JisKeyboard.RowGap)),
                         new Vector2(w, V6JisKeyboard.KeyH), V6Tokens.Key3, V6Tokens.RadiusSmall);
                     var cap = new KeyCap { Def = def };
                     cap.Background = capGo.GetComponent<Image>();
                     cap.Label = V6Controls.Text(capGo, "Label", def.Label, Vector2.zero,
-                        new Vector2(w, V6JisKeyboard.KeyH), 20f, V6Tokens.Text, TextAlignmentOptions.Center);
+                        new Vector2(w, V6JisKeyboard.KeyH), fontSize, V6Tokens.Text, TextAlignmentOptions.Center);
                     cap.LaneBadge = V6Controls.Text(capGo, "Lane", string.Empty,
-                        new Vector2(w - 22f, 2f), new Vector2(20f, 16f), 14f, V6Tokens.TextMuted,
-                        TextAlignmentOptions.Right);
+                        new Vector2(w - badgeSize - 2f * fit, 2f), new Vector2(badgeSize, badgeSize * 0.8f),
+                        14f * fit, V6Tokens.TextMuted, TextAlignmentOptions.Right);
 
                     if (def.Assignable)
                     {
@@ -278,7 +295,7 @@ namespace FlashBeat.UI.V6.Common
                     }
 
                     keyCaps.Add(cap);
-                    x += w + V6JisKeyboard.KeyGap;
+                    x += w + keyGap;
                 }
             }
         }

@@ -183,6 +183,47 @@ namespace FlashBeat.Tests.Editor
             Assert.IsFalse(V6KeyConfigModal.BlocksInput, "フレームが変われば解除される");
         }
 
+        /// <summary>
+        /// Issue #862: JIS ビジュアルキーボードの全キーキャップが Dialog の
+        /// 内側に収まること。最も広い行が LaneRowW を超えると中央揃えの
+        /// はみ出し分がダイアログ枠の外へ描画される (マスク無し) ため、
+        /// 配置側で一様縮小して収める契約を固定する。
+        /// </summary>
+        [Test]
+        public void KeyboardKeys_StayInsideTheDialog()
+        {
+            modal.Show();
+            GameObject dialog = FindChild(modal.gameObject, "Dialog");
+            Assert.IsNotNull(dialog, "Dialog が無い");
+            var dialogRt = dialog.GetComponent<RectTransform>();
+            float dialogW = dialogRt.sizeDelta.x;
+            float dialogH = dialogRt.sizeDelta.y;
+
+            int count = 0;
+            foreach (Transform child in dialog.transform)
+            {
+                if (!child.name.StartsWith("Key ")) { continue; }
+                var rt = child as RectTransform;
+                Assert.IsNotNull(rt, child.name + " が RectTransform でない");
+                // anchor/pivot (0,1): anchoredPosition = (左, -上)。
+                float left = rt.anchoredPosition.x;
+                float top = -rt.anchoredPosition.y;
+                float right = left + rt.sizeDelta.x;
+                float bottom = top + rt.sizeDelta.y;
+                Assert.GreaterOrEqual(left, -0.5f,
+                    child.name + " が Dialog の左を越える (left=" + left.ToString("F1") + ")");
+                Assert.LessOrEqual(right, dialogW + 0.5f,
+                    child.name + " が Dialog の右を越える (right=" + right.ToString("F1") + ")");
+                Assert.GreaterOrEqual(top, -0.5f,
+                    child.name + " が Dialog の上を越える (top=" + top.ToString("F1") + ")");
+                Assert.LessOrEqual(bottom, dialogH + 0.5f,
+                    child.name + " が Dialog の下を越える (bottom=" + bottom.ToString("F1") + ")");
+                count++;
+            }
+
+            Assert.Greater(count, 50, "JIS キーボードのキャップが見つからない");
+        }
+
         // --- ヘルパ ---
 
         private static GameObject FindChild(GameObject root, string name)
