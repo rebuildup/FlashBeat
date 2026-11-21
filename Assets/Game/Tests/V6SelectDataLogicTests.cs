@@ -312,5 +312,72 @@ namespace FlashBeat.V5CanvasTests
             Assert.IsFalse(source.IsLoading);
             Assert.GreaterOrEqual(changes, 2, "取得中フラグの変化は Changed で通知する");
         }
+
+        // --- オンラインランキング行のマッピング (Issue #847) ----------------------
+
+        /// <summary>
+        /// 実 API の leaderboard entry は rank を持たない (常に 0)。
+        /// 表示順位はボード内の位置 (1 始まり) から導出する。
+        /// </summary>
+        [Test]
+        public void RankingRows_RanklessEntries_PositionsStartAtOne()
+        {
+            var entries = new[]
+            {
+                new RankingClient.LeaderboardEntry { nickname = "one", score = 900000 },
+                new RankingClient.LeaderboardEntry { nickname = "two", score = 500000 },
+                new RankingClient.LeaderboardEntry { nickname = "three", score = 100 },
+            };
+
+            var rows = V6SelectDataLogic.RankingRows(entries, 100, null);
+
+            Assert.AreEqual(3, rows.Count);
+            Assert.AreEqual(1, rows[0].Position);
+            Assert.AreEqual(2, rows[1].Position);
+            Assert.AreEqual(3, rows[2].Position);
+            Assert.AreEqual("one", rows[0].PlayerName);
+            Assert.AreEqual(900000, rows[0].Score);
+        }
+
+        [Test]
+        public void RankingRows_EntryWithRank_PrefersServerRank()
+        {
+            // 万一 API が rank を返す場合はそれを優先する
+            // (旧 RankingPanel.ShowBoard と同じ規則)。
+            var entries = new[]
+            {
+                new RankingClient.LeaderboardEntry { rank = 5, nickname = "one", score = 900000 },
+                new RankingClient.LeaderboardEntry { nickname = "two", score = 100 },
+            };
+
+            var rows = V6SelectDataLogic.RankingRows(entries, 100, null);
+
+            Assert.AreEqual(5, rows[0].Position);
+            Assert.AreEqual(2, rows[1].Position, "rank 無しの行はボード位置へフォールバック");
+        }
+
+        [Test]
+        public void RankingRows_NicknameMatch_MarksIsYou()
+        {
+            var entries = new[]
+            {
+                new RankingClient.LeaderboardEntry { nickname = "one", score = 900000 },
+                new RankingClient.LeaderboardEntry { nickname = "me", score = 500000 },
+                new RankingClient.LeaderboardEntry { nickname = "three", score = 100 },
+            };
+
+            var rows = V6SelectDataLogic.RankingRows(entries, 100, "me");
+
+            Assert.IsFalse(rows[0].IsYou);
+            Assert.IsTrue(rows[1].IsYou, "ニックネーム一致の行が自分");
+            Assert.IsFalse(rows[2].IsYou);
+        }
+
+        [Test]
+        public void RankingRows_EmptyOrNull_ReturnsEmpty()
+        {
+            Assert.AreEqual(0, V6SelectDataLogic.RankingRows(null, 100, "me").Count);
+            Assert.AreEqual(0, V6SelectDataLogic.RankingRows(new RankingClient.LeaderboardEntry[0], 100, "me").Count);
+        }
     }
 }

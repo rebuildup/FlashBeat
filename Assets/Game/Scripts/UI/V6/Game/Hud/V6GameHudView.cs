@@ -183,15 +183,6 @@ namespace FlashBeat.UI.V6.Game.Hud
             get { return nextBonusText != null ? nextBonusText.text : null; }
         }
 
-        /// <summary>
-        /// 検証ハーネス用: scoring v6 の基礎スコア併記 ("BASE N")。
-        /// ADR-0037 の「基礎スコアと追加スコアを別々に表示」契約を検証する。
-        /// </summary>
-        public string BaseScoreTextForAudit
-        {
-            get { return baseScoreText != null ? baseScoreText.text : null; }
-        }
-
         /// <summary>スコア表示の使用中桁数 (カンマを含む)。</summary>
         public int ScoreActiveDigitsForAudit
         {
@@ -297,14 +288,6 @@ namespace FlashBeat.UI.V6.Game.Hud
                 gradeText.text = V6GradeLogic.GradeOf(score, FlashBeat.Gameplay.Scoring.LatestVersion,
                     GManager.chartNoteCount);
                 scoreStrip.SetText(GameHudLogic.FormatScore(score), Time.unscaledTime);
-                // scoring v6 (ADR-0037): 基礎スコアを合計値の下に併記する。
-                // 追加スコアは右コラムの BONUS ブロックが表示するので、
-                // ここでは baseScore だけを書く。
-                if (baseScoreText != null)
-                {
-                    baseScoreText.text = "BASE " + GManager.baseScore.ToString(
-                        "N0", System.Globalization.CultureInfo.InvariantCulture);
-                }
                 lastRenderedScore = score;
             }
 
@@ -610,7 +593,6 @@ namespace FlashBeat.UI.V6.Game.Hud
             keyGuideRow = null;
             gradeText = null;
             scoreStrip = null;
-            baseScoreText = null;
             comboStrip = null;
             lyricText = null;
             lyricBox = null;
