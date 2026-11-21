@@ -52,6 +52,13 @@ public class MusicManager : MonoBehaviour
     VideoPlayer songVideo;
 
     /// <summary>
+    /// Issue #849: Start で選んだ映像プレイヤーの経路 ("scene" / "remote")。
+    /// Player.log から「どの経路・renderMode・player 名を通ったか」を
+    /// 区別するための診断値。prepare / wire のログに添える。
+    /// </summary>
+    string videoPlayerPath = "-";
+
+    /// <summary>
     /// 映像プレーンを有効化したか (Issue #233)。
     /// 映像が 1 フレームも出ていない間は板を隠しておくので、この状態を持つ。
     /// </summary>
@@ -264,24 +271,40 @@ public class MusicManager : MonoBehaviour
         songBackdrop.Begin(sessionSong != null ? sessionSong.videoId : "");
         for (int i = 0; i < YPlayer.Length; i++)
         {
-            YPlayer[i].SetActive(false);
+            if (YPlayer[i] != null) YPlayer[i].SetActive(false);
         }
-        if (GManager.songID < YPlayer.Length)
+        // Issue #849: プレイヤー選択は songID の位置ではなく videoId で行う。
+        // クラウドカタログが未知の曲を末尾に追記すると index がずれ、
+        // index >= YPlayer.Length の曲は未検証の CameraNearPlane 経路に落ちて
+        // いた。videoId が一致するシーンプレイヤーがあればそれを使い、
+        // 無ければ実行時にテンプレート平面を複製して同じ描画契約に載せる。
+        string sessionVideoId = sessionSong != null ? sessionSong.videoId : "";
+        int sceneIndex = ResolveScenePlayerIndex(GManager.songID, YPlayer.Length, sessionVideoId, SceneVideoIdAt);
+        if (sceneIndex >= 0)
         {
-            YPlayer[GManager.songID].SetActive(true);
+            GameObject plane = YPlayer[sceneIndex];
+            if (plane != null) plane.SetActive(true);
 
-            songVideo = VPlayer[GManager.songID];
-            if (songVideo == null)
+            songVideo = (VPlayer != null && sceneIndex < VPlayer.Length) ? VPlayer[sceneIndex] : null;
+            if (songVideo == null && plane != null)
             {
-                songVideo = YPlayer[GManager.songID].GetComponent<VideoPlayer>();
+                songVideo = plane.GetComponent<VideoPlayer>();
             }
+            videoPlayerPath = "scene";
+            Debug.Log($"[MusicManager] video player: songID={GManager.songID} scenePlayers={YPlayer.Length} " +
+                      $"path={videoPlayerPath} index={sceneIndex} player='{(songVideo != null ? songVideo.gameObject.name : "<null>")}' " +
+                      $"renderMode={(songVideo != null ? songVideo.renderMode.ToString() : "-")} videoId={sessionVideoId}");
         }
         else
         {
-            // Cloud Catalog song (#17): no per-song object exists in the scene,
-            // so one dynamic VideoPlayer is created for the remote stream
-            // instead of one object per song.
+            // シーンに対応する平面が無い曲 (クラウド追加曲など):
+            // テンプレート平面を実行時に複製し、内蔵曲と同じ
+            // quad + MaterialOverride の契約で映像を出す。
             songVideo = CreateRemoteVideoPlayer();
+            videoPlayerPath = "remote";
+            Debug.Log($"[MusicManager] video player: songID={GManager.songID} scenePlayers={YPlayer.Length} " +
+                      $"path={videoPlayerPath} player='{(songVideo != null ? songVideo.gameObject.name : "<null>")}' " +
+                      $"renderMode={(songVideo != null ? songVideo.renderMode.ToString() : "-")} videoId={sessionVideoId}");
         }
 
         sceneStartTime = Time.time;
@@ -333,16 +356,95 @@ public class MusicManager : MonoBehaviour
         mediaCancellation = null;
     }
 
+    /// <summary>
+    /// Issue #849: シーンの映像プレイヤー (YPlayer) のうち、再生する曲に
+    /// 割り当てる index を決める。
+    ///
+    /// 優先順位:
+    ///   1. videoId が一致するシーンプレイヤー (index 非依存。クラウド
+    ///      カタログの追記やエディタ追加で並びがずれても正しい平面を選ぶ)
+    ///   2. videoId が取れない / 一致が無い場合は従来どおり songID の位置
+    ///      (内蔵曲はシーンの並び = カタログの並びで一致する)
+    ///   3. どちらも駄目なら -1 (呼び出し側が実行時複製の経路を使う)
+    ///
+    /// EditMode テストから検証できるよう、シーン参照は
+    /// <paramref name="sceneVideoIdAt"/> 経由で注入する。
+    /// </summary>
+    public static int ResolveScenePlayerIndex(int songID, int playerCount, string songVideoId, Func<int, string> sceneVideoIdAt)
+    {
+        if (!string.IsNullOrEmpty(songVideoId) && sceneVideoIdAt != null)
+        {
+            for (int i = 0; i < playerCount; i++)
+            {
+                string sceneId = sceneVideoIdAt(i);
+                if (!string.IsNullOrEmpty(sceneId) && sceneId == songVideoId) return i;
+            }
+        }
+        if (songID >= 0 && songID < playerCount) return songID;
+        return -1;
+    }
+
+    /// <summary>YPlayer[index] が持つ InvidiousVideoPlayer の VideoId (無ければ null)。</summary>
+    string SceneVideoIdAt(int index)
+    {
+        if (YPlayer == null || index < 0 || index >= YPlayer.Length) return null;
+        var plane = YPlayer[index];
+        if (plane == null) return null;
+        var invidious = plane.GetComponent<InvidiousVideoPlayer>();
+        return invidious != null ? invidious.VideoId : null;
+    }
+
     VideoPlayer CreateRemoteVideoPlayer()
     {
-        // Cloud Catalog (#17): one reusable player for songs that have no
-        // per-song object in the scene. Rendering follows the default
-        // camera-plane mode; audio goes through the existing AudioSource.
-        GameObject playerObject = new GameObject("FlashBeatRemoteVideo");
-        VideoPlayer player = playerObject.AddComponent<VideoPlayer>();
+        // Issue #849: index >= YPlayer.Length の曲 (クラウド追加曲) も内蔵曲と
+        // 同じ描画契約に載せる。かつては targetCamera 無しの CameraNearPlane
+        // で映像が出ない未検証経路だった。ここではシーンのテンプレート平面
+        // (YPlayer の先頭) を実行時に複製し、同じ親・同じ local pose・同じ
+        // quad + MaterialOverride の経路 (WireVideoPicture) を使う。
+        GameObject template = FindTemplatePlane();
+        GameObject clone;
+        if (template != null)
+        {
+            clone = UnityEngine.Object.Instantiate(template);
+            clone.name = "YoutubePlayer_remote";
+            // Instantiate は local TRS をそのまま複製するので、同じ親の下に
+            // worldPositionStays:false で置けばテンプレートと同じ pose になる
+            // (YouTubeSceneWiring と同じ約束)。
+            var parent = template.transform.parent;
+            if (parent != null)
+            {
+                clone.transform.SetParent(parent, false);
+            }
+            // シーンの選択済み平面と同じく、prepare 中は有効にしておく
+            // (板は Start 後半の VideoPicture.HideBoard が隠す)。
+            clone.SetActive(true);
+        }
+        else
+        {
+            // テンプレートが無い異常系: 映像は出ないが音声経路は維持する。
+            Debug.LogWarning("[MusicManager] no YPlayer template - the remote song gets a bare VideoPlayer (no picture)");
+            clone = new GameObject("FlashBeatRemoteVideo");
+        }
+
+        var player = clone.GetComponent<VideoPlayer>();
+        if (player == null) player = clone.AddComponent<VideoPlayer>();
         player.playOnAwake = false;
-        player.renderMode = VideoRenderMode.CameraNearPlane;
+        // シーンのプレイヤーと同じアスペクト設定 (FitHorizontally)。
+        // renderMode / targetMaterialRenderer は WireVideoPicture が
+        // MaterialOverride で配線する (内蔵曲と同一経路)。
+        player.aspectRatio = VideoAspectRatio.FitHorizontally;
         return player;
+    }
+
+    /// <summary>実行時複製のテンプレートにする平面 (YPlayer の最初の非 null 要素)。</summary>
+    GameObject FindTemplatePlane()
+    {
+        if (YPlayer == null) return null;
+        for (int i = 0; i < YPlayer.Length; i++)
+        {
+            if (YPlayer[i] != null) return YPlayer[i];
+        }
+        return null;
     }
 
     void AttachLevelProbe()
@@ -680,10 +782,13 @@ public class MusicManager : MonoBehaviour
 
     void DisableInvidiousPlayer()
     {
-        if (GManager.songID >= YPlayer.Length) return;
+        // Issue #849: 選択済みの平面 (シーン or 実行時複製) から外す。
+        // songID >= YPlayer.Length の曲も同じ経路を通る。
+        var plane = songVideo != null ? songVideo.gameObject : null;
+        if (plane == null) return;
 
         // 実装は VideoPicture 側に一本化している (レビュー S6: 二重に壊さない)。
-        if (!VideoPicture.RemoveDeadInvidiousPlayer(YPlayer[GManager.songID])) return;
+        if (!VideoPicture.RemoveDeadInvidiousPlayer(plane)) return;
 
         Debug.Log($"[MusicManager] InvidiousVideoPlayer removed for '{songName}' (yt-dlp takes over)");
     }
@@ -814,7 +919,7 @@ public class MusicManager : MonoBehaviour
             Debug.Log($"[Perf] video activate {wireWatch.ElapsedMilliseconds}ms");
         }
 
-        Debug.Log($"[MusicManager] VideoPlayer prepared={songVideo.isPrepared} file={Path.GetFileName(path)} after {waited:F1}s");
+        Debug.Log($"[MusicManager] VideoPlayer prepared={songVideo.isPrepared} path={videoPlayerPath} file={Path.GetFileName(path)} after {waited:F1}s");
         videoPrepared = songVideo.isPrepared;
     }
 
@@ -832,7 +937,7 @@ public class MusicManager : MonoBehaviour
         var renderer = songVideo.GetComponent<Renderer>();
         if (renderer == null)
         {
-            Debug.LogWarning("[MusicManager] the song object has no renderer - the picture stays invisible");
+            Debug.LogWarning($"[MusicManager] the song object '{songVideo.gameObject.name}' (path={videoPlayerPath}) has no renderer - the picture stays invisible");
             return;
         }
 
@@ -863,7 +968,7 @@ public class MusicManager : MonoBehaviour
         }
 
         Debug.Log($"[MusicManager] picture wired to the renderer of '{songVideo.gameObject.name}' " +
-                  $"({textureProperty}, renderMode={songVideo.renderMode})");
+                  $"(path={videoPlayerPath}, {textureProperty}, renderMode={songVideo.renderMode})");
     }
 
     static bool TryGetMaterialRenderMode(out VideoRenderMode mode)

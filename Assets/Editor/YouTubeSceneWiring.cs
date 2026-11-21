@@ -60,6 +60,17 @@ public static class YouTubeSceneWiring
             }
             clone.name = targetName;
 
+            // Issue #849: テンプレート (YPlayer[0]) は "YoutubePlayer" 親の子で、
+            // その local TRS は親基準の値。無親で Instantiate すると local TRS が
+            // そのまま world TRS になり、quad がカメラの後ろに置かれて映像が
+            // 出ない (YoutubePlayer_ニセモノ が scene root に残っていた原因)。
+            // 必ずテンプレートと同じ親の下に、同じ local pose で複製する。
+            var parent = template.transform.parent;
+            if (parent != null)
+            {
+                clone.transform.SetParent(parent, false);
+            }
+
             var ivp = clone.GetComponent<InvidiousVideoPlayer>();
             if (ivp != null)
             {
