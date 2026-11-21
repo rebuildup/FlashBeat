@@ -921,6 +921,8 @@ public class AutoTestV6SongEnd : MonoBehaviour
 
     private void Finish()
     {
+        // Issue #844: 終了時に未確定の suspect ランをイベントとして確定する。
+        FlashBeat.Gameplay.VideoFrameAudit.FinalizeAudit();
         Debug.Log(Tag + " RESULT pass=" + pass + " fail=" + fail);
         try
         {
@@ -943,8 +945,12 @@ public class AutoTestV6SongEnd : MonoBehaviour
                 "judgedMatchesChart=" + judgedMatchesChart + "\n" +
                 "videoAuditSamples=" + FlashBeat.Gameplay.VideoFrameAudit.Samples + "\n" +
                 "videoAuditSuspects=" + FlashBeat.Gameplay.VideoFrameAudit.Suspects + "\n" +
+                "videoAuditEvents=" + FlashBeat.Gameplay.VideoFrameAudit.SuspectEvents + "\n" +
+                "videoAuditIsolatedEvents=" + FlashBeat.Gameplay.VideoFrameAudit.IsolatedSuspectEvents + "\n" +
                 "videoAuditMaxRatio=" + FlashBeat.Gameplay.VideoFrameAudit.MaxRatio.ToString("F2", CultureInfo.InvariantCulture) + "\n" +
-                "videoAuditMaxRatioAt=" + FlashBeat.Gameplay.VideoFrameAudit.MaxRatioAtMediaTime.ToString("F2", CultureInfo.InvariantCulture) + "\n");
+                "videoAuditMaxRatioAt=" + FlashBeat.Gameplay.VideoFrameAudit.MaxRatioAtMediaTime.ToString("F2", CultureInfo.InvariantCulture) + "\n" +
+                "videoAuditMinRatio=" + FlashBeat.Gameplay.VideoFrameAudit.MinRatio.ToString("F2", CultureInfo.InvariantCulture) + "\n" +
+                "videoAuditMinRatioAt=" + FlashBeat.Gameplay.VideoFrameAudit.MinRatioAtMediaTime.ToString("F2", CultureInfo.InvariantCulture) + "\n");
         }
         catch (Exception e) { Debug.LogWarning(Tag + " could not write the result file: " + e.Message); }
 
