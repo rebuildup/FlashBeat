@@ -397,13 +397,57 @@ public class AutoTestV6Screens : MonoBehaviour
             + " res=" + Screen.width + "x" + Screen.height);
     }
 
-    /// <summary>起動中の v6 Canvas を走査して 3 種の機械チェックを記録する。</summary>
+    /// <summary>起動中の v6 Canvas を走査して機械チェックを記録する。</summary>
     private void Audit(ScreenReport report)
     {
+        NoteDuplicateCanvases(report);
         AuditFrameContainment(report);
         AuditLegacy(report);
         AuditUnicodeSymbols(report);
         AuditScreenClip(report);
+        AuditTextInk(report);
+        AuditElementOverlap(report);
+    }
+
+    /// <summary>
+    /// チェック 0 (観測): 同名の v6 Canvas が同一シーンに複数ある状態を記録する。
+    /// 「旧世代 + 新世代の Canvas が同時に存在して pass 数が倍増する」既知 flake
+    /// (Issue #850) の兆候。再構築は <see cref="FlashBeat.UI.V6.Common.V6Hierarchy"/>
+    /// の DetachAndDestroy (階層から外してから破棄予約) を通す契約だが、
+    /// 契約外の経路で二重化した場合に結果ファイルから追えるようにする。
+    /// fail にはしない (正当な複数 Canvas の可能性を排除できないため)。
+    /// </summary>
+    private void NoteDuplicateCanvases(ScreenReport report)
+    {
+        var canvases = FindObjectsByType<Canvas>(FindObjectsSortMode.None);
+        var counts = new Dictionary<string, int>();
+        var ids = new Dictionary<string, List<string>>();
+        for (int i = 0; i < canvases.Length; i++)
+        {
+            var canvas = canvases[i];
+            if (!V6ScreenAudit.IsV6Canvas(canvas) || !canvas.gameObject.activeInHierarchy) { continue; }
+            string key = canvas.gameObject.scene.handle + "|" + canvas.name;
+            if (!counts.TryGetValue(key, out int n)) { n = 0; }
+            counts[key] = n + 1;
+            if (!ids.TryGetValue(key, out var list))
+            {
+                list = new List<string>();
+                ids[key] = list;
+            }
+            list.Add(canvas.GetEntityId().ToString());
+        }
+
+        foreach (var kv in counts)
+        {
+            if (kv.Value <= 1) { continue; }
+            string note = "[audit] duplicate v6 canvas name=" + kv.Key.Split('|')[1]
+                + " scene=" + kv.Key.Split('|')[0]
+                + " count=" + kv.Value
+                + " ids=" + string.Join(",", ids[kv.Key])
+                + " — 2 世代の Canvas が同時に audit され pass が倍増しうる";
+            report.Notes.Add(note);
+            Debug.LogWarning("[AutoTestV6Screens] " + note);
+        }
     }
 
     /// <summary>
@@ -705,6 +749,174 @@ public class AutoTestV6Screens : MonoBehaviour
             + " \"" + snippet + "\"");
     }
 
+    /// <summary>
+    /// チェック 5 (Issue #850): TMP テキストのインク (実メッシュ頂点) が
+    /// 割当 RectTransform の内側に収まるか。
+    ///
+    /// RectTransform はフレーム内でもグリフがはみ出すため、矩形ベースの
+    /// 既存チェックでは「ボタンが内容より小さい」「テキストが領域外へ出る」
+    /// を検出できない。ここでは <see cref="V6ScreenAudit.TryInkLocalRect"/> で
+    /// 実インク外接矩形を測り、<see cref="V6ScreenAudit.ClassifyInkFit"/> で
+    /// Inside / Partial / Outside に分類する。
+    ///
+    /// 判定方針 (画面クリップ監査と同じ):
+    ///   Outside (インクが割当と交差しない) → FAIL。
+    ///   Partial (端をまたぐ = はみ出し) → 記録のみ。誤検出の有無を
+    ///   実機ベースラインで確認してから FAIL 化を判断する。
+    ///
+    /// 対象外: 不可視・空テキスト・Masking/ScrollRect モード
+    /// (仕様上インクを矩形で切るため溢れが描画されない)。
+    /// Ellipsis / AutoFit は収まる設計なのでそのまま計測する
+    /// (収まっていなければそれ自体が欠陥)。
+    /// </summary>
+    private void AuditTextInk(ScreenReport report)
+    {
+        var canvases = FindObjectsByType<Canvas>(FindObjectsSortMode.None);
+        int inside = 0;
+        int partial = 0;
+        int outside = 0;
+        int unmeasurable = 0;
+        int lines = 0;
+        const int MaxLines = 80;
+
+        for (int i = 0; i < canvases.Length; i++)
+        {
+            var canvas = canvases[i];
+            if (!V6ScreenAudit.IsV6Canvas(canvas) || !canvas.gameObject.activeInHierarchy) { continue; }
+
+            var tmpTexts = canvas.GetComponentsInChildren<TMP_Text>(false);
+            for (int t = 0; t < tmpTexts.Length; t++)
+            {
+                var tmp = tmpTexts[t];
+                if (tmp == null || !tmp.isActiveAndEnabled) { continue; }
+                if (tmp.color.a <= 0.001f) { continue; }
+                if (string.IsNullOrWhiteSpace(tmp.text)) { continue; }
+                // Masking / ScrollRect は仕様上インクを矩形で切るので溢れは描画されない。
+                if (tmp.overflowMode == TextOverflowModes.Masking
+                    || tmp.overflowMode == TextOverflowModes.ScrollRect) { continue; }
+                var rt = tmp.rectTransform;
+                if (rt == null) { continue; }
+                var element = rt.rect;
+                if (element.width <= 0f || element.height <= 0f) { unmeasurable++; continue; }
+                if (!V6ScreenAudit.TryInkLocalRect(tmp, out var ink)) { unmeasurable++; continue; }
+
+                var fit = V6ScreenAudit.ClassifyInkFit(ink, element);
+                if (fit == V6ScreenAudit.ScreenClip.Inside)
+                {
+                    inside++;
+                    continue;
+                }
+
+                if (fit == V6ScreenAudit.ScreenClip.Outside) { outside++; } else { partial++; }
+                if (lines < MaxLines)
+                {
+                    lines++;
+                    var snippet = tmp.text ?? string.Empty;
+                    if (snippet.Length > 24) { snippet = snippet.Substring(0, 24); }
+                    report.Notes.Add("[ink] text " + fit.ToString().ToLowerInvariant()
+                        + " " + V6ScreenAudit.Path(tmp.transform)
+                        + " ink=" + ink.ToString("F1")
+                        + " rect=" + element.ToString("F1")
+                        + " \"" + snippet + "\"");
+                }
+            }
+        }
+
+        report.Notes.Add("[ink] summary inside=" + inside + " partial=" + partial
+            + " outside=" + outside + " unmeasurable=" + unmeasurable
+            + (lines >= MaxLines ? " (list truncated at " + MaxLines + " lines)" : string.Empty));
+        Debug.Log("[AutoTestV6Screens] INK " + report.Label
+            + " inside=" + inside + " partial=" + partial
+            + " outside=" + outside + " unmeasurable=" + unmeasurable);
+
+        // インクが割当矩形と完全に交差しない = 配置自体の破綻。FAIL。
+        // Partial (はみ出し) は実機ベースライン確認まで記録扱い。
+        Check(report, "no text ink fully outside its rect on " + report.Label, outside == 0);
+    }
+
+    /// <summary>
+    /// チェック 6 (Issue #850): 同じ親を持つ操作要素 (Selectable) 同士が
+    /// 意味を持って重なっていないか。
+    ///
+    /// 「ボタンが内容や他ボタンと重なる」破綻クラスの検出。保守的な条件:
+    ///   - 同一親の直接の子同士のみ (親子・従属関係の Selectable は対象外)
+    ///   - IsInteractable() のものだけ
+    ///   - 交差が両軸で許容誤差を超えるものだけ (端数の擦り合わせは除外)
+    ///   - 矩形が退化 (幅/高さ 0) しているものは除外
+    ///
+    /// テキスト同士・テキストと Selectable の重なりは誤検出が多いため
+    /// 対象外 (検出不能として文書化)。判定は記録のみで fail にしない
+    /// — 実機ベースラインでノイズを確認してから FAIL 化を判断する。
+    /// </summary>
+    private void AuditElementOverlap(ScreenReport report)
+    {
+        var canvases = FindObjectsByType<Canvas>(FindObjectsSortMode.None);
+        int groups = 0;
+        int overlaps = 0;
+        int lines = 0;
+        const int MaxLines = 80;
+
+        for (int i = 0; i < canvases.Length; i++)
+        {
+            var canvas = canvases[i];
+            if (!V6ScreenAudit.IsV6Canvas(canvas) || !canvas.gameObject.activeInHierarchy) { continue; }
+
+            var selectables = canvas.GetComponentsInChildren<Selectable>(false);
+            var byParent = new Dictionary<Transform, List<Selectable>>();
+            for (int s = 0; s < selectables.Length; s++)
+            {
+                var sel = selectables[s];
+                if (sel == null || !sel.IsInteractable()) { continue; }
+                var rt = sel.transform as RectTransform;
+                if (rt == null) { continue; }
+                var parent = sel.transform.parent;
+                if (parent == null) { continue; }
+                var rect = V6ScreenAudit.WorldRect(rt);
+                if (rect.width <= V6ScreenAudit.TolerancePx || rect.height <= V6ScreenAudit.TolerancePx) { continue; }
+                if (!byParent.TryGetValue(parent, out var list))
+                {
+                    list = new List<Selectable>();
+                    byParent[parent] = list;
+                }
+                list.Add(sel);
+            }
+
+            foreach (var kv in byParent)
+            {
+                var list = kv.Value;
+                if (list.Count < 2) { continue; }
+                groups++;
+                for (int a = 0; a < list.Count; a++)
+                {
+                    for (int b = a + 1; b < list.Count; b++)
+                    {
+                        var ra = list[a].transform as RectTransform;
+                        var rb = list[b].transform as RectTransform;
+                        if (ra == null || rb == null) { continue; }
+                        if (!V6ScreenAudit.OverlapsBeyond(
+                                V6ScreenAudit.WorldRect(ra), V6ScreenAudit.WorldRect(rb),
+                                V6ScreenAudit.TolerancePx)) { continue; }
+                        overlaps++;
+                        if (lines < MaxLines)
+                        {
+                            lines++;
+                            report.Notes.Add("[overlap] siblings "
+                                + V6ScreenAudit.Path(list[a].transform) + " <-> "
+                                + V6ScreenAudit.Path(list[b].transform)
+                                + " a=" + V6ScreenAudit.WorldRect(ra).ToString("F0")
+                                + " b=" + V6ScreenAudit.WorldRect(rb).ToString("F0"));
+                        }
+                    }
+                }
+            }
+        }
+
+        report.Notes.Add("[overlap] summary groups=" + groups + " overlaps=" + overlaps
+            + (lines >= MaxLines ? " (list truncated at " + MaxLines + " lines)" : string.Empty));
+        Debug.Log("[AutoTestV6Screens] OVERLAP " + report.Label
+            + " groups=" + groups + " overlaps=" + overlaps);
+    }
+
     private IEnumerator Screenshot(ScreenReport report, string label)
     {
         yield return new WaitForEndOfFrame();
@@ -953,6 +1165,120 @@ public static class V6ScreenAudit
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// 2 矩形の交差領域。交差しないときは幅・高さ 0 以下の Rect を返す
+    /// (<see cref="Rect"/> の既定値ではなく明示的に空を返す)。
+    /// </summary>
+    public static Rect Intersection(Rect a, Rect b)
+    {
+        float x0 = Mathf.Max(a.xMin, b.xMin);
+        float y0 = Mathf.Max(a.yMin, b.yMin);
+        float x1 = Mathf.Min(a.xMax, b.xMax);
+        float y1 = Mathf.Min(a.yMax, b.yMax);
+        if (x1 <= x0 || y1 <= y0)
+        {
+            return new Rect(0f, 0f, 0f, 0f);
+        }
+
+        return Rect.MinMaxRect(x0, y0, x1, y1);
+    }
+
+    /// <summary>
+    /// 2 矩形が許容誤差を「両軸で」超えて交差するか。
+    /// 端数の 1px 未満の擦り合わせ (レイアウト丸め) は重なりとみなさない。
+    /// </summary>
+    public static bool OverlapsBeyond(Rect a, Rect b, float tolerance)
+    {
+        var i = Intersection(a, b);
+        return i.width > tolerance && i.height > tolerance;
+    }
+
+    /// <summary>
+    /// TMP テキストのインク (実際にメッシュへ焼かれるグリフ頂点) の外接矩形を
+    /// テキスト自身のローカル座標で返す (Issue #850)。
+    ///
+    /// RectTransform.rect は「割当てられた領域」であり、グリフがその外へ
+    /// はみ出しても矩形は変わらない。テキスト溢れの実害 (ボタンが内容より
+    /// 小さい / テキストが領域外へ出る) を検出するには実測が必要なので、
+    /// <see cref="TMP_Text.ForceMeshUpdate"/> でメッシュを確定させ、
+    /// <c>textInfo.meshInfo[].vertices</c> (ローカル座標) の外接矩形を取る。
+    /// V6TextFitTests の InkSize と同じ計測で、こちらは位置も返す
+    /// (ローカル空間なので Canvas のスケール・解像度に依存しない)。
+    ///
+    /// グリフ 0 個・font 未解決・textInfo 未生成のときは false
+    /// (呼び出し側は「測れない」としてスキップする)。
+    /// </summary>
+    public static bool TryInkLocalRect(TMP_Text tmp, out Rect ink)
+    {
+        ink = new Rect(0f, 0f, 0f, 0f);
+        if (tmp == null)
+        {
+            return false;
+        }
+
+        tmp.ForceMeshUpdate(true, true);
+        var info = tmp.textInfo;
+        if (info == null || info.characterCount <= 0 || info.meshInfo == null)
+        {
+            return false;
+        }
+
+        float minX = float.MaxValue;
+        float minY = float.MaxValue;
+        float maxX = float.MinValue;
+        float maxY = float.MinValue;
+        bool any = false;
+        for (int m = 0; m < info.meshInfo.Length; m++)
+        {
+            var verts = info.meshInfo[m].vertices;
+            if (verts == null)
+            {
+                continue;
+            }
+
+            for (int i = 0; i < verts.Length; i++)
+            {
+                var v = verts[i];
+                if (v.x < minX) { minX = v.x; }
+                if (v.x > maxX) { maxX = v.x; }
+                if (v.y < minY) { minY = v.y; }
+                if (v.y > maxY) { maxY = v.y; }
+                any = true;
+            }
+        }
+
+        if (!any)
+        {
+            return false;
+        }
+
+        ink = Rect.MinMaxRect(minX, minY, maxX, maxY);
+        return true;
+    }
+
+    /// <summary>
+    /// インク矩形 (ローカル) と割当矩形 <see cref="RectTransform.rect"/> (同じ
+    /// ローカル空間) の収まり分類。語彙は <see cref="ClassifyScreenClip"/> と
+    /// 同じ: Inside = 割当内に収まる / Partial = 端をまたぐ (はみ出し) /
+    /// Outside = 割当と交差しない (完全に外)。
+    ///
+    /// 「インクが割当より大きいが中央に重なる」ケースは Partial になる
+    /// (交差はするが内包しない)。これはテキスト溢れの主症状なので、
+    /// 監査側では Partial を FAIL ではなく記録扱いにする。
+    /// </summary>
+    public static ScreenClip ClassifyInkFit(Rect ink, Rect element)
+    {
+        if (Contains(element, ink, TolerancePx))
+        {
+            return ScreenClip.Inside;
+        }
+
+        var i = Intersection(element, ink);
+        return i.width > TolerancePx && i.height > TolerancePx
+            ? ScreenClip.Partial
+            : ScreenClip.Outside;
     }
 
     /// <summary>root に至る親鎖からパンビューポート (<see cref="FlashBeat.UI.V6.Common.V6FramePan"/>) を探す。無ければ null。</summary>
