@@ -774,6 +774,7 @@ public class AutoTestV6Screens : MonoBehaviour
         var canvases = FindObjectsByType<Canvas>(FindObjectsSortMode.None);
         int inside = 0;
         int partial = 0;
+        int overflow = 0;
         int outside = 0;
         int unmeasurable = 0;
         int lines = 0;
@@ -807,13 +808,35 @@ public class AutoTestV6Screens : MonoBehaviour
                     continue;
                 }
 
-                if (fit == V6ScreenAudit.ScreenClip.Outside) { outside++; } else { partial++; }
+                // Issue #862: 「インクが割当矩形をはみ出す」だけでは描画欠損に
+                // ならない (TMP の行ボックスはグリフより小さいのが普通で、
+                // マスクが無ければはみ出しもそのまま描画される)。実害は
+                // 祖先マスク / 画面端のクリップ境界をインクが越える場合だけ
+                // なので、クリップ内に収まるはみ出しは overflow (記録のみ)、
+                // クリップを越えるものだけを partial (実切れ) として数える。
+                string kind;
+                if (fit == V6ScreenAudit.ScreenClip.Outside)
+                {
+                    outside++;
+                    kind = "outside";
+                }
+                else if (V6ScreenAudit.TryClipRectLocal(tmp, out var clip)
+                    && !V6ScreenAudit.Contains(clip, ink, V6ScreenAudit.TolerancePx))
+                {
+                    partial++;
+                    kind = "partial";
+                }
+                else
+                {
+                    overflow++;
+                    kind = "overflow";
+                }
                 if (lines < MaxLines)
                 {
                     lines++;
                     var snippet = tmp.text ?? string.Empty;
                     if (snippet.Length > 24) { snippet = snippet.Substring(0, 24); }
-                    report.Notes.Add("[ink] text " + fit.ToString().ToLowerInvariant()
+                    report.Notes.Add("[ink] text " + kind
                         + " " + V6ScreenAudit.Path(tmp.transform)
                         + " ink=" + ink.ToString("F1")
                         + " rect=" + element.ToString("F1")
@@ -823,10 +846,12 @@ public class AutoTestV6Screens : MonoBehaviour
         }
 
         report.Notes.Add("[ink] summary inside=" + inside + " partial=" + partial
+            + " overflow=" + overflow
             + " outside=" + outside + " unmeasurable=" + unmeasurable
             + (lines >= MaxLines ? " (list truncated at " + MaxLines + " lines)" : string.Empty));
         Debug.Log("[AutoTestV6Screens] INK " + report.Label
             + " inside=" + inside + " partial=" + partial
+            + " overflow=" + overflow
             + " outside=" + outside + " unmeasurable=" + unmeasurable);
 
         // インクが割当矩形と完全に交差しない = 配置自体の破綻。FAIL。
@@ -1279,6 +1304,82 @@ public static class V6ScreenAudit
         return i.width > TolerancePx && i.height > TolerancePx
             ? ScreenClip.Partial
             : ScreenClip.Outside;
+    }
+
+    /// <summary>
+    /// tmp のインクが実際に切られる領域 (クリップ境界) を tmp のローカル
+    /// 空間で返す (Issue #862)。
+    ///
+    /// 「インクが割当矩形をはみ出す」こと自体は描画欠損ではない
+    /// (マスクが無ければそのまま描画される)。実害があるのは、はみ出した
+    /// インクが祖先の <see cref="RectMask2D"/> や Canvas (= 画面端) の
+    /// 境界を越えて切られる場合だけなので、監査はこの領域との関係で
+    /// Partial を「実クリップ (partial)」と「矩形外はみ出し (overflow)」
+    /// に分ける。
+    ///
+    /// クリップ源: 祖先チェーン上の全 RectMask2D の矩形の積集合 +
+    /// 最上位 Canvas の矩形 (画面外は描画されない)。TMP 自身の
+    /// Masking/ScrollRect overflowMode は呼び出し側で除外済み。
+    /// 見つからなければ false (クリップ無し)。
+    /// </summary>
+    public static bool TryClipRectLocal(TMP_Text tmp, out Rect clip)
+    {
+        clip = new Rect(0f, 0f, 0f, 0f);
+        var rt = tmp == null ? null : tmp.rectTransform;
+        if (rt == null)
+        {
+            return false;
+        }
+
+        bool found = false;
+        for (var t = rt.parent; t != null; t = t.parent)
+        {
+            if (!t.gameObject.activeInHierarchy) { continue; }
+            var mask = t.GetComponent<RectMask2D>();
+            var mrt = t as RectTransform;
+            if (mask == null || mrt == null) { continue; }
+            var corners = new Vector3[4];
+            mrt.GetWorldCorners(corners);
+            float minX = float.MaxValue, minY = float.MaxValue;
+            float maxX = float.MinValue, maxY = float.MinValue;
+            for (int i = 0; i < corners.Length; i++)
+            {
+                var p = rt.InverseTransformPoint(corners[i]);
+                if (p.x < minX) { minX = p.x; }
+                if (p.x > maxX) { maxX = p.x; }
+                if (p.y < minY) { minY = p.y; }
+                if (p.y > maxY) { maxY = p.y; }
+            }
+            var r = Rect.MinMaxRect(minX, minY, maxX, maxY);
+            clip = found ? Intersection(clip, r) : r;
+            found = true;
+        }
+
+        var canvas = tmp.GetComponentInParent<Canvas>();
+        if (canvas != null)
+        {
+            var crt = canvas.rootCanvas != null ? canvas.rootCanvas.transform as RectTransform : null;
+            if (crt != null)
+            {
+                var corners = new Vector3[4];
+                crt.GetWorldCorners(corners);
+                float minX = float.MaxValue, minY = float.MaxValue;
+                float maxX = float.MinValue, maxY = float.MinValue;
+                for (int i = 0; i < corners.Length; i++)
+                {
+                    var p = rt.InverseTransformPoint(corners[i]);
+                    if (p.x < minX) { minX = p.x; }
+                    if (p.x > maxX) { maxX = p.x; }
+                    if (p.y < minY) { minY = p.y; }
+                    if (p.y > maxY) { maxY = p.y; }
+                }
+                var r = Rect.MinMaxRect(minX, minY, maxX, maxY);
+                clip = found ? Intersection(clip, r) : r;
+                found = true;
+            }
+        }
+
+        return found;
     }
 
     /// <summary>root に至る親鎖からパンビューポート (<see cref="FlashBeat.UI.V6.Common.V6FramePan"/>) を探す。無ければ null。</summary>
