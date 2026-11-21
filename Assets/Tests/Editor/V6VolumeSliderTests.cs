@@ -219,11 +219,12 @@ namespace FlashBeat.Tests.Editor
                     Assert.AreEqual(0.51f, GManager.mainVolume, 1e-4f, "←→ は 1% 動かす");
                     Assert.AreEqual("51%", FindText(slider, "Value").text, "スライダー表示が追従する");
 
-                    // SE 行へ移ると同じスライダーが SE の値を表示する。
-                    // 行選択の変更でもプレビューは作り直されるため、
+                    // Effect 行へ移ると同じスライダーが Effect の値を表示する
+                    // (Issue #851 で Sound タブは Main → Song → BGM → Effect の
+                    // 4 行になった)。行選択の変更でもプレビューは作り直されるため、
                     // ここでも slider 参照を取り直す。
                     GManager.effectVolume = 0.24f;
-                    view.MoveSelection(1);
+                    view.MoveSelection(3);
                     slider = FindChild(view.Root.gameObject, "Volume Slider");
                     Assert.IsNotNull(slider, "行選択の変更後もスライダーは残る");
                     Assert.AreEqual("24%", FindText(slider, "Value").text, "選択行が変わると表示値も変わる");
