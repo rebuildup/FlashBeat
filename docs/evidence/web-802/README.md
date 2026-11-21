@@ -51,6 +51,18 @@ For each pair record pass / fix-needed with the concrete defect.
 - [x] Capture tooling extended to the issue's required widths and routes
 - [x] DOM-measurement gate PASS (no overflow, no console errors)
 - [x] Checklist mechanized (`tests/visual/REVIEW.md`)
-- [ ] **Pixel review of the PNGs** — requires a vision-capable reviewer;
-  apply `REVIEW.md` per screenshot and record verdicts. DOM PASS is not a
-  visual PASS.
+- [x] **Pixel review of the PNGs** — vision-model review (nemotron-3.5-super-vl
+  via opencode-zen) on the 2026-11-21 capture set
+  (`web/tests/visual/out/2026-11-21T05-25-16-538Z/`): catalog loaded state,
+  single publish-requirement note, disabled-button contrast, sidebar
+  current-page indicator and mobile filters all PASS; no new defects.
+
+### 2026-11-21 fix pass (commit e842679d)
+
+The first review round flagged six defects; `after/` now holds the
+post-fix captures. Capture synchronization was fixed first —
+`capture.mjs` waits until loading text is gone, so `home`/`songs` shots
+show the loaded list (and `/songs` its pre-token state) instead of
+"カタログを読み込み中". The disabled-button contrast fix required a
+Panda cascade-layer correction: recipe `base._disabled` loses to the
+later `variants` layer, so the muted colors are declared per variant.

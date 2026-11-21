@@ -194,7 +194,15 @@ async function main() {
         if (route.waitFor) {
           await page.waitForSelector(route.waitFor, { timeout: 15_000 }).catch(() => {});
         }
-        await sleep(1_200);
+        // Issue #802 review: screenshots used to be taken while the catalog
+        // still showed "カタログを読み込み中". Wait until no loading text
+        // remains so captures distinguish loaded / empty / error states.
+        await page
+          .waitForFunction(() => !document.body.innerText.includes("読み込み中"), {
+            timeout: 30_000,
+          })
+          .catch(() => {});
+        await sleep(400);
 
         const measured = await page.evaluate(measurePage);
         const baseName = `${route.name}_${vp.label.replace(/[^0-9x]/g, "")}`;
