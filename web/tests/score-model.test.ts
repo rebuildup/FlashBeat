@@ -81,6 +81,7 @@ import {
   computeUnityScoreV5,
   computeUnityScoreV6,
   maxAdditionalScoreV6,
+  SCORE_MAX_V6,
   nicknameDiagnostics,
   parseScoringVersionQuery,
   scoreSemanticsDiagnostics,
@@ -612,6 +613,35 @@ describe("computeUnityScoreV6 (ADR-0037)", () => {
 
   it("a chart without notes cannot be scored", () => {
     assert.equal(computeUnityScoreV6(0, 0, 0, 0, 0, 0, true), null);
+  });
+
+  it("scoreMaxV6 matches the Unity Scoring.ScoreMaxV6 contract values", () => {
+    // ADR-0037: ScoreMaxV6(N) = 1,000,000 + N*1000 + floor(N/50)*5000
+    // + 25,000. These values are pinned on the Unity side by
+    // ScoringV6Tests (BreakdownV6.MaxScore) and ParityFixtureTests, so a
+    // drift on either platform fails a test.
+    const expected: Record<number, number> = {
+      1: 1026000, // 1*1000 + 0*5000 + 25000
+      49: 1074000, // 49*1000 + 0 + 25000
+      50: 1080000, // 50*1000 + 1*5000 + 25000
+      139: 1174000, // the Who chart
+      600: 1685000,
+      1000: 2125000,
+      10000: 12025000, // the published contract's note cap
+    };
+    for (const [n, max] of Object.entries(expected)) {
+      const noteCount = Number(n);
+      assert.equal(scoreMaxV6(noteCount), max, `scoreMaxV6(${n})`);
+      assert.equal(
+        maxAdditionalScoreV6(noteCount),
+        max - 1000000,
+        `maxAdditionalScoreV6(${n})`,
+      );
+    }
+    // The schema/DB sanity bound must equal the largest reachable chart
+    // maximum — a looser or tighter bound is a contract bug.
+    assert.equal(SCORE_MAX_V6, scoreMaxV6(10000));
+    assert.equal(SCORE_MAX_V6, 12025000);
   });
 });
 

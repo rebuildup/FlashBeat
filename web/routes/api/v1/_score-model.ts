@@ -166,13 +166,13 @@ export const LATEST_SCORING_VERSION = SCORING_VERSION_V6;
  * `scoreMaxV6(noteCount)` (ADR-0037); SCORE_MAX_V6 is only a sanity bound
  * for the request schema and the database CHECK. The published chart
  * contract caps notes at 10,000, so the largest reachable score is
- * scoreMaxV6(10000) = 12,225,000; the exact per-chart bound is enforced by
+ * scoreMaxV6(10000) = 12,025,000; the exact per-chart bound is enforced by
  * the recomputation.
  */
 export const SCORE_MAX_LEGACY = 1000000;
 export const SCORE_MAX_V4 = 2000000;
 export const SCORE_MAX_V5 = 2000000;
-export const SCORE_MAX_V6 = 12225000;
+export const SCORE_MAX_V6 = 12025000;
 
 /** Ratio points one v5 milestone crossing pays (ADR-0035). */
 export const MILESTONE_BONUS_POINTS_V5 = 250;
@@ -276,7 +276,7 @@ export const SCORE_SUBMISSION_SCHEMA = {
       minimum: 0,
       maximum: SCORE_MAX_V6,
       description:
-        "Optional. Score the client computed with the Unity formula; the server recomputes it from the judgment counts and rejects a mismatch (422), so a broken or manipulated client score is never stored. scoringVersion 4 and 5 scores may exceed 1,000,000 (base + bonus, up to 2,000,000); scoringVersion 6 scores are bounded per chart by 1,000,000 + maxAdditionalScoreV6(noteCount) with no fixed total ceiling (ADR-0037); versions 1-3 stay capped at 1,000,000 by the recomputation. The 12,225,000 schema bound is the largest reachable chart maximum (10,000 notes, the published contract cap) — the exact per-chart bound is enforced by the recomputation.",
+        "Optional. Score the client computed with the Unity formula; the server recomputes it from the judgment counts and rejects a mismatch (422), so a broken or manipulated client score is never stored. scoringVersion 4 and 5 scores may exceed 1,000,000 (base + bonus, up to 2,000,000); scoringVersion 6 scores are bounded per chart by 1,000,000 + maxAdditionalScoreV6(noteCount) with no fixed total ceiling (ADR-0037); versions 1-3 stay capped at 1,000,000 by the recomputation. The 12,025,000 schema bound is the largest reachable chart maximum (10,000 notes, the published contract cap) — the exact per-chart bound is enforced by the recomputation.",
     },
     scoringVersion: {
       type: "integer",

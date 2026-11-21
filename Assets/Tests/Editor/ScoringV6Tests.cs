@@ -65,6 +65,11 @@ public class ScoringV6Tests
         Assert.AreEqual(2125000, Scoring.ScoreMaxV6(1000));
         Assert.Greater(Scoring.ScoreMaxV6(1000), 2000000,
             "長い譜面の v6 満点が v4/v5 の固定上限を超えていない");
+        // 公開契約のノーツ上限 10,000 における理論最大。Web 側の
+        // SCORE_MAX_V6 / OpenAPI / D1 CHECK の sanity bound はこの値と
+        // 一致しなければならない (score-model.test.ts が同じ表を固定)。
+        Assert.AreEqual(12025000, Scoring.ScoreMaxV6(10000));
+        Assert.AreEqual(11025000, Scoring.MaxAdditionalV6(10000));
     }
 
     [Test]
