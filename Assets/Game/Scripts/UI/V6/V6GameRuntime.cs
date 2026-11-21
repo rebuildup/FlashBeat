@@ -326,6 +326,10 @@ namespace FlashBeat.UI.V6
         /// <summary>選択中の曲の情報でローディング画面を更新する (表示は呼び側)。</summary>
         private void ShowLoadingView(SongData song, float? chartProgress)
         {
+            // Issue #824: ローディング中の背景を再生対象動画のサムネイルにする。
+            // Space 待ち・カウントダウンは kakusi (SongBackdrop) が同じ
+            // サムネイルを出すので、Loading → Ready → Countdown で背景が継続する。
+            loading.SetSongBackdrop(song != null ? song.videoId : "");
             loading.SetLoading(song != null ? song.title : "", song != null ? song.musician : "",
                 LoadJacket(song), chartProgress);
         }
