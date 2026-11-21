@@ -95,6 +95,16 @@ public class AutoTestV6SongEnd : MonoBehaviour
     // 2 秒毎に 1 枚ずつ撮る (曲の歌詞区間をカバーする汎用窓)。
     float nextLyricShotTime = 10f;
     int lyricShotCount;
+
+    // Issue #846: 歌詞本文の実描画 assert。v0.2.5 実機指摘の
+    // 「枠は出るが本文が空」(HasLyrics と表示可能行の不整合) を
+    // スクリーンショットではなくテキスト値で検出する。
+    bool lyricChartResolved;
+    bool lyricChartHasText;
+    List<LyricLine> lyricAuditLines;
+    FlashBeat.UI.V6.Game.Hud.V6GameHudView lyricHud;
+    float lyricTextEmptySeconds;
+    int lyricTextExpectedFrames;
     string outDir;
     string songTitle;
 
@@ -415,6 +425,9 @@ public class AutoTestV6SongEnd : MonoBehaviour
                     CaptureScreenshot("06-lyrics-" + lyricShotCount.ToString("00"));
                 }
 
+                // Issue #846: 歌詞区間で本文が実際に出ているかを検査する。
+                AuditLyricText();
+
                 if (GManager.combo > comboPeak) { comboPeak = GManager.combo; }
 
                 if (lastSongEndState == SongEndState.Completed)
@@ -459,6 +472,20 @@ public class AutoTestV6SongEnd : MonoBehaviour
         Check("the song end state machine completes", songEndCompleted);
         Check("the song end is not a forced deadline completion", songEndCompleted && !songEndForcedByDeadline);
         Check("the result scene is loaded", SceneManager.GetActiveScene().name == "ResultScene");
+
+        // Issue #846: 歌詞本文の assert。表示可能な歌詞行を持つ曲でだけ
+        // 判定する (歌詞なし曲・Pending のまま終わった場合は skip)。
+        if (lyricChartResolved && lyricChartHasText)
+        {
+            Check("lyric text is rendered during lyric windows (Issue #846)",
+                lyricTextExpectedFrames > 0 && lyricTextEmptySeconds < 1f);
+            Debug.Log(Tag + " lyric audit: expectedFrames=" + lyricTextExpectedFrames +
+                      " emptySeconds=" + lyricTextEmptySeconds.ToString("F2"));
+        }
+        else
+        {
+            Debug.Log(Tag + " lyric audit: skipped (chart has no displayable lyric text)");
+        }
 
         // 7. Result 画面が実際に描画されているか (v6 の Result Canvas の中で)。
         if (SceneManager.GetActiveScene().name == "ResultScene")
@@ -557,6 +584,73 @@ public class AutoTestV6SongEnd : MonoBehaviour
         {
             Debug.LogWarning(Tag + " could not read the chart '" + title + "': " + e.Message);
             return 0;
+        }
+    }
+
+    /// <summary>
+    /// Issue #846: 再生中の各フレームで、いま歌詞行が出るべき時刻
+    /// (HUD が使うのと同じ <see cref="GManager.step_time"/> クロック) に
+    /// HUD の歌詞本文 (<see cref="FlashBeat.UI.V6.Game.Hud.V6GameHudView.LyricTextForAudit"/>)
+    /// が空でないかを確かめる。
+    ///
+    /// 枠 (lyricBox) は #734 のポリシーで行間・歌詞なし区間でも出続けるため、
+    /// 枠の有無では「本文が出ない」バグを検出できない。本文テキストだけを見る。
+    /// 行の切れ目 1 フレームの表示ラグを許容するため、空のままの時間が
+    /// 1 秒を超えた場合だけ終了時の Check で落とす。
+    /// "-autotest-lyrics off" (PlaySession.LyricsEnabled = false) の対照実行では
+    /// 本文が空なのが正しいので何もしない。
+    /// </summary>
+    void AuditLyricText()
+    {
+        if (!PlaySession.LyricsEnabled) { return; }
+
+        if (!lyricChartResolved)
+        {
+            SongData song = PlaySessionSnapshot.ResolveSong(GManager.songID);
+            if (song != null)
+            {
+                ChartLyricsResult lyrics = ChartLyrics.Resolve(song);
+                if (lyrics != null && lyrics.State != ChartLyricsState.Pending
+                    && lyrics.Lyrics != null)
+                {
+                    lyricChartResolved = true;
+                    lyricAuditLines = LyricsTimeline.Build(
+                        lyrics.Lyrics.StartTime ?? new float[0],
+                        lyrics.Lyrics.EndTime ?? new float[0],
+                        lyrics.Lyrics.Mondai ?? new string[0],
+                        null, null);
+                    lyricChartHasText = false;
+                    foreach (LyricLine line in lyricAuditLines)
+                    {
+                        if (line.HasText) { lyricChartHasText = true; break; }
+                    }
+                    Debug.Log(Tag + " lyrics audit: state=" + lyrics.State +
+                              " lines=" + lyricAuditLines.Count +
+                              " hasText=" + lyricChartHasText);
+                }
+            }
+            if (!lyricChartResolved) { return; }
+        }
+
+        if (!lyricChartHasText || lyricAuditLines == null) { return; }
+
+        if (lyricHud == null)
+        {
+            lyricHud = FindFirstObjectByType<FlashBeat.UI.V6.Game.Hud.V6GameHudView>();
+            if (lyricHud == null) { return; }
+        }
+
+        int index = LyricsTimeline.IndexAt(lyricAuditLines, GManager.step_time);
+        if (index < 0 || !lyricAuditLines[index].HasText) { return; }
+
+        lyricTextExpectedFrames++;
+        if (string.IsNullOrEmpty(lyricHud.LyricTextForAudit))
+        {
+            lyricTextEmptySeconds += Time.unscaledDeltaTime;
+        }
+        else
+        {
+            lyricTextEmptySeconds = 0f;
         }
     }
 

@@ -533,6 +533,128 @@ namespace FlashBeat.Tests
         }
 
         /// <summary>
+        /// Issue #846: GameSceneManager.Load と同じく <see cref="ChartLyrics.Resolve"/>
+        /// の結果を保持する歌詞ソース。inputJson の直接注入 (LyricsResult なし)
+        /// ではなく、実際の解決経路 (Resolve → LyricsResult → InputJson) を
+        /// 通した状態を再現する。
+        /// </summary>
+        private static GameObject CreateLyricsSource(ChartLyricsResult lyricsResult)
+        {
+            var go = new GameObject("V6GameHudViewTests LyricsSource", typeof(GameSceneManager));
+            var mgr = go.GetComponent<GameSceneManager>();
+            var inputField = typeof(GameSceneManager).GetField("inputJson",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.IsNotNull(inputField, "GameSceneManager.inputJson が見つからない");
+            inputField.SetValue(mgr, lyricsResult.Lyrics);
+            var setter = typeof(GameSceneManager).GetProperty("LyricsResult")
+                .GetSetMethod(true);
+            Assert.IsNotNull(setter, "GameSceneManager.LyricsResult の setter が見つからない");
+            setter.Invoke(mgr, new object[] { lyricsResult });
+            return go;
+        }
+
+        private static SongData RemoteLyricsSong(string remoteId)
+        {
+            return new SongData(1, "歌詞テスト曲", "artist", "abcdefghijk", 120, 5, 100, 60f)
+            {
+                isRemote = true,
+                remoteId = remoteId,
+                chartVersion = 1,
+            };
+        }
+
+        /// <summary>
+        /// Issue #846: ChartLyrics.Resolve を通した歌詞データが「本文を出せる」
+        /// とき、実経路 (LyricsResult → InputJson → LyricsTimeline) で
+        /// 本文と枠が出ること。inputJson 直接注入のテストでは Resolve の
+        /// 判定を通らないため、こちらで通常プレイ経路を担保する。
+        /// </summary>
+        [Test]
+        public void Lyrics_ResolvedChartWithLyrics_ShowsTextAndBox()
+        {
+            originalSongId = GManager.songID;
+            originalPlayed = GManager.played;
+            originalStepTime = GManager.step_time;
+            GameObject sourceGo = null;
+            try
+            {
+                string chartJson = SyntheticCharts.LyricsChartEnvelope("hud-lyrics-song");
+                PlaySessionSnapshot session = PlaySessionSnapshot.Begin(
+                    RemoteLyricsSong("hud-lyrics-song"), 1, chartJson);
+                ChartLyricsResult resolved = ChartLyrics.Resolve(session.Song);
+                Assert.AreEqual(ChartLyricsState.HasLyrics, resolved.State);
+
+                sourceGo = CreateLyricsSource(resolved);
+                GManager.played = true;
+
+                // LyricsChartEnvelope の 1 行目は 0.946-2.3 秒。
+                GManager.step_time = 1.5f;
+                view.Refresh();
+                Assert.AreEqual("僕を連れてって", LyricTextOf(view).text,
+                    "Resolve → Timeline → HUD の経路で歌詞本文が出る");
+                Assert.IsTrue(LyricBoxOf(view).activeSelf);
+            }
+            finally
+            {
+                if (sourceGo != null) Object.DestroyImmediate(sourceGo);
+                PlaySessionSnapshot.Clear();
+                CloudChartHolder.Clear();
+                ChartLyrics.Invalidate();
+                GManager.songID = originalSongId;
+                GManager.played = originalPlayed;
+                GManager.step_time = originalStepTime;
+            }
+        }
+
+        /// <summary>
+        /// Issue #846 (v0.2.5 実機指摘の回帰): mondai はあるが startTime が
+        /// 無いなど「本文を出せる行が 0」の歌詞データは、ChartLyrics.Resolve が
+        /// NoLyrics と確定するため、設定 ON でも枠ごと出さない。
+        /// 旧仕様では HasLyrics → 枠だけが出て本文は永久に空だった。
+        /// </summary>
+        [Test]
+        public void Lyrics_ResolvedChartWithoutDisplayableLines_HidesBox()
+        {
+            originalSongId = GManager.songID;
+            originalPlayed = GManager.played;
+            originalStepTime = GManager.step_time;
+            GameObject sourceGo = null;
+            try
+            {
+                const string chartJson =
+                    "{\"songId\":\"hud-lyrics-song\",\"chartVersion\":1,\"chart\":{" +
+                    "\"name\":\"歌詞テスト曲\",\"maxBlock\":8,\"BPM\":120,\"offset\":0," +
+                    "\"notes\":[{\"type\":1,\"num\":0,\"block\":0,\"LPB\":4,\"endNum\":0}]," +
+                    "\"lyrics\":{\"endTime\":[3.0],\"mondai\":[\"あ\"]}" +
+                    "}}";
+                PlaySessionSnapshot session = PlaySessionSnapshot.Begin(
+                    RemoteLyricsSong("hud-lyrics-song"), 1, chartJson);
+                ChartLyricsResult resolved = ChartLyrics.Resolve(session.Song);
+                Assert.AreEqual(ChartLyricsState.NoLyrics, resolved.State,
+                    "startTime 欠落の歌詞は表示区間を構築できない = なし確定");
+
+                sourceGo = CreateLyricsSource(resolved);
+                GManager.played = true;
+                GManager.step_time = 1f;
+                view.Refresh();
+
+                Assert.AreEqual("", LyricTextOf(view).text);
+                Assert.IsFalse(LyricBoxOf(view).activeSelf,
+                    "本文を出せない歌詞データでは曲中も枠を出さない (Issue #846)");
+            }
+            finally
+            {
+                if (sourceGo != null) Object.DestroyImmediate(sourceGo);
+                PlaySessionSnapshot.Clear();
+                CloudChartHolder.Clear();
+                ChartLyrics.Invalidate();
+                GManager.songID = originalSongId;
+                GManager.played = originalPlayed;
+                GManager.step_time = originalStepTime;
+            }
+        }
+
+        /// <summary>
         /// Issue #734: 歌詞データ (GameSceneManager.InputJson) がまだ届いて
         /// いない間も枠は出す。かつてはデータ未到着 = 歌詞なし扱いで枠が消え、
         /// 到着時に出るフリッカーが起きていた。枠の可視性はデータの
