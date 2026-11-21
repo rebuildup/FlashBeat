@@ -16,23 +16,14 @@ namespace FlashBeat.UI.V6
         // ------------------------------------------------------------------
 
         /// <summary>
-        /// このメソッドで Local / localCropCache から外した Sprite は provider が所有して
-        /// いるので、すべてここで破棄する (原 Texture は Resources/Unity 所有で破棄しない)。
-        /// </summary>
-        public static void InvalidateLocal()
-        {
-            localMissing.Clear();
-            DestroySprites(localSpriteCache);
-            DestroySprites(localCropCache);
-        }
-
-        /// <summary>
         /// すべての保持物を破棄する。**アプリ終了時 / EditMode テストのみ**。
         /// 実行中に呼ぶと生きている Image が白くなる。
+        /// Issue #823: ローカル (Resources) ジャケット経路は撤去済み。
+        /// localCropCache は遠隔でない Texture 由来の crop を保持する。
         /// </summary>
         public static void DestroyAll()
         {
-            InvalidateLocal();
+            DestroySprites(localCropCache);
             DestroySprites(remoteCropCache);
 
             foreach (var pair in remoteCache)
@@ -79,7 +70,6 @@ namespace FlashBeat.UI.V6
         /// <summary>計測点を 0 に戻す (テスト用)。</summary>
         public static void ResetCountersForAudit()
         {
-            LocalLoadCount = 0;
             RemoteFetchCount = 0;
             RemoteDedupCount = 0;
             NegativeCacheHitCount = 0;

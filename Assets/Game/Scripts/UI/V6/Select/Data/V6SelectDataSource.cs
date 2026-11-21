@@ -47,8 +47,8 @@ namespace FlashBeat.UI.V6.Select.Data
         static readonly Dictionary<string, bool> chartExistsCache = new Dictionary<string, bool>();
         readonly List<V6RankingRow> emptyRanking = new List<V6RankingRow>();
 
-        // ジャケットの対応表は V6JacketResources (Common) が唯一の正本。
-        // Select 側に写しを置かない (Result / Loading と拡張子の扱いが食い違う原因だった)。
+        // Issue #823: ジャケットは遠隔 (YouTube サムネイル) のみ。
+        // ローカルの対応表は撤去した (V6SongBadge.ApplyJacket が videoId から解決)。
 
         string query = "";
         int selectedSongId = -1;
@@ -248,7 +248,10 @@ namespace FlashBeat.UI.V6.Select.Data
                 BestGrade = V6SelectDataLogic.GradeOf(best,
                     FlashBeat.Gameplay.Scoring.LatestVersion, noteCount),
                 IsCloud = song.isRemote,
-                JacketResourcePath = JacketResourcePathOf(song.id, song.title),
+                // Issue #823: ローカル (Resources) ジャケットは撤去済み。
+                // 遠隔 (YouTube サムネイル) は V6SongBadge.ApplyJacket が
+                // 曲の videoId から解決するため、ここではパスを持たない。
+                JacketResourcePath = "",
             };
         }
 
@@ -386,20 +389,6 @@ namespace FlashBeat.UI.V6.Select.Data
             if (meta != null && meta.NoteCount > 0) return meta.NoteCount;
             if (song.noteCount > 0) return song.noteCount; // クラウド曲: API の実ノーツ数
             return song.totalHits;                          // ローカル曲: カタログの総ヒット数
-        }
-
-        /// <summary>
-        /// ジャケットの Resources パス (拡張子なし)。
-        ///
-        /// v6 では全曲のジャケットを Resources/V6/select/jacket/ に置いてある
-        /// (Pencil 設計の正式データ。ファイル名は "&lt;カタログ index&gt;-&lt;slug&gt;.jpg"、
-        /// index は GManager.SongName の並びと一致する。1..26 はすべて画像あり
-        /// (22 = 灰Φ倶楽部も含む)。表に無い index は空文字を返し、固定画像を流用しない。
-        /// 解決は <see cref="V6JacketResources"/> に一本化している。
-        /// </summary>
-        static string JacketResourcePathOf(int songId, string title)
-        {
-            return V6JacketResources.PathOf(songId, title);
         }
 
         // --- ランキング -----------------------------------------------------------

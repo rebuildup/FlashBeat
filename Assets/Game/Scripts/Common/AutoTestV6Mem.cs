@@ -670,13 +670,11 @@ public class AutoTestV6Mem : MonoBehaviour
     {
         var sb = new StringBuilder();
         sb.Append("jacket[")
-          .Append("local=").Append(V6JacketProvider.LocalLoadCount)
-          .Append(" remote=").Append(V6JacketProvider.RemoteFetchCount)
+          .Append("remote=").Append(V6JacketProvider.RemoteFetchCount)
           .Append(" dedup=").Append(V6JacketProvider.RemoteDedupCount)
           .Append(" neg=").Append(V6JacketProvider.NegativeCacheHitCount)
           .Append(" fail=").Append(V6JacketProvider.RemoteFailureCount)
           .Append(" crop=").Append(V6JacketProvider.CropCreateCount)
-          .Append(" cached=").Append(V6JacketProvider.CachedSpriteCount)
           .Append(" remoteEntries=").Append(V6JacketProvider.RemoteCacheEntryCount)
           .Append(" remoteSprites=").Append(V6JacketProvider.RemoteCachedSpriteCount)
           .Append(" evicted=").Append(V6JacketProvider.RemoteFetchEvictedCount)

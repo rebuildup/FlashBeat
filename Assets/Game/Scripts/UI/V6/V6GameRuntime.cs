@@ -372,27 +372,32 @@ namespace FlashBeat.UI.V6
         // --- ジャケット (Issue #224) ---
 
         readonly Dictionary<int, Texture2D> jacketCache = new Dictionary<int, Texture2D>();
+        readonly HashSet<int> jacketRequested = new HashSet<int>();
 
         /// <summary>
-        /// 選択中の曲のジャケットを Resources から解決する
-        /// (<see cref="V6LoadingViewLogic.JacketResourcePathOf"/>= 選曲画面と同じ対応表)。
-        /// 無い曲は null — ビューが「無し」と正直に表示する。null もキャッシュする
-        /// (毎フレームの Resources.Load を避ける)。
+        /// 選択中の曲のジャケットを YouTube サムネイルから非同期で解決する
+        /// (Issue #823: ローカル Resources ジャケットは撤去済み)。
+        /// 取得前・失敗時は null — ビューが「無し」と正直に表示する。
+        /// null もキャッシュする (要求は曲ごとに 1 回だけ)。
         /// </summary>
         private Texture2D LoadJacket(SongData song)
         {
             if (song == null) return null;
             if (jacketCache.TryGetValue(song.id, out var cached)) return cached;
 
-            Texture2D texture = null;
-            string path = V6LoadingViewLogic.JacketResourcePathOf(song.id);
-            if (!string.IsNullOrEmpty(path))
+            jacketCache[song.id] = null;
+            string videoId = song.videoId;
+            if (!string.IsNullOrEmpty(videoId) && jacketRequested.Add(song.id))
             {
-                texture = Resources.Load<Texture2D>(path);
+                V6JacketProvider.RequestRemoteTexture(videoId, texture =>
+                {
+                    if (texture != null)
+                    {
+                        jacketCache[song.id] = texture;
+                    }
+                });
             }
-
-            jacketCache[song.id] = texture;
-            return texture;
+            return null;
         }
 
         /// <summary>動画を減光するレイヤー (プレイフィールドより下)。</summary>
