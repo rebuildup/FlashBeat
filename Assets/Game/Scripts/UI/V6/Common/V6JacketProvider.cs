@@ -55,6 +55,22 @@ namespace FlashBeat.UI.V6
         /// <summary>遠隔画像の同時リクエスト上限。超えた分は順番待ち。</summary>
         public const int MaxConcurrentRequests = 2;
 
+        /// <summary>
+        /// Issue #824: 開始前背景 (poster) の候補 URL。16:9 を優先して
+        /// maxresdefault → sddefault → hqdefault (4:3、最後の手段) の順。
+        /// maxresdefault が存在しない動画では YouTube が 120×90 の
+        /// プレースホルダを返すので、<see cref="BackdropMinWidth"/> で弾く。
+        /// </summary>
+        private static readonly string[] BackdropThumbUrls =
+        {
+            "https://img.youtube.com/vi/{0}/maxresdefault.jpg",
+            "https://img.youtube.com/vi/{0}/sddefault.jpg",
+            YouTubeThumbUrl,
+        };
+
+        /// <summary>poster として受理する最小画像幅 (px)。これ未満は次の候補へ。</summary>
+        private const int BackdropMinWidth = 256;
+
         /// <summary>遠隔要求のタイムアウト (秒)。これを過ぎると失敗扱い。</summary>
         public const int RemoteRequestTimeoutSeconds = 30;
 

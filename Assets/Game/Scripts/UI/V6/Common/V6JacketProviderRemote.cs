@@ -94,6 +94,7 @@ namespace FlashBeat.UI.V6
             EnqueueRemote(new RemoteRequest
             {
                 VideoId = videoId,
+                WantsSprite = true,
                 Entry = entry,
             });
         }
@@ -108,18 +109,55 @@ namespace FlashBeat.UI.V6
         /// </summary>
         public static void RequestRemoteTexture(string videoId, Action<Texture2D> onReady)
         {
+            RequestRemoteCore(videoId, null, 0, true, null, onReady);
+        }
+
+        /// <summary>
+        /// Issue #824: ゲーム開始前の背景に使う、再生対象動画そのものの
+        /// サムネイル (poster) を Texture で取る。
+        ///
+        /// ジャケット用の hqdefault (4:3) とは別エントリにキャッシュする
+        /// (キーは <c>videoId + "|poster"</c>)。候補は 16:9 を優先して
+        /// maxresdefault → sddefault → hqdefault の順に試し、実在しない
+        /// maxresdefault が返す 120×90 のプレースホルダは
+        /// <see cref="BackdropMinWidth"/> 未満として弾いて次へ進む。
+        /// すべて失敗したら null (呼び出し側は既定の背景のままにする)。
+        /// </summary>
+        public static void RequestBackdropTexture(string videoId, Action<Texture2D> onReady)
+        {
             if (string.IsNullOrEmpty(videoId) || onReady == null)
             {
                 if (onReady != null) onReady(null);
                 return;
             }
 
-            RemoteEntry entry = GetOrEnqueueRemote(videoId);
+            string[] urls = new string[BackdropThumbUrls.Length];
+            for (int i = 0; i < BackdropThumbUrls.Length; i++)
+            {
+                urls[i] = string.Format(BackdropThumbUrls[i], videoId);
+            }
+
+            RequestRemoteCore(videoId + "|poster", urls, BackdropMinWidth, false, null, onReady);
+        }
+
+        /// <summary>
+        /// 遠隔取得の共通経路。<paramref name="cacheKey"/> は remoteCache の
+        /// キー (ジャケットは映像 ID そのもの、poster は "|poster" 付き)。
+        /// <paramref name="urls"/> が null なら従来の hqdefault 1 本。
+        /// <paramref name="minWidth"/> 未満の画像 (存在しない maxresdefault の
+        /// プレースホルダ等) は失敗として次の URL を試す。0 ならサイズ不問。
+        /// </summary>
+        private static void RequestRemoteCore(
+            string cacheKey, string[] urls, int minWidth, bool wantsSprite,
+            Action<Sprite> onSprite, Action<Texture2D> onTexture)
+        {
+            RemoteEntry entry = GetOrEnqueueRemote(cacheKey);
 
             // 取得済み
             if (entry.Texture != null)
             {
-                onReady(entry.Texture);
+                if (onSprite != null) onSprite(SpriteFor(entry.Texture, cacheKey));
+                if (onTexture != null) onTexture(entry.Texture);
                 return;
             }
 
@@ -127,24 +165,36 @@ namespace FlashBeat.UI.V6
             if (entry.Failed && Time.unscaledTime - entry.FailedAt < NegativeCacheSeconds)
             {
                 NegativeCacheHitCount++;
-                onReady(null);
+                if (onSprite != null) onSprite(null);
+                if (onTexture != null) onTexture(null);
                 return;
             }
 
-            // 同じ映像 ID を既に取りに行っている: 結果を待つ列に並ぶだけ (HTTP は増えない)。
+            // 同じキーを既に取りに行っている: 結果を待つ列に並ぶだけ (HTTP は増えない)。
             if (entry.InFlight)
             {
                 RemoteDedupCount++;
-                entry.WaitingTexture.Add(onReady);
+                if (onSprite != null) entry.Waiting.Add(onSprite);
+                if (onTexture != null) entry.WaitingTexture.Add(onTexture);
                 return;
             }
 
             entry.InFlight = true;
-            entry.WaitingTexture.Add(onReady);
+            if (onSprite != null) entry.Waiting.Add(onSprite);
+            if (onTexture != null) entry.WaitingTexture.Add(onTexture);
 
+            // URL 組み立て済みならそのまま、未指定なら映像 ID から hqdefault を作る。
+            // cacheKey ("|poster" 付き) ではなく映像 ID を URL に使う必要があるため、
+            // poster 経路は urls を必ず渡す。
+            string videoId = cacheKey.EndsWith("|poster", StringComparison.Ordinal)
+                ? cacheKey.Substring(0, cacheKey.Length - "|poster".Length)
+                : cacheKey;
             EnqueueRemote(new RemoteRequest
             {
                 VideoId = videoId,
+                Urls = urls,
+                MinWidth = minWidth,
+                WantsSprite = wantsSprite,
                 Entry = entry,
             });
         }
@@ -296,6 +346,16 @@ namespace FlashBeat.UI.V6
         private struct RemoteRequest
         {
             public string VideoId;
+
+            /// <summary>候補 URL (組み立て済み)。null なら hqdefault 1 本。</summary>
+            public string[] Urls;
+
+            /// <summary>受理する最小画像幅。プレースホルダを弾く (0 = 不問)。</summary>
+            public int MinWidth;
+
+            /// <summary>結果を crop Sprite にも変換するか (Texture だけの用途では false)。</summary>
+            public bool WantsSprite;
+
             public RemoteEntry Entry;
         }
 
@@ -322,71 +382,99 @@ namespace FlashBeat.UI.V6
 
         private static IEnumerator FetchRemote(RemoteRequest request)
         {
-            string url = string.Format(YouTubeThumbUrl, request.VideoId);
-            using (var req = UnityWebRequestTexture.GetTexture(url))
+            // Issue #824: 複数候補がある要求 (poster) は順に試し、
+            // サイズ条件を満たす最初の画像を採用する。候補が無ければ
+            // 従来どおり hqdefault 1 本。
+            string[] urls = request.Urls;
+            if (urls == null || urls.Length == 0)
             {
-                // Issue #398: 応答しない要求は remoteInFlight を占有し、
-                // 残りのキューが永遠に進まない原因になる (CodeRabbit review)。
-                req.timeout = RemoteRequestTimeoutSeconds;
-                yield return req.SendWebRequest();
+                urls = new[] { string.Format(YouTubeThumbUrl, request.VideoId) };
+            }
 
-                bool ok = req.result == UnityWebRequest.Result.Success;
-                Texture2D texture = null;
-                if (ok)
+            Texture2D texture = null;
+            for (int i = 0; i < urls.Length && texture == null; i++)
+            {
+                using (var req = UnityWebRequestTexture.GetTexture(urls[i]))
                 {
-                    texture = DownloadHandlerTexture.GetContent(req);
-                }
+                    // Issue #398: 応答しない要求は remoteInFlight を占有し、
+                    // 残りのキューが永遠に進まない原因になる (CodeRabbit review)。
+                    req.timeout = RemoteRequestTimeoutSeconds;
+                    yield return req.SendWebRequest();
 
-                RemoteEntry entry = request.Entry;
-                entry.InFlight = false;
-                entry.LastAccess = Time.unscaledTime;
-
-                if (texture != null)
-                {
-                    entry.Texture = texture;
-                    entry.Failed = false;
-                }
-                else
-                {
-                    entry.Failed = true;
-                    entry.FailedAt = Time.unscaledTime;
-                    RemoteFailureCount++;
-                }
-
-                Sprite sprite = texture != null ? SpriteFor(texture, request.VideoId) : null;
-
-                // Issue #416: 成功・失敗どちらの経路でも上限を強制する。
-                // 失敗エントリは Texture を持たないが、辞書自体の膨張も防ぐ。
-                EnforceRemoteCacheCapacity();
-
-                var waiting = new List<Action<Sprite>>(entry.Waiting);
-                var waitingTextures = new List<Action<Texture2D>>(entry.WaitingTexture);
-                entry.Waiting.Clear();
-                entry.WaitingTexture.Clear();
-                for (int i = 0; i < waiting.Count; i++)
-                {
-                    // 呼び出し側が破棄されている可能性があるので、例外は握りつぶさず
-                    // 1 件ずつ守る (1 画面の失敗で他画面の画像まで失わない)。
-                    try
+                    if (req.result != UnityWebRequest.Result.Success)
                     {
-                        waiting[i](sprite);
+                        continue;
                     }
-                    catch (Exception e)
-                    {
-                        Debug.LogWarning("[V6JacketProvider] onReady が例外を投げました: " + e.Message);
-                    }
-                }
 
-                for (int i = 0; i < waitingTextures.Count; i++)
+                    var candidate = DownloadHandlerTexture.GetContent(req);
+                    if (candidate == null)
+                    {
+                        continue;
+                    }
+
+                    if (candidate.width < request.MinWidth)
+                    {
+                        // 存在しない maxresdefault 等が返すプレースホルダ。
+                        // 次の候補を試すため破棄する。
+                        V6AssetOwner.DestroyObject(candidate);
+                        continue;
+                    }
+
+                    texture = candidate;
+                }
+            }
+
+            RemoteEntry entry = request.Entry;
+            entry.InFlight = false;
+            entry.LastAccess = Time.unscaledTime;
+
+            if (texture != null)
+            {
+                entry.Texture = texture;
+                entry.Failed = false;
+            }
+            else
+            {
+                entry.Failed = true;
+                entry.FailedAt = Time.unscaledTime;
+                RemoteFailureCount++;
+            }
+
+            Sprite sprite = request.WantsSprite && texture != null
+                ? SpriteFor(texture, request.VideoId)
+                : null;
+
+            // Issue #416: 成功・失敗どちらの経路でも上限を強制する。
+            // 失敗エントリは Texture を持たないが、辞書自体の膨張も防ぐ。
+            EnforceRemoteCacheCapacity();
+
+            var waiting = new List<Action<Sprite>>(entry.Waiting);
+            var waitingTextures = new List<Action<Texture2D>>(entry.WaitingTexture);
+            entry.Waiting.Clear();
+            entry.WaitingTexture.Clear();
+            for (int i = 0; i < waiting.Count; i++)
+            {
+                // 呼び出し側が破棄されている可能性があるので、例外は握りつぶさず
+                // 1 件ずつ守る (1 画面の失敗で他画面の画像まで失わない)。
+                try
                 {
-                    try
-                    {
-                        waitingTextures[i](texture);
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.LogWarning("[V6JacketProvider] onReadyTexture が例外を投げました: " + e.Message);
-                    }
+                    waiting[i](sprite);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("[V6JacketProvider] onReady が例外を投げました: " + e.Message);
+                }
+            }
+
+            for (int i = 0; i < waitingTextures.Count; i++)
+            {
+                try
+                {
+                    waitingTextures[i](texture);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("[V6JacketProvider] onReadyTexture が例外を投げました: " + e.Message);
                 }
             }
 
