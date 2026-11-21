@@ -138,6 +138,16 @@ namespace FlashBeat.UI.V6.Game.Hud
             get { return lyricText != null ? lyricText.fontSize : -1f; }
         }
 
+        /// <summary>
+        /// 歌詞本文に今表示されている文字列 (Issue #846)。
+        /// autotest が「枠は出ているのに本文が空」を検出するための読み取り口。
+        /// 表示行が無い・本文が空白の区間では空文字列、未構築なら null。
+        /// </summary>
+        public string LyricTextForAudit
+        {
+            get { return lyricText != null ? lyricText.text : null; }
+        }
+
         /// <summary>HUD canvas の実ピクセル寸法。</summary>
         public Vector2 CanvasSizeForAudit
         {

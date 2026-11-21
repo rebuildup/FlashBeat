@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using FlashBeat.UI;
 using NoteEditor.DTO;
 using UnityEngine;
 
@@ -14,10 +16,10 @@ public enum ChartLyricsState
     /// <summary>リモート曲の譜面 JSON がまだ固定されていない (到着待ち)。</summary>
     Pending,
 
-    /// <summary>譜面は確定したが、歌詞データ (lyrics.mondai) が無い。</summary>
+    /// <summary>譜面は確定したが、表示区間を持つ歌詞行が無い (mondai 自体が無いか、startTime 欠落・配列不揃い・再生範囲外で本文を出せない。Issue #846)。</summary>
     NoLyrics,
 
-    /// <summary>譜面に歌詞データがある。</summary>
+    /// <summary>譜面に表示区間を持つ歌詞行がある (Issue #846: mondai 非空だけでは不十分)。</summary>
     HasLyrics,
 }
 
@@ -132,7 +134,7 @@ public static class ChartLyrics
 
         if (chartJson != null)
         {
-            return FromChartJson(chartJson);
+            return FromChartJson(chartJson, song.duration);
         }
 
         // リモート曲で譜面未取得 = 開始前の状態。到着待ちとして保留する。
@@ -151,7 +153,7 @@ public static class ChartLyrics
     /// 譜面 JSON (API エンベロープ {songId, chartVersion, chart} または
     /// 生のチャート文書) から lyrics ブロックを取り出す。
     /// </summary>
-    static ChartLyricsResult FromChartJson(string chartJson)
+    static ChartLyricsResult FromChartJson(string chartJson, float songDuration)
     {
         LyricsProbe probe = null;
         try
@@ -169,11 +171,45 @@ public static class ChartLyrics
                 : probe.lyrics)
             : null;
         TextData data = ToTextData(dto);
-        bool has = dto != null
-            && dto.mondai != null
-            && dto.mondai.Length > 0;
+        // Issue #846: 「mondai がある」だけでは歌詞ありにしない。HUD が本文を
+        // 出せるのは LyricsTimeline.Build が構築する表示区間つきの行だけなので、
+        // startTime 欠落・配列不揃い・区間が再生範囲と不整合なデータを
+        // HasLyrics にすると「枠だけ出て本文が永久に空」になる (v0.2.5 実機指摘)。
+        bool has = HasLyricEntries(data)
+            && HasDisplayableLyricLines(data, songDuration);
         return new ChartLyricsResult(
             has ? ChartLyricsState.HasLyrics : ChartLyricsState.NoLyrics, data);
+    }
+
+    /// <summary>
+    /// HUD の本文表示が実際に使うのと同じ変換
+    /// (<see cref="LyricsTimeline.Build"/>) で行を構築し、
+    /// 「表示区間を持つ行が 1 つ以上あり、かつその区間が再生範囲
+    /// (メディア 0〜曲長) と重なる」かを返す。
+    /// 曲長が不明 (0 以下) のときは範囲チェックをせず行の有無だけを見る。
+    /// </summary>
+    static bool HasDisplayableLyricLines(TextData data, float songDuration)
+    {
+        List<LyricLine> lines = LyricsTimeline.Build(
+            data.StartTime, data.EndTime, data.Mondai, null, null);
+        if (!LyricsTimeline.HasLines(lines))
+        {
+            return false;
+        }
+        if (songDuration <= 0f)
+        {
+            return true;
+        }
+        for (int i = 0; i < lines.Count; i++)
+        {
+            LyricLine line = lines[i];
+            // 区間 [Start, End) が再生範囲 [0, songDuration) と重なれば表示可能。
+            if (line.End > 0f && line.Start < songDuration)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     static bool HasLyricEntries(TextData data)
