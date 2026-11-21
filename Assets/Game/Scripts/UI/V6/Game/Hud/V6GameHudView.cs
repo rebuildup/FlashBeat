@@ -174,7 +174,7 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// <summary>検証ハーネス用: コンボボーナスの表示文字列 ("+N")。</summary>
         public string ComboBonusValueForAudit
         {
-            get { return comboBonusValueText != null ? comboBonusValueText.text : null; }
+            get { return comboBonusStrip != null ? comboBonusStrip.Text : null; }
         }
 
         /// <summary>検証ハーネス用: 次の節目の獲得予定表示 ("NEXT +N")。</summary>
@@ -413,15 +413,20 @@ namespace FlashBeat.UI.V6.Game.Hud
             // comboFill が次の節目までの進捗を示し、nextBonusText が
             // 次の獲得予定点を示す (獲得済み累計・今回の加点・次の獲得予定を
             // 別々の値として表示する契約)。
-            // 表示はスコア点が変わったときだけ書き換える (issue #381)。
+            // Issue #784: 獲得済みボーナス点はスコア / コンボと同じ桁別
+            // アニメーション (ValueStrip) で表示する。値が変わると変化した
+            // 桁だけがポップ + 発光し、節目ゲージの伸びと同じフレームで
+            // 連動する。表示はスコア点が変わったときだけ書き換える
+            // (issue #381)。
             int earnedComboBonus = V6HudLogic.EarnedBonusPointsLatest();
             int comboBonusPoints = V6HudLogic.ComboBonusScorePoints(
                 earnedComboBonus, GManager.maxBonusRatio);
-            if (comboBonusPoints != lastComboBonusPoints && comboBonusValueText != null)
+            if (comboBonusPoints != lastComboBonusPoints && comboBonusStrip != null)
             {
                 lastComboBonusPoints = comboBonusPoints;
-                comboBonusValueText.text = "+" + comboBonusPoints.ToString(
-                    "N0", System.Globalization.CultureInfo.InvariantCulture);
+                comboBonusStrip.SetText("+" + comboBonusPoints.ToString(
+                    "N0", System.Globalization.CultureInfo.InvariantCulture),
+                    Time.unscaledTime);
             }
 
             // 次の節目到達で確定するボーナスのスコア点 (ADR-0035)。
@@ -599,7 +604,7 @@ namespace FlashBeat.UI.V6.Game.Hud
             comboStatusRow = null;
             fullComboChip = null;
             comboBonusBlock = null;
-            comboBonusValueText = null;
+            comboBonusStrip = null;
             nextBonusText = null;
             lastNextBonusPoints = int.MinValue;
             keyGuideRow = null;

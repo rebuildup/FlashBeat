@@ -185,10 +185,12 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// Issue #793 (v0.2.3 実機受入): 旧固定値 72px は判定ボックス
         /// (<see cref="V6HudMetrics.VerdictH"/>、FHD で 44px) の約 1.6 個分しかなく、
         /// 判定線・キーガイドに近すぎて読み取りにくいと差し戻された。
-        /// 頂点距離は解像度別メトリクスの判定ボックス高さに比例させ、
-        /// <see cref="VerdictPeakRisePx"/> が正本 (FHD で約 4 個分)。
+        /// 一方でメトリクス比例 4 個分 (約 176px) では頂点が判定線から
+        /// 離れすぎるとの指摘があり、読み取りやすさと近さの中間として
+        /// 3 個分へ詰めた。頂点距離は解像度別メトリクスの判定ボックス
+        /// 高さに比例させ、<see cref="VerdictPeakRisePx"/> が正本。
         /// </summary>
-        public const float VerdictPeakRiseRatio = 4f;
+        public const float VerdictPeakRiseRatio = 3f;
 
         /// <summary>
         /// 頂点の高さ (判定線からの px、正 = 上)。解像度別メトリクスの
