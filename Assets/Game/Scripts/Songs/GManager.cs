@@ -529,10 +529,13 @@ public class GManager : MonoBehaviour
 
     public static float mainVolume = 1.0f;
     public static float effectVolume = 1.0f;
-    /// <summary>Non-gameplay BGM volume (Title/Select/Option background
-    /// video audio). GameScene video audio follows <see cref="mainVolume"/>
-    /// instead — the Option slider labeled BGM therefore does not affect
-    /// in-game audio (accepted semantics, issue #651).</summary>
+    /// <summary>プレイ楽曲 (GameScene の演奏音源 audioS / streamAudioSource)
+    /// の音量 (Issue #851)。リズムゲームの主体なので十分に聞こえる 1.0 を
+    /// 既定にする。Main Volume (AudioListener) とは別チャンネル。</summary>
+    public static float songVolume = 1.0f;
+    /// <summary>メニュー画面 (Title/Select/Option/Result) の背景動画音声の
+    /// 音量。プレイ楽曲は <see cref="songVolume"/> を使う (Issue #851 で
+    /// 分離。かつては演奏音源もこの値を使っていた)。</summary>
     public static float BGMVolume = 0.3f;
     public static float BGMtime = 0f;
 

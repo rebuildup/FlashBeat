@@ -28,6 +28,7 @@ namespace FlashBeat.Tests.Editor
             float main = GManager.mainVolume;
             float effect = GManager.effectVolume;
             float bgm = GManager.BGMVolume;
+            float song = GManager.songVolume;
             float speed = GManager.noteSpeed;
             int timing = GManager.noteTiming;
 
@@ -36,6 +37,7 @@ namespace FlashBeat.Tests.Editor
                 GManager.mainVolume = 0.42f;
                 GManager.effectVolume = 0.31f;
                 GManager.BGMVolume = 0.23f;
+                GManager.songVolume = 0.77f;
                 GManager.noteSpeed = 12f;
                 GManager.noteTiming = 4;
                 OptionSettings.Save();
@@ -43,6 +45,7 @@ namespace FlashBeat.Tests.Editor
                 GManager.mainVolume = 1f;
                 GManager.effectVolume = 1f;
                 GManager.BGMVolume = 1f;
+                GManager.songVolume = 1f;
                 GManager.noteSpeed = 1f;
                 GManager.noteTiming = 0;
                 OptionSettings.Load();
@@ -50,6 +53,7 @@ namespace FlashBeat.Tests.Editor
                 Assert.AreEqual(0.42f, GManager.mainVolume, 0.001f, "Main Volume が復元されていない。");
                 Assert.AreEqual(0.31f, GManager.effectVolume, 0.001f, "Effect Volume が復元されていない。");
                 Assert.AreEqual(0.23f, GManager.BGMVolume, 0.001f, "BGM Volume が復元されていない。");
+                Assert.AreEqual(0.77f, GManager.songVolume, 0.001f, "Song Volume が復元されていない (#851)。");
                 Assert.AreEqual(12f, GManager.noteSpeed, 0.001f, "NoteSpeed が復元されていない。");
                 Assert.AreEqual(4, GManager.noteTiming, "NoteTiming が復元されていない。");
             }
@@ -58,6 +62,7 @@ namespace FlashBeat.Tests.Editor
                 GManager.mainVolume = main;
                 GManager.effectVolume = effect;
                 GManager.BGMVolume = bgm;
+                GManager.songVolume = song;
                 GManager.noteSpeed = speed;
                 GManager.noteTiming = timing;
                 OptionSettings.Save();

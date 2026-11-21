@@ -81,20 +81,23 @@ public class V6UiWiringTests
     // --- issue-162 §8 再照合 (2026-11-10) ---
 
     [Test]
-    public void PauseView_KeepsTheBgmVolumeRow_AndItReachesTheGameBgm()
+    public void PauseView_KeepsTheVolumeRows_AndSongReachesTheGameAudio()
     {
-        // v0.2.1 (PR #787 review): BGMVolume はもはや死んだ行ではない。
-        // MusicManager.ApplyBgmVolume が演奏音源 (audioS / streamAudioSource)
-        // の音量を GManager.BGMVolume × 終端フェード係数で再計算し、
-        // Main Volume は AudioListener.volume が担う (OptionScene の
-        // audioBGM と同じ規則)。Pause にも Option と同じ行を出す。
+        // Issue #851: 音量は 4 チャンネル。プレイ楽曲は GManager.songVolume
+        // を MusicManager.ApplySongVolume が演奏音源 (audioS /
+        // streamAudioSource) へ適用し、メニュー BGM は GManager.BGMVolume
+        // を VideoTime が消費する。両方の行を Option / Pause で一致させる。
         string pauseSrc = ReadSource("Game/Scripts/UI/V6/Game/Pause/V6PauseView.cs");
         string catalogSrc = ReadSource("Game/Scripts/UI/V6/Common/V6SettingsCatalog.cs");
         string musicSrc = ReadSource("Game/Scripts/Gameplay/MusicManager.cs");
         Assert.IsTrue(catalogSrc.Contains("\"BGM Volume\""),
             "Sound タブに BGM Volume 行が無い");
-        Assert.IsTrue(musicSrc.Contains("GManager.BGMVolume"),
-            "MusicManager が BGMVolume を演奏音源へ適用していない");
+        Assert.IsTrue(catalogSrc.Contains("\"Song Volume\""),
+            "Sound タブに Song Volume 行が無い (Issue #851)");
+        Assert.IsTrue(musicSrc.Contains("GManager.songVolume"),
+            "MusicManager が songVolume を演奏音源へ適用していない");
+        Assert.IsTrue(musicSrc.Contains("ApplySongVolume"),
+            "MusicManager.ApplySongVolume が無い");
         Assert.IsFalse(pauseSrc.Contains("\"BGMVolume\""),
             "行ラベルはカタログ側が持つ (Pause 側に重複定義しない)");
     }

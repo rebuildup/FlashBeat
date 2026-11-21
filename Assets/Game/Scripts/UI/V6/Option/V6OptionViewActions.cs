@@ -54,10 +54,18 @@ namespace FlashBeat.UI.V6.Option
             OptionSettings.Save();
         }
 
-        /// <summary>BGM Volume。即時反映 (V6VolumeSettings.ApplyToOutputs) + 保存。</summary>
+        /// <summary>BGM Volume (メニュー背景動画)。即時反映 + 保存。</summary>
         public static void AdjustBgmVolume(int delta)
         {
             GManager.BGMVolume = V6OptionLogic.AdjustVolume(GManager.BGMVolume, delta);
+            V6VolumeSettings.ApplyToOutputs();
+            OptionSettings.Save();
+        }
+
+        /// <summary>Song Volume (プレイ楽曲)。即時反映 (V6VolumeSettings.ApplyToOutputs) + 保存。</summary>
+        public static void AdjustSongVolume(int delta)
+        {
+            GManager.songVolume = V6OptionLogic.AdjustVolume(GManager.songVolume, delta);
             V6VolumeSettings.ApplyToOutputs();
             OptionSettings.Save();
         }

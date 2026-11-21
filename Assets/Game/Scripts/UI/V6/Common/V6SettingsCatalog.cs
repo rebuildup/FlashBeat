@@ -229,18 +229,21 @@ namespace FlashBeat.UI.V6.Common
             {
                 VolumeRow(host, 0, "Main Volume",
                     "全体の音量。スライダーをドラッグするか左右キーで調整します (Shift で 10% 刻み)。"),
+                // Issue #851: プレイ楽曲はメニュー BGM と別チャンネル。
+                // リズムゲームの主体なので既定は十分に聞こえる値。
+                VolumeRow(host, 3, "Song Volume",
+                    "プレイ中の楽曲の音量。スライダーをドラッグするか左右キーで調整します (Shift で 10% 刻み)。"),
+                // v0.2.1 (#733 実機レビュー + PR #787 review): BGM Volume は
+                // Pause にも出す。消費者はメニュー画面 (Title/Select/Option/
+                // Result) の背景動画音声 (VideoTime → GManager.BGMVolume)。
+                // プレイ楽曲は Song Volume 側 (MusicManager →
+                // GManager.songVolume) で、こちらとは独立。
+                // Pause と Option で Sound タブの項目を一致させる。
+                VolumeRow(host, 2, "BGM Volume",
+                    "メニュー画面の背景動画の音量。スライダーをドラッグするか左右キーで調整します (Shift で 10% 刻み)。"),
                 VolumeRow(host, 1, "Effect Volume",
                     "効果音の音量。スライダーをドラッグするか左右キーで調整します (Shift で 10% 刻み)。"),
             };
-
-            // v0.2.1 (#733 実機レビュー + PR #787 review): BGM Volume は
-            // Pause にも出す。GameScene の実行時消費者は MusicManager で、
-            // 演奏音源 (audioS / streamAudioSource) の音量は
-            // GManager.BGMVolume × 終端フェード係数で毎回再計算される
-            // (Main Volume は AudioListener.volume が担う)。
-            // Pause と Option で Sound タブの項目を一致させる。
-            rows.Add(VolumeRow(host, 2, "BGM Volume",
-                "BGM の音量。スライダーをドラッグするか左右キーで調整します (Shift で 10% 刻み)。"));
 
             return rows;
         }

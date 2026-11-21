@@ -112,7 +112,7 @@ public class MusicManager : MonoBehaviour
     bool endOverlayShown;
     bool endFadeApplied;
     /// <summary>終端フェードで掛けている音量係数。ポーズ中の音量変更で
-    /// フェード進行を壊さないよう <see cref="ApplyBgmVolume"/> が参照する。</summary>
+    /// フェード進行を壊さないよう <see cref="ApplySongVolume"/> が参照する。</summary>
     float endFadeFactor = 1f;
     V6GameHudView hudCache;
 
@@ -250,7 +250,7 @@ public class MusicManager : MonoBehaviour
         GManager.played = false;
         GManager.nextNotes = 1;
         GManager.settledNoteCount = 0;
-        audioS.volume = GManager.BGMVolume;
+        audioS.volume = GManager.songVolume;
         StartText.SetActive(true);
 
         kakusi.SetActive(true);
@@ -869,7 +869,13 @@ public class MusicManager : MonoBehaviour
         streamAudioObject = new GameObject("FlashBeatStreamAudio");
         streamAudioPlayer = streamAudioObject.AddComponent<VideoPlayer>();
         streamAudioSource = streamAudioObject.AddComponent<AudioSource>();
-        streamAudioSource.volume = GManager.BGMVolume;
+        streamAudioSource.volume = GManager.songVolume;
+        // Issue #851: audioS と同じ mixer group (Main) へ流す。未設定だと
+        // mixer ルーティングを素通りして他経路と扱いがずれる。
+        if (audioS != null && audioS.outputAudioMixerGroup != null)
+        {
+            streamAudioSource.outputAudioMixerGroup = audioS.outputAudioMixerGroup;
+        }
 
         streamAudioPlayer.audioOutputMode = VideoAudioOutputMode.AudioSource;
         streamAudioPlayer.SetTargetAudioSource(0, streamAudioSource);
@@ -1241,11 +1247,11 @@ public class MusicManager : MonoBehaviour
         // accept every audio only container). Issue #823: bundled wav fallback
         // is gone, so a silent stream is a hard failure (error view offers
         // retry / back-to-select).
-        // BGM 音量 0 は利用者が選べる正常な設定で、プローブは音量適用後の
+        // 楽曲音量 0 は利用者が選べる正常な設定で、プローブは音量適用後の
         // ミックスを測るため RMS≈0 になる。音量 0 の間は無音判定を行わず、
         // 音量を上げた最初のフレームで検査する (PR #787 review)。
         if (audioMode == PlaybackSource.StreamSeparate && !fallbackChecked && mediaTime > 3f
-            && GManager.BGMVolume > 0f)
+            && GManager.songVolume > 0f)
         {
             fallbackChecked = true;
             float rms = levelProbe != null ? levelProbe.LastRms : 0f;
@@ -1390,18 +1396,17 @@ public class MusicManager : MonoBehaviour
     }
 
     /// <summary>
-    /// BGM チャンネル音量 (<see cref="GManager.BGMVolume"/>) の即時反映
+    /// プレイ楽曲チャンネル音量 (<see cref="GManager.songVolume"/>) の即時反映
     /// (ポーズ/オプション画面の音量変更など)。Main Volume は
     /// AudioListener.volume が担うため、ここの AudioSource には
-    /// BGMVolume だけを掛ける (OptionScene の audioBGM と同じ規則。
-    /// v0.2.1 までは mainVolume を掛けていて BGMVolume が演奏中に
-    /// 効かなかった — PR #787 review)。
+    /// songVolume だけを掛ける (二重適用しない。メニュー BGM は
+    /// <see cref="GManager.BGMVolume"/> を使う別チャンネル — Issue #851)。
     /// 演奏中の音源は <see cref="audioS"/> と <see cref="streamAudioSource"/>
     /// (StreamSeparate 経路) の 2 系統あるため、AudioSource を 1 つだけ
     /// 探して書き換える呼び出し側では片方が取り残される。
     /// 終端フェード中は最後に適用した係数を維持する。
     /// </summary>
-    public void ApplyBgmVolume()
+    public void ApplySongVolume()
     {
         float factor = endFadeApplied ? endFadeFactor : 1f;
         // audioS は Start で解決される。Start 前 (ポーズ画面が先に開く経路や
@@ -1409,11 +1414,11 @@ public class MusicManager : MonoBehaviour
         var source = audioS != null ? audioS : GetComponent<AudioSource>();
         if (source != null)
         {
-            source.volume = GManager.BGMVolume * factor;
+            source.volume = GManager.songVolume * factor;
         }
         if (streamAudioSource != null)
         {
-            streamAudioSource.volume = GManager.BGMVolume * factor;
+            streamAudioSource.volume = GManager.songVolume * factor;
         }
     }
 
@@ -1460,11 +1465,11 @@ public class MusicManager : MonoBehaviour
         endFadeFactor = factor;
         if (audioS != null)
         {
-            audioS.volume = GManager.BGMVolume * factor;
+            audioS.volume = GManager.songVolume * factor;
         }
         if (streamAudioSource != null)
         {
-            streamAudioSource.volume = GManager.BGMVolume * factor;
+            streamAudioSource.volume = GManager.songVolume * factor;
         }
         if (songVideo != null && songVideo.audioTrackCount > 0)
         {

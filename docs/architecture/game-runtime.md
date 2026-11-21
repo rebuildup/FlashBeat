@@ -32,7 +32,7 @@ build scenes は `Assets/Game/Scenes/` の Opening / Title / Select / Game / Res
 
 - song catalog: `SongName`, `Musician`, `SongURL`, `SBPM`, `Slevel`, `Shit`, `SongLong` の parallel array から `Songs` を構築
 - play state: `score`, `combo`, `perfect/great/bad/miss`, `noteSpeed`, `noteTiming`, `Start`, `StartTime`, `played`
-- settings: `mainVolume`, `effectVolume`, `BGMVolume`, `FlashBG`, `Flash`, `FlashT`
+- settings: `mainVolume` (AudioListener 全体), `songVolume` (プレイ楽曲), `BGMVolume` (メニュー背景動画), `effectVolume` (SE), `FlashBG`, `Flash`, `FlashT` (Issue #851 でプレイ楽曲とメニュー BGM を分離)
 - high score: `int[] Hiscore`。`SaveLoadManager` が `PlayerPrefs` の `"Hiscore"` に CSV で保存する
 
 play session の間は `GManager.ResetSession()` で combo / score を戻す（`GameSceneManager.RetryGame` が呼ぶ）。
