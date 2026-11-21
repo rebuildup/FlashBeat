@@ -67,6 +67,17 @@ namespace FlashBeat.UI.V6
             cache.Clear();
         }
 
+        /// <summary>
+        /// 遠隔取得の未完了数 (in-flight + キュー滞留)。計測用。
+        /// Issue #863: fetch は MaxConcurrentRequests で絞られ超過分がキューに
+        /// 残るため、RemoteFetchCount のスナップショット比較はキュー消化を
+        /// 待ってから取る必要がある。
+        /// </summary>
+        public static int RemotePendingCountForAudit
+        {
+            get { return remoteInFlight + remoteQueue.Count; }
+        }
+
         /// <summary>計測点を 0 に戻す (テスト用)。</summary>
         public static void ResetCountersForAudit()
         {

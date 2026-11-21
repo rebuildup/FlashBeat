@@ -817,11 +817,17 @@ public class AutoTestV6Interact : MonoBehaviour
             V6ContentCaches.InvalidateAll();
             float cold = 0f;
             yield return TimedSelect("cold", v => cold = v);
+            // Issue #863: 遠隔ジャケットは同時 2 本までで超過分はキュー滞留する。
+            // スナップショット前にキューが空になるまで待たないと、cold 訪問の
+            // 未消化分が warm の計測窓で RemoteFetchCount を押し上げ、
+            // 「2 回目で再取得しない」の判定が false FAIL する。
+            yield return WaitForJacketFetchDrain(10f);
             var before = CacheCounts();
 
             yield return LoadScene("TitleScene");
             float warm = 0f;
             yield return TimedSelect("warm", v => warm = v);
+            yield return WaitForJacketFetchDrain(10f);
             var after = CacheCounts();
 
             Debug.Log(Tag + " cache cold=" + cold.ToString("F2") + "s warm=" + warm.ToString("F2") + "s"
@@ -952,6 +958,20 @@ public class AutoTestV6Interact : MonoBehaviour
         {
             return "chartMeta=" + ChartMetaLoads
                 + " jacket=" + JacketLoads + "/cached=" + JacketCount;
+        }
+    }
+
+    /// <summary>
+    /// ジャケット遠隔取得の in-flight + キューが空になるまで待つ (Issue #863)。
+    /// 応答しない要求で永久に待たないよう timeout で打ち切る。
+    /// </summary>
+    private IEnumerator WaitForJacketFetchDrain(float timeoutSeconds)
+    {
+        float deadline = Time.unscaledTime + timeoutSeconds;
+        while (FlashBeat.UI.V6.V6JacketProvider.RemotePendingCountForAudit > 0
+            && Time.unscaledTime < deadline)
+        {
+            yield return null;
         }
     }
 
