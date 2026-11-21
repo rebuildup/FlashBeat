@@ -82,9 +82,17 @@ public static class ChartLyrics
         }
 
         ChartLyricsResult result = ResolveUncached(song);
-        cachedSnapshot = snapshot;
-        cachedSong = song;
-        cachedResult = result;
+        // Pending (リモート譜面の到着待ち) はキャッシュしない。
+        // 同じ (セッション, 曲) のまま譜面 JSON が後から届く経路
+        // (CloudChartHolder.Hold → GameScene 到達) で、古い Pending が
+        // 残り続けて歌詞が永遠に出ない事故を防ぐ。到着後の Resolve は
+        // 新しい状態を返してキャッシュされる。
+        if (result.State != ChartLyricsState.Pending)
+        {
+            cachedSnapshot = snapshot;
+            cachedSong = song;
+            cachedResult = result;
+        }
         return result;
     }
 

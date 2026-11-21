@@ -34,6 +34,7 @@ public class GameSceneManager : MonoBehaviour
     [SerializeField] public GameObject Flash;
 
     private string songName;
+    private SongData sessionSong;
 
     private TextData inputJson; // メンバ変数として TextData オブジェクトを宣言
 
@@ -62,6 +63,7 @@ public class GameSceneManager : MonoBehaviour
         SongData song = PlaySessionSnapshot.ResolveSong(GManager.songID);
         SongData fallback = song ?? GManager.GetSong(GManager.songID);
         songName = fallback != null ? fallback.title : string.Empty;
+        sessionSong = song;
         Load(songName, song);
 
     }
@@ -73,6 +75,22 @@ public class GameSceneManager : MonoBehaviour
         // いた (クラウド譜面の lyrics ブロックが HUD へ届かない根本原因)。
         LyricsResult = ChartLyrics.Resolve(song);
         this.inputJson = LyricsResult.Lyrics;
+    }
+
+    /// <summary>
+    /// Issue #789: Pending (リモート譜面の到着待ち) の間だけ毎フレーム
+    /// 再解決する。通常は Start 時点で譜面が確定しているが、万が一
+    /// 到着が遅れた場合でも、ChartLyrics が Pending をキャッシュしない
+    /// ためここで到着を拾って歌詞が出るようになる。
+    /// </summary>
+    void RefreshPendingLyrics()
+    {
+        if (LyricsResult == null || LyricsResult.State != ChartLyricsState.Pending)
+        {
+            return;
+        }
+        LyricsResult = ChartLyrics.Resolve(sessionSong);
+        inputJson = LyricsResult.Lyrics;
     }
 
     /// <summary>
@@ -144,6 +162,7 @@ public class GameSceneManager : MonoBehaviour
 
     void Update()
     {
+        RefreshPendingLyrics();
         if (!GManager.played)
         {
             return;
