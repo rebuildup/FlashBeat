@@ -51,16 +51,6 @@ namespace FlashBeat.UI.V6.Game.Loading
         private VideoPlayer videoPlayer;
         private RawImage videoRaw;
         private Image bgImage;
-
-        // Issue #824: 再生対象動画のサムネイルを静止画背景にする。
-        // グラデーション (bgImage) の上・loading.mp4 (videoRaw) の下。
-        // 取得できたら mp4 の代わりに表示し、失敗時は従来どおり
-        // mp4 → グラデーション (既定背景) に落ちる。
-        private RawImage thumbRaw;
-        private Texture2D thumbTexture;
-        private string thumbVideoId = "";
-        private int thumbGeneration;
-        private bool thumbReady;
         private bool videoErrorLogged;
         private bool videoErrored;
         private bool shown;

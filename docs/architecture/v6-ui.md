@@ -80,7 +80,7 @@ HUD 内の "Video Dim" は無効化されている (順序が崩れるため)。
 | ベストスコア | `GManager.BestScoreOf(songId)` (stable songId + 譜面版, Issue #189) |
 | ランキング | `RankingClient` (オンライン。取得失敗時は空リスト + エラー表示) |
 | リザルト | `GManager` のプレイセッション実値 (スコア / コンボ / 判定数) |
-| ジャケット | `Assets/Game/Resources/V6/select/jacket/` (Pencil 設計の正式画像 26 枚。無い曲だけ空枠) |
+| ジャケット | `V6JacketProvider` 経由の YouTube サムネイル (`videoId` → `i.ytimg.com`)。ローカル同梱画像は Issue #823/#794 で廃止。ジャケットは曲の識別表示専用で、背景・ローディング面には使わない (Issue #845) |
 
 固定データ (サンプル曲名・"988,513" 等の仮スコア) は表示しない。
 

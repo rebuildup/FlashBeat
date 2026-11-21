@@ -69,9 +69,6 @@ public class MusicManager : MonoBehaviour
     /// </summary>
     CancellationTokenSource mediaCancellation;
 
-    /// <summary>Issue #824: kakusi に貼る開始前背景 (動画サムネイル)。</summary>
-    SongBackdrop songBackdrop;
-
     bool mediaReady;
     bool playbackStarted;
     /// <summary>
@@ -257,11 +254,6 @@ public class MusicManager : MonoBehaviour
         StartText.SetActive(true);
 
         kakusi.SetActive(true);
-        // Issue #824: 開始前 (Loading / Space 待ち / カウントダウン) の背景に
-        // 再生対象動画のサムネイルを出す。再生開始で kakusi が隠れ、最初の
-        // 映像フレームへそのまま切り替わる (黒画面フラッシュなし)。
-        songBackdrop = new SongBackdrop(kakusi);
-        songBackdrop.Begin(sessionSong != null ? sessionSong.videoId : "");
         for (int i = 0; i < YPlayer.Length; i++)
         {
             YPlayer[i].SetActive(false);
@@ -316,13 +308,6 @@ public class MusicManager : MonoBehaviour
 
     void OnDestroy()
     {
-        // Issue #824: 実行時に作った背景材質を破棄する (シーン遷移で残さない)。
-        if (songBackdrop != null)
-        {
-            songBackdrop.Dispose();
-            songBackdrop = null;
-        }
-
         // A Retry (scene reload) or teardown cancels an in-flight download: the
         // yt-dlp process is killed (YouTubeStreamResolver registers the kill on
         // the token) and the half written file is removed (issue #184 review B1).
