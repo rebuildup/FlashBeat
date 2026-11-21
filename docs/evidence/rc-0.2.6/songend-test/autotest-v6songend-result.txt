@@ -1,0 +1,14 @@
+[AutoTestV6SongEnd] RESULT pass=35 fail=0
+song=TEST
+songEndState=Completed
+forcedByDeadline=False
+scene=ResultScene
+perfect=8 great=0 bad=0 miss=3
+judged=11
+settled=11
+chartNotes=11 runtimeNotes=11
+score=735272 combo=8 maxCombo=8 comboPeak=8
+rankingMode=Online
+loadingObserved=True
+loadingVisibleSeconds=9.62
+judgedMatchesChart=True
