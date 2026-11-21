@@ -113,6 +113,27 @@ requestValidator.addSchema(chartSchema as unknown as Schema, chartSchemaId);
  * or one diagnostic per schema error, keyed by JSON path.
  */
 export function validatePublishRequest(body: unknown): PublishValidation {
+  // The interpreter throws on a missing required member (e.g. `chart`
+  // absent) instead of reporting it, which surfaced as a 500. Answer the
+  // same `required` diagnostics the schema would produce.
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    return {
+      ok: false,
+      diagnostics: [{ path: "(root)", message: "must be a JSON object" }],
+    };
+  }
+  const missing = ["title", "artist", "youtubeId", "level", "durationSec", "chart"].filter(
+    (key) => (body as Record<string, unknown>)[key] === undefined,
+  );
+  if (missing.length > 0) {
+    return {
+      ok: false,
+      diagnostics: missing.map((key) => ({
+        path: `/${key}`,
+        message: "is required",
+      })),
+    };
+  }
   const result = requestValidator.validate(body);
   if (!result.valid) {
     // The interpreter reports every level of the tree ("A subschema had
