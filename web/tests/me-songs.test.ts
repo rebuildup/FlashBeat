@@ -450,6 +450,19 @@ describe("publish validation", () => {
     assert.ok(body.diagnostics.some((d) => d.path.includes("block")));
   });
 
+  it("returns 422 (not 500) when the chart member is missing", async () => {
+    const body = publishBody() as Record<string, unknown>;
+    delete body.chart;
+    const response = await api(`/api/v1/me/drafts/${draftId}/publish`, {
+      method: "POST",
+      cookie: author.cookie,
+      body,
+    });
+    assert.equal(response.status, 422);
+    const parsed = (await response.json()) as { diagnostics: { path: string }[] };
+    assert.ok(parsed.diagnostics.some((d) => d.path === "/chart"));
+  });
+
   it("publishes the draft: catalog entry, version 1, ownership, rights", async () => {
     const response = await api(`/api/v1/me/drafts/${draftId}/publish`, {
       method: "POST",
