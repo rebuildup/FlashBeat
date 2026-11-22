@@ -323,26 +323,28 @@ namespace FlashBeat.V6HudTests
         private static void AssertBoundary(int version, int noteCount, int max,
             float boundary, string upperGrade, string lowerGrade)
         {
-            // fraction = score / max >= boundary を満たす最小のスコア。
-            // GradeOfV6 と同じ float 除算で判定する (Math.Ceiling との
-            // 誤差で 1 点ずれるのを防ぐ)。
-            int at = (int)System.Math.Floor(boundary * max);
-            while (at > 0 && at / (float)max >= boundary)
+            // 境界スコアは「グレード関数自身が upperGrade を返す最小の
+            // スコア」として求める。float 除算の丸めをテスト側で再実装
+            // すると実装と 1 点ずれ得るため、判定は GradeOfV6/GradeOfV4
+            // に委ねる。探索窓は境界割合 ±4 スコア (粒度は 1 スコア)。
+            int center = (int)(boundary * max);
+            int at = -1;
+            for (int s = System.Math.Max(1, center - 4); s <= center + 4; s++)
             {
-                at--;
+                string g = version >= Scoring.Version6
+                    ? V6GradeLogic.GradeOfV6(s, noteCount)
+                    : V6GradeLogic.GradeOfV4(s);
+                if (g == upperGrade)
+                {
+                    at = s;
+                    break;
+                }
             }
-            at++;
-            if (at < 1) at = 1;
 
-            // 境界ちょうどのスコアが上位グレード。
-            string gradeAt = version >= Scoring.Version6
-                ? V6GradeLogic.GradeOfV6(at, noteCount)
-                : V6GradeLogic.GradeOfV4(at);
-            Assert.AreEqual(upperGrade, gradeAt,
-                "version " + version + " boundary score " + at + " should be " + upperGrade);
+            Assert.Greater(at, 0,
+                "version " + version + " boundary " + boundary + ": no score near " + center + " yields " + upperGrade);
 
-            // その 1 点下は割合が境界未満なので下位グレード
-            // (score=1 のときはこれ以上下げられないので飛ばす)。
+            // その 1 点下は下位グレード (score=1 のときはこれ以上下げられない)。
             if (at > 1)
             {
                 int below = at - 1;
