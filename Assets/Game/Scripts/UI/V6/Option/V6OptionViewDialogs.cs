@@ -11,7 +11,7 @@ namespace FlashBeat.UI.V6.Option
 {
     /// <summary>
     /// V6OptionView の確認モーダル部分 (Issue #385 Phase 2.5 で分割)。
-    /// Clear save data / Media cache / Key Layout リセットの確認ダイアログ
+    /// Clear save data / 映像キャッシュ / Key Layout リセットの確認ダイアログ
     /// (ConfirmTexts/BuildConfirmClearModal) と、開く・閉じる・確定の振り分け、
     /// キー設定モーダル (V6KeyConfigModal) の開閉を持つ。partial class のため
     /// フィールド・メソッドは V6OptionView 本体と共有する。
@@ -35,15 +35,16 @@ namespace FlashBeat.UI.V6.Option
             if (confirmKind == ConfirmKind.MediaCache)
             {
                 // Issue #352: 消去対象とサイズを明示する。破壊的操作は
-                // 「Clear save data」と同じく確認してから実行する。
-                title = "Media cache";
+                // 「セーブデータ消去」と同じく確認してから実行する。
+                // Issue #872: タイトルは行名 (DataCacheRowLabel) と同じ文言。
+                title = DataCacheRowLabel;
                 desc = "ダウンロードした楽曲映像のキャッシュ (" + MediaCacheSizeLabel() + ") を消去します。\n"
                     + "次回プレイ時に再ダウンロードが必要になります。";
                 confirmLabel = "消去する";
                 return;
             }
 
-            title = "Clear save data";
+            title = DataSaveRowLabel;
             desc = "ハイスコアとキー設定 (レーン・メニュー操作) を消去します。\n実行後は元に戻せません。";
             confirmLabel = "消去する";
         }
@@ -101,7 +102,7 @@ namespace FlashBeat.UI.V6.Option
                 26f, V6Tokens.ButtonPrimaryLabel, TextAlignmentOptions.Center);
         }
 
-        // --- Clear save data の確認モーダル (マウスとキーボードで同じ結果にする) ---
+        // --- セーブデータ消去 / 映像キャッシュの確認モーダル (マウスとキーボードで同じ結果にする) ---
 
         /// <summary>確認モーダルを開く (まだ何も消去しない)。</summary>
         private void OpenClearConfirm()
@@ -116,7 +117,7 @@ namespace FlashBeat.UI.V6.Option
         }
 
         /// <summary>
-        /// Media cache の消去確認を開く (Issue #352)。行のクリック / Enter では
+        /// 映像キャッシュの消去確認を開く (Issue #352)。行のクリック / Enter では
         /// 消去せず、モーダルの「消去する」で初めて実行する。
         /// </summary>
         private void OpenMediaCacheConfirm()
@@ -152,7 +153,7 @@ namespace FlashBeat.UI.V6.Option
             Rebuild();
         }
 
-        /// <summary>Media cache を消去してモーダルを閉じる (#352)。表示値は実測サイズ。</summary>
+        /// <summary>映像キャッシュを消去してモーダルを閉じる (#352)。表示値は実測サイズ。</summary>
         private void ConfirmClearMediaCache()
         {
             ClearMediaCache();

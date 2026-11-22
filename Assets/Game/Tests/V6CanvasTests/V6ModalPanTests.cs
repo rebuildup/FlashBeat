@@ -246,7 +246,7 @@ namespace FlashBeat.V6CanvasTests
                 pan.Pan = Vector2.zero; // 開く前の位置を明示 (初期中央と区別する)
                 Vector2 before = pan.Pan;
 
-                // Data タブ (index 3) の "Media cache" 行を実行 → 確認モーダル。
+                // Data タブ (index 3) の "映像キャッシュ" 行を実行 → 確認モーダル。
                 view.SelectTabForAudit(3);
                 view.SelectRowForAudit(0);
                 view.ActivateSelectedRowForAudit();
