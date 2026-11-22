@@ -50,14 +50,6 @@ namespace FlashBeat.UI.V6.Game.Hud
         // --- 生成した部品 (歌詞系) ---
         private TextMeshProUGUI lyricText;
         private GameObject lyricBox;
-        private Image lyricBoxImage;
-        /// <summary>
-        /// 歌詞ボックスの 2 種スプライト (Issue #789/#735):
-        /// 回廊内側にも枠を残す版 (ノーツ非描画の状態用) と、
-        /// 回廊を完全に抜く版 (演奏中 = ノーツが帯を通過し得る用)。
-        /// </summary>
-        private Sprite lyricBoxSpriteIdle;
-        private Sprite lyricBoxSpritePlayback;
 
         // --- 歌詞 ---
         private GameSceneManager lyricSource;
@@ -70,9 +62,6 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// <summary>再開カウントダウン (design o0zh7 の Countdown xuQnv)。歌詞と排他。</summary>
         private GameObject countdownOverlay;
         private TextMeshProUGUI countdownText;
-        private Image countdownPanelImage;
-        private Sprite countdownSpriteIdle;
-        private Sprite countdownSpritePlayback;
 
         /// <summary>曲終了の黒フェード (全画面) と「終了」表示 (design xXKic)。</summary>
         private Image endFade;
@@ -96,26 +85,10 @@ namespace FlashBeat.UI.V6.Game.Hud
             var boxImage = box.GetComponent<Image>();
             boxImage.raycastTarget = false;
 
-            // Issue #760: パネルがレーン帯を暗くしないよう、上部シェード
-            // (V6TopShadeHole) と同じレーン回廊カットアウトを焼き込んだ
-            // スプライトへ差し替える。9-slice の角丸は帯の抜きと両立しない
-            // ため、実寸テクスチャ (1 texel = 1 canvas px) + Simple で使う。
-            // 暗幕はレーン帯の外側に残るので、パネルの縁の見た目は従来どおり。
-            Vector2 slotOrigin = V6HudLogic.LyricSlotOrigin(
-                CanvasSize().x, CanvasSize().y);
-            // Issue #881: アイドル (べた塗り) と演奏中 (回廊内側を
-            // 薄い暗幕に留める) の 2 種のスプライトを先に焼いておき、
-            // ノーツが帯を通過し得るかで <see cref="SyncLyricBoxFrame"/>
-            // が切り替える。枠はどちらでも常に残る。
-            lyricBoxSpriteIdle = V6PanelCorridorHole.ForPanel(
-                slotOrigin.x, slotOrigin.y, LyricBoxWidth(), slotHeight,
-                CanvasSize(), LyricBoxCornerRadius, 1f);
-            lyricBoxSpritePlayback = V6PanelCorridorHole.ForPanel(
-                slotOrigin.x, slotOrigin.y, LyricBoxWidth(), slotHeight,
-                CanvasSize(), LyricBoxCornerRadius, V6PanelCorridorHole.CorridorInsideAlphaDuringNotes);
-            boxImage.sprite = PanelSpriteForState(lyricBoxSpriteIdle, lyricBoxSpritePlayback);
-            lyricBoxImage = boxImage;
-            boxImage.type = Image.Type.Simple;
+            // Issue #881: 歌詞パネルは半透明のべた塗り角丸 (V5Ui.Panel
+            // 既定) に戻す。回廊カットアウトはパネルを消してしまうため廃止
+            // (ノーツは半透明パネル越しに判読できる — 優先順位は
+            // 歌詞/パネルの視認性)。
             lyricBox = box;
             // Issue #734: 初期状態は非表示。最初の UpdateLyrics (毎フレーム) が
             // 設定値と再生状態のポリシーで表示/非表示を決める。
@@ -185,25 +158,12 @@ namespace FlashBeat.UI.V6.Game.Hud
             rt.anchoredPosition = LyricSlotAnchoredPosition();
 
             // v0.2.1 (#734 実機レビュー): カウントダウン / START も
-            // 歌詞パネルと同じ「枠」として出す。テキストだけを浮かべると
-            // 開始・終了フェーズでパネル自体が消えたように見える
-            // (終了オーバーレイと同じ LyricBoxColor + 回廊考慮スプライト)。
+            // 歌詞パネルと同じ半透明パネルとして出す (Issue #881:
+            // 枠だけの表示は廃止し、歌詞パネルと同一のべた塗りに統一)。
             var panel = V5Ui.Panel(countdownOverlay, "Panel", rt.sizeDelta,
                 LyricBoxColor, LyricBoxCornerRadius);
             var panelImage = panel.GetComponent<Image>();
             panelImage.raycastTarget = false;
-            Vector2 cdSlotOrigin = V6HudLogic.LyricSlotOrigin(
-                CanvasSize().x, CanvasSize().y);
-            countdownSpriteIdle = V6PanelCorridorHole.ForPanel(
-                cdSlotOrigin.x, cdSlotOrigin.y, LyricBoxWidth(), slotHeight,
-                CanvasSize(), LyricBoxCornerRadius, 1f);
-            countdownSpritePlayback = V6PanelCorridorHole.ForPanel(
-                cdSlotOrigin.x, cdSlotOrigin.y, LyricBoxWidth(), slotHeight,
-                CanvasSize(), LyricBoxCornerRadius, V6PanelCorridorHole.CorridorInsideAlphaDuringNotes);
-            // 初期状態は開始待ち (= ノーツ非描画) なので枠あり。
-            panelImage.sprite = countdownSpriteIdle;
-            countdownPanelImage = panelImage;
-            panelImage.type = Image.Type.Simple;
             var panelRt = V6Layout.RectOf(panel);
             panelRt.anchorMin = Vector2.zero;
             panelRt.anchorMax = Vector2.one;
@@ -249,12 +209,6 @@ namespace FlashBeat.UI.V6.Game.Hud
             countdownText.text = number.ToString();
             // START 表示から戻ってきた場合に備え、数字のサイズへ戻す。
             countdownText.fontSize = V6HudLogic.CountdownFontSize(CanvasSize().y);
-            // 再開カウントダウンはポーズ中 = 静止ノーツが画面に残るので
-            // 演奏中スプライト (回廊内側は薄い暗幕) を使う (Issue #881)。
-            if (countdownPanelImage != null && countdownSpritePlayback != null)
-            {
-                countdownPanelImage.sprite = countdownSpritePlayback;
-            }
             countdownOverlay.SetActive(true);
             SetLyricLinesVisible(false);
             SetLyricPromptVisible(false);
@@ -274,11 +228,6 @@ namespace FlashBeat.UI.V6.Game.Hud
             // 状態表示ではなく主役に見え、カウントダウンとも区別が付かない。
             countdownText.text = "START";
             countdownText.fontSize = V6HudLogic.StartHoldFontSize(CanvasSize().y);
-            // 開始待ちはノーツ非描画なのでアイドルスプライト (べた塗り)。
-            if (countdownPanelImage != null && countdownSpriteIdle != null)
-            {
-                countdownPanelImage.sprite = countdownSpriteIdle;
-            }
             countdownOverlay.SetActive(true);
             SetLyricLinesVisible(false);
             SetLyricPromptVisible(false);
@@ -545,43 +494,6 @@ namespace FlashBeat.UI.V6.Game.Hud
                 : LyricDataPresence.None;
         }
 
-        /// <summary>
-        /// ノーツが歌詞パネル帯 (レーン回廊) を通過し得るか (Issue #735/#789)。
-        /// 演奏中かつ全判定未確定の間はノーツが画面に存在する —
-        /// ポーズで静止していても同じ扱い (静止ノーツも暗くしてはいけない)。
-        /// 開始待ち・曲終了後はノーツが無いので枠ありスプライトでよい。
-        /// </summary>
-        private static bool NotesMayCrossPanelBand()
-        {
-            return GManager.played && !GManager.judgmentsComplete;
-        }
-
-        /// <summary>状態に応じたスプライトを選ぶ (アイドル=べた塗り / 演奏中=回廊を薄く残す)。</summary>
-        private static Sprite PanelSpriteForState(Sprite idle, Sprite playback)
-        {
-            return NotesMayCrossPanelBand() ? playback : idle;
-        }
-
-        /// <summary>
-        /// 歌詞ボックスのスプライトを現在の再生状態へ同期する。
-        /// ノーツが帯を通過し得る演奏中は回廊内側を薄い暗幕に留め
-        /// (Issue #881: パネルの存在を消さない)、それ以外はべた塗り。
-        /// 枠はどちらのスプライトでも常に残る。
-        /// </summary>
-        private void SyncLyricBoxFrame()
-        {
-            if (lyricBoxImage == null || lyricBoxSpriteIdle == null
-                || lyricBoxSpritePlayback == null)
-            {
-                return;
-            }
-
-            Sprite want = PanelSpriteForState(lyricBoxSpriteIdle, lyricBoxSpritePlayback);
-            if (lyricBoxImage.sprite != want)
-            {
-                lyricBoxImage.sprite = want;
-            }
-        }
 
         /// <summary>
         /// 歌詞スロットの枠 (lyricBox) の可視性ポリシー (Issue #734 / #789)。
@@ -609,7 +521,6 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// </summary>
         private void UpdateLyrics()
         {
-            SyncLyricBoxFrame();
 
             // カウントダウン中・曲終了表示中は歌詞と Start Prompt を再表示しない。
             if (countdownOverlay != null && countdownOverlay.activeSelf)
