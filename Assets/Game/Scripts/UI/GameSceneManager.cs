@@ -36,6 +36,12 @@ public class GameSceneManager : MonoBehaviour
     private string songName;
     private SongData sessionSong;
 
+    // Issue #881: 歌詞が Pending に張り付いたとき、原因を Player.log から
+    // 復元できるようにする診断。Pending が続く間だけ時間を数え、
+    // 閾値を超えたら 1 回だけ状態を吐く (常時ログは出さない)。
+    private float lyricPendingSeconds;
+    private bool lyricPendingWarned;
+
     private TextData inputJson; // メンバ変数として TextData オブジェクトを宣言
 
     /// <summary>
@@ -87,10 +93,42 @@ public class GameSceneManager : MonoBehaviour
     {
         if (LyricsResult == null || LyricsResult.State != ChartLyricsState.Pending)
         {
+            lyricPendingSeconds = 0f;
             return;
         }
         LyricsResult = ChartLyrics.Resolve(sessionSong);
         inputJson = LyricsResult.Lyrics;
+
+        if (LyricsResult.State == ChartLyricsState.Pending)
+        {
+            // 開始待ち (Space 待ち) の間の Pending は正常なので、
+            // 実際に演奏が始まってからの滞留だけを数える。
+            if (GManager.played)
+            {
+                lyricPendingSeconds += Time.unscaledDeltaTime;
+            }
+            if (GManager.played && !lyricPendingWarned
+                && lyricPendingSeconds >= 8f)
+            {
+                lyricPendingWarned = true;
+                SongData s = sessionSong;
+                bool holderHas = s != null && s.isRemote
+                    && CloudChartHolder.TryGetForSong(s.remoteId, out _, out _);
+                bool snapshotHas = s != null
+                    && PlaySessionSnapshot.TryGetChartJson(s, out _);
+                Debug.LogWarning($"[GameSceneManager] lyrics stuck Pending for " +
+                                 $"{lyricPendingSeconds:F1}s during playback: " +
+                                 $"song='{(s != null ? s.title : "null")}' " +
+                                 $"remoteId='{(s != null ? s.remoteId : null)}' " +
+                                 $"chartVersion={(s != null ? s.chartVersion : 0)} " +
+                                 $"snapshotChart={snapshotHas} holderChart={holderHas} " +
+                                 $"session={(PlaySessionSnapshot.Current != null ? "pinned" : "none")}");
+            }
+        }
+        else
+        {
+            lyricPendingSeconds = 0f;
+        }
     }
 
     public void RetireGame()
