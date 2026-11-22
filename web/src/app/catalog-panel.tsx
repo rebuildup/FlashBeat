@@ -290,7 +290,13 @@ const publishNote = css({
   color: "fg.subtle",
   fontSize: "xs",
   gridColumn: "1 / -1",
-  paddingBottom: "2",
+  /**
+   * Issue #802 review: the note sits above the column header as a caption
+   * strip. Its inline padding matches the row text (`rowBody` px-4 plus the
+   * link inset), so it no longer reads as an orphaned line under the headers.
+   */
+  paddingBlock: "2",
+  paddingInline: "4",
 });
 
 const legend = css({
@@ -489,6 +495,9 @@ export function CatalogPanel({
             </div>
             <div className={tableContainer}>
               <div className={list} data-testid="catalog-list" onKeyDown={onListKeyDown}>
+                <p className={publishNote} data-testid="publish-requirement">
+                  公開はスタッフ（要トークン）
+                </p>
                 <div className={header} aria-hidden="true">
                   <span>曲</span>
                   <span>Lv</span>
@@ -498,9 +507,6 @@ export function CatalogPanel({
                   <span>Ver</span>
                   <span />
                 </div>
-                <p className={publishNote} data-testid="publish-requirement">
-                  公開はスタッフ（要トークン）
-                </p>
                 {songs.map((song) => (
                   <div key={song.id} className={`row ${row}`}>
                     <Link className={rowLink} href={chartHref(song)} data-row-link>

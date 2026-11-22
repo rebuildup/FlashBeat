@@ -100,6 +100,13 @@ public class AutoTestV6Screens : MonoBehaviour
     {
         if (string.IsNullOrEmpty(sceneName)) { yield break; }
 
+        // ResultScene の初回 Refresh はシーンロード中に走り run* 値を固定する
+        // ため、境界スコア注入 (#870) はロード前に適用する。
+        if (sceneName == "ResultScene")
+        {
+            ApplyResultScoreArgs();
+        }
+
         SceneManager.LoadScene(sceneName);
         yield return new WaitForSecondsRealtime(SettleSeconds);
         if (SceneManager.GetActiveScene().name != sceneName)
@@ -383,6 +390,38 @@ public class AutoTestV6Screens : MonoBehaviour
         }
 
         yield return CaptureAndAudit(sceneName, reports);
+    }
+
+    /// <summary>
+    /// ResultScene 監査用のスコア注入 (#870)。
+    /// `-autotest-result-score` (必須) と任意で
+    /// `-autotest-result-chart-notes` / `-autotest-result-perfect` /
+    /// `-autotest-result-great` / `-autotest-result-bad` /
+    /// `-autotest-result-miss` を読み、GManager のスコア状態を差し替える。
+    /// 1 つでも指定があれば true を返し、呼び出し側が Refresh する。
+    /// </summary>
+    private static bool ApplyResultScoreArgs()
+    {
+        string scoreRaw = V6ScreenAudit.GetArg("-autotest-result-score");
+        if (string.IsNullOrEmpty(scoreRaw)
+            || !int.TryParse(scoreRaw, out int score))
+        {
+            return false;
+        }
+
+        GManager.score = score;
+        GManager.chartNoteCount = AuditIntArg("-autotest-result-chart-notes", GManager.chartNoteCount);
+        GManager.perfect = AuditIntArg("-autotest-result-perfect", GManager.perfect);
+        GManager.great = AuditIntArg("-autotest-result-great", GManager.great);
+        GManager.bad = AuditIntArg("-autotest-result-bad", GManager.bad);
+        GManager.miss = AuditIntArg("-autotest-result-miss", GManager.miss);
+        return true;
+    }
+
+    private static int AuditIntArg(string key, int fallback)
+    {
+        string raw = V6ScreenAudit.GetArg(key);
+        return !string.IsNullOrEmpty(raw) && int.TryParse(raw, out int value) ? value : fallback;
     }
 
     private IEnumerator CaptureAndAudit(string label, List<ScreenReport> reports)

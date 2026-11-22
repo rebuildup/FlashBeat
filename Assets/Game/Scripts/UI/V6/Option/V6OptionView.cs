@@ -19,7 +19,7 @@ namespace FlashBeat.UI.V6.Option
     ///   Option": FHD (96,54) / 2K (416,234) / Mac (416,346)) で画面中央へ配置する。
     /// - 実データ: GManager (noteSpeed / noteTiming / Flash / FlashT / FlashBG / 音量) +
     ///   OptionSettings (保存) + KeyBindings / KeyConfigUI (キー配列) + PlaySession
-    ///   (Key Guide / Lyrics) + MediaCacheManager (Media cache)。サンプル値は書かない。
+    ///   (Key Guide / Lyrics) + MediaCacheManager (映像キャッシュ)。サンプル値は書かない。
     /// - 設定の書き戻しは既存 API 経由 (OptionSceneManager の SpeedUp/Down・TimingUp/Down、
     ///   GManager 直接 + OptionSettings.Save())。新しい保存経路は作らない。
     /// - design にあるが実データの無い行は表示しない (固定値のダミーは作らない)。
@@ -61,9 +61,15 @@ namespace FlashBeat.UI.V6.Option
         /// <summary>確認モーダルの種類 (issue-162 C-6: Key Layout のリセットも確認する)。</summary>
         private enum ConfirmKind { ClearSaveData, ResetKeyLayout, MediaCache }
 
+        // Issue #872: Data タブの行名と確認ダイアログのタイトルは同じ文言を使う。
+        // 内部実装名 (MediaCacheManager / save data) ではなく、ユーザーが
+        // 消去対象を理解できる日本語の操作名に統一する。
+        private const string DataCacheRowLabel = "映像キャッシュ";
+        private const string DataSaveRowLabel = "セーブデータ消去";
+
         private ConfirmKind confirmKind = ConfirmKind.ClearSaveData;
 
-        /// <summary>Clear save data の実行結果 (消去完了の文言。空なら未実行)。</summary>
+        /// <summary>セーブデータ消去の実行結果 (消去完了の文言。空なら未実行)。</summary>
         private string clearResult = "";
 
         // --- Issue #415: 骨格保持の差分更新 ---
@@ -185,7 +191,7 @@ namespace FlashBeat.UI.V6.Option
         // Issue #733: Play / Display / Sound の行スキーマは
         // <see cref="V6SettingsCatalog"/> が単一ソースとして持ち、
         // Pause の設定画面と同じ行・同じ順序・同じ値書式・同じ保存経路を共有する。
-        // ここに残るのは Option 固有の Data タブ (キャッシュ / セーブデータ操作) だけ。
+        // ここに残るのは Option 固有の Data タブ (映像キャッシュ / セーブデータ消去) だけ。
 
         private List<V6SettingRow> RowsForTab(int tab)
         {
@@ -201,20 +207,20 @@ namespace FlashBeat.UI.V6.Option
         {
             return new List<V6SettingRow>
             {
-                new V6SettingRow("Media cache",
+                new V6SettingRow(DataCacheRowLabel,
                     () => MediaCacheSizeLabel(),
                     null,
                     OpenMediaCacheConfirm,
-                    "Media cache",
-                    "ダウンロードした楽曲映像のキャッシュ。消すと次回プレイ時に再ダウンロードします。",
+                    DataCacheRowLabel,
+                    "ダウンロードした楽曲映像のキャッシュ。消去すると次回プレイ時に再ダウンロードが必要になります。",
                     danger: true,
                     isAction: true),
-                new V6SettingRow("Clear save data",
+                new V6SettingRow(DataSaveRowLabel,
                     () => clearResult,
                     null,
                     OpenClearConfirm,
-                    "Clear save data",
-                    "ハイスコアとキー設定 (レーン・メニュー操作) を消去します。確認してから実行されます。",
+                    DataSaveRowLabel,
+                    "ハイスコアとキー設定 (レーン・メニュー操作) を消去します。実行後は元に戻せません。",
                     danger: true,
                     isAction: true),
             };

@@ -144,4 +144,32 @@ describe("studio grid contract (issue #802)", () => {
     expect(code, `${file} must use contentArea`).toContain("contentArea");
     expect(code, `${file} must not restate the rail track`).not.toContain(RAIL_TRACK);
   });
+
+  /**
+   * The content measure (issue #802, program #869): the work column is
+   * capped at `CONTENT_MAX_WIDTH` and centered. The literal lives only in
+   * `shell-metrics.ts`; `studio-frame.tsx` composes `contentMeasure` and
+   * workspace pages opt out through the `fluid` prop — they must not
+   * restate the width themselves.
+   */
+  const CONTENT_MAX = 'CONTENT_MAX_WIDTH = "90rem"';
+
+  it("defines the content measure once, in shell-metrics", () => {
+    const metrics = readFileSync(join(WEB_ROOT, "src", "app", "shell-metrics.ts"), "utf8");
+    expect(metrics).toContain(CONTENT_MAX);
+    expect(metrics).toContain("contentMeasure");
+    expect(metrics).toContain("maxWidth: CONTENT_MAX_WIDTH");
+  });
+
+  it("studio-frame composes the shared content measure", () => {
+    const code = stripComments(readFileSync(join(WEB_ROOT, GRID_SHELLS[0]), "utf8"));
+    expect(code, "studio-frame must use contentMeasure").toContain("contentMeasure");
+    expect(code, "studio-frame must not restate the measure").not.toContain('"90rem"');
+  });
+
+  it("pages/layout routes the fluid opt-out for workspace surfaces", () => {
+    const code = stripComments(readFileSync(join(WEB_ROOT, "pages", "layout.tsx"), "utf8"));
+    expect(code, "layout must pass the fluid prop").toContain("fluid=");
+    expect(code, "layout must not restate the measure").not.toContain('"90rem"');
+  });
 });

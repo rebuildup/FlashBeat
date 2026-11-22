@@ -1,7 +1,7 @@
 import { cx, css } from "styled-system/css";
 import type { ReactNode } from "react";
 import { Sidebar } from "./sidebar";
-import { shellColumns } from "./shell-metrics";
+import { contentMeasure, shellColumns } from "./shell-metrics";
 
 /**
  * The persistent frame of the Studio (issue #801).
@@ -43,16 +43,24 @@ const mainFixed = css({
 
 export function StudioFrame({
   fixed = false,
+  fluid = false,
   children,
 }: {
   /** `true` locks the shell to the viewport (canvas and form pages). */
   fixed?: boolean;
+  /**
+   * `true` lets the work column use the whole track on ultrawide
+   * viewports. Reserved for workspace surfaces that own a canvas (the
+   * chart editor); every other page keeps the shared content measure
+   * (`shell-metrics.ts`, issue #802).
+   */
+  fluid?: boolean;
   children: ReactNode;
 }) {
   return (
     <div className={cx(shell, shellColumns)} data-fixed={fixed ? "true" : undefined}>
       <Sidebar />
-      <main id="studio-content" className={cx(main, fixed && mainFixed)}>
+      <main id="studio-content" className={cx(main, !fluid && contentMeasure, fixed && mainFixed)}>
         {children}
       </main>
     </div>

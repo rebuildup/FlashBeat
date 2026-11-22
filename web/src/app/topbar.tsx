@@ -55,9 +55,10 @@ const selectRoot = css({
   /** Definite basis so Sort/Level pack into one row (issue #166).
    * Issue #802 review: on narrow viewports the selects must grow into the
    * wrapped row instead of staying 8rem — a fixed basis squeezed the level
-   * value down to "すべて…". */
-  flex: { base: "1 1 8rem", md: "0 0 8rem" },
-  minWidth: "8rem",
+   * value down to "すべて…". The 9rem basis keeps "すべてのレベル" whole:
+   * at 8rem the value ellipsized even on desktop. */
+  flex: { base: "1 1 9rem", md: "0 0 9rem" },
+  minWidth: "9rem",
   flexShrink: 0,
 });
 

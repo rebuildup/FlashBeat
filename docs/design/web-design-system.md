@@ -13,7 +13,8 @@ work area next to it.
 | Region | Width | Notes |
 |---|---|---|
 | Rail (sidebar) | `13rem` (`208px`) fixed track | `gridTemplateColumns: "13rem minmax(0, 1fr)"` on `md+` in both `app-shell.tsx` and `studio-layout.tsx` |
-| Work area | `minmax(0, 1fr)` | owns its own vertical scroll (`overflow-y: auto`); the document does not scroll on `md+` |
+| Work area | `minmax(0, 1fr)` track, content capped | the `<main>` column composes `contentMeasure`: full width up to `CONTENT_MAX_WIDTH` (`90rem` / 1440px, `shell-metrics.ts`), centered with auto margins on wider viewports so ultrawide screens get gutters instead of stretched rows |
+| Workspace exception | fluid | surfaces that own a canvas (the chart editor, `/chart`) opt out via `StudioFrame`'s `fluid` prop in `pages/layout.tsx`; forms keep their own narrower measures (`34rem`/`44rem` cards) inside the bounded column |
 | Narrow (`< md`) | single column | the rail becomes a sticky top bar / disclosure; content padding `p-4` |
 
 Breakpoints are Panda's defaults (`sm 640 / md 768 / lg 1024 / xl 1280 /
@@ -21,7 +22,9 @@ Breakpoints are Panda's defaults (`sm 640 / md 768 / lg 1024 / xl 1280 /
 (~832px of fixed tracks + padding must fit beside the rail — issue #515).
 
 **Enforced**: `src/theme/design-system.test.ts` fails if either shell stops
-using the shared `13rem minmax(0, 1fr)` rail track.
+using the shared `13rem minmax(0, 1fr)` rail track, if the content measure
+literal is restated outside `shell-metrics.ts`, or if `studio-frame.tsx` /
+`pages/layout.tsx` stop composing `contentMeasure` / the `fluid` opt-out.
 
 ## 2. Semantic color tokens
 

@@ -90,6 +90,12 @@ Skills are vendored into `.agents/skills/` and `.claude/skills/` and pinned by `
 | policy evaluation | `policy-evaluation` | Constitution / Skill / 環境自体の評価 |
 | skill selection | `skill-selection` | 導入 Skill の選定・見直し |
 | visual design | `design-intent` | UI の visual direction が未確定な時 |
+| web layout | `layout-system` | `web/` の grid / page structure / max-width |
+| web responsive | `responsive-design` | `web/` の viewport / container 適応 |
+| web primitives | `ui-primitive-architecture` | `web/` の共有 primitive / variant 設計 |
+| web drift prevention | `design-system-enforcement` | `web/` の token / component 契約と PR check |
+| web visual review | `visual-review` | `web/` の screenshot review と受入証跡 |
+| web token audit | `token-audit` | `web/` の hardcoded value / token drift 監査 |
 | Cloudflare | `cf-cli` + `workers-best-practices` | API / D1 / Worker の操作と review（multi） |
 | React / frontend | `web/AGENTS.md` | `web/` の実装。汎用 React Skill は使わない |
 | release planning | GitHub Issues | Linear は採用していない |

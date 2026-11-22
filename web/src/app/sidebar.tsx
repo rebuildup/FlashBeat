@@ -301,7 +301,10 @@ const navTrigger = css({
   color: "fg.muted",
   colorPalette: "blue",
   display: "flex",
-  flexWrap: "wrap",
+  /** Issue #802 review: on the fixed 13rem rail a wrapped badge used to drop
+      under its label and stretch the row; keep items on one line at `md+`.
+      Narrow layouts still wrap long labels. */
+  flexWrap: { base: "wrap", md: "nowrap" },
   gap: "2",
   minHeight: "10",
   minWidth: "0",

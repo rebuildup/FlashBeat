@@ -124,6 +124,14 @@ public static class ChartLyrics
             {
                 chartJson = held;
             }
+            else if (CloudChartHolder.TryGetForSong(song.remoteId, out _, out string heldAny))
+            {
+                // Issue #871: 選択行の chartVersion が保持版とずれていても、
+                // 実際にホールドされている譜面を使う。GManager.BeginPlaySession
+                // と同じ版非依存の解決に揃えないと、ノーツは出るのに歌詞だけ
+                // Pending のまま (枠だけ出て本文が永久に空) になる。
+                chartJson = heldAny;
+            }
             else
             {
                 // リモート曲で譜面未取得 = 開始前の状態。到着待ちとして保留する

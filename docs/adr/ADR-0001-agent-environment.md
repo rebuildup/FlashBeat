@@ -55,6 +55,19 @@ repository の `allow_merge_commit=true` / `allow_squash_merge=false` / `allow_r
 | naming | `code-naming` | C# の命名・rename がある |
 | skill selection | `skill-selection` | 初期化・再整備の判断を再現する |
 
+後追い採用（Issue #873、`rebuildup/design-skills` @ `10b0d4a9`、Web UI 再設計 #802 のため）:
+
+| 能力 | 担当 | 理由 |
+| --- | --- | --- |
+| layout / grid | `layout-system` | `web/` の max-width・grid・page structure 再設計で使う |
+| responsive | `responsive-design` | viewport / container への適応ルールを実装・検証する |
+| UI primitives | `ui-primitive-architecture` | 共有 primitive / variant / pattern の切り分けを決める |
+| design-system drift | `design-system-enforcement` | token・component 契約と PR check で drift を防ぐ |
+| visual review | `visual-review` | screenshot ベースの描画 review を Issue の受入証跡に使う |
+| token audit | `token-audit` | `web/` の hardcoded value / token drift を監査する |
+
+`visual-hierarchy` / `composition-review` / `design-review-routing` 等の残りの候補は、#802 の実装で不足が確認された時点で `skill-selection` で個別評価する。pack 全体や router は引き続き不採用。
+
 見送り:
 
 - `linear-release-control`: release planning は GitHub Issues で行っており、Linear を採用していない。

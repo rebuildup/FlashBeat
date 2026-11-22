@@ -461,6 +461,24 @@ web-platform questions (accessibility, forms, UX patterns); consult them via
 the upstream repo/CLI when a task calls for it, but do not vendor the Skill
 or add the CLI as a dependency without re-running `skill-selection`.
 
+### Design skills (issues #873 / #802)
+
+The `rebuildup/design-skills` pack is vendored selectively (ADR-0001 section 6,
+`skills-lock.json`). For Web UI work use the matching skill instead of relying on
+memory of "good-looking UI":
+
+- `layout-system` — page structure, grid, max-width decisions
+- `responsive-design` — viewport / container adaptation rules
+- `ui-primitive-architecture` — which controls become shared primitives vs. feature-local
+- `design-system-enforcement` — token/component contracts and PR checks that prevent drift
+- `visual-review` — screenshot-based rendered-UI review for acceptance evidence
+- `token-audit` — auditing hardcoded values and token drift
+- `design-intent` — only when the visual direction itself is unresolved
+
+Remaining upstream candidates (`visual-hierarchy`, `composition-review`,
+`design-review-routing`, …) are evaluated individually via `skill-selection`
+when #802 exposes a gap; the pack and its router are not vendored wholesale.
+
 ### Studio information architecture (issue #742)
 
 The per-screen primary/secondary action hierarchy and the navigation grouping

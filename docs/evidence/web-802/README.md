@@ -66,3 +66,38 @@ show the loaded list (and `/songs` its pre-token state) instead of
 "カタログを読み込み中". The disabled-button contrast fix required a
 Panda cascade-layer correction: recipe `base._disabled` loses to the
 later `variants` layer, so the muted colors are declared per variant.
+
+### 2026-11-22 measure + review pass (commit 8a7225a)
+
+Second round on the same branch: bounded the content measure and fixed
+the catalog/sidebar findings from the rendered review.
+
+- `shell-metrics.ts` adds `CONTENT_MAX_WIDTH` (`90rem`) + `contentMeasure`;
+  `StudioFrame` caps ordinary studio content and centers it on ultrawide
+  viewports. `/chart` opts out (`fluid`) because the Konva workspace needs
+  the full width. DOM-verified: at 2560/1920 the main column is 1440px
+  centered; at 1440 it fills the viewport; `/chart` stays fluid.
+- Catalog publication note moved above the column header with aligned
+  padding (was an orphaned row inside the table body).
+- Sort/Level selects widened 8rem→9rem so `すべてのレベル` no longer
+  ellipsizes; sidebar staff nav `要トークン` badge no longer wraps under
+  the label at `md+`.
+- `design-system.test.ts` pins the measure literal and the
+  `contentMeasure`/`fluid` wiring so the contract cannot drift.
+
+Capture run: `web/tests/visual/out/2026-11-22T03-03-10-948Z/` — 42
+captures, `hScroll=false`, no console errors. The 4 `clipped` samples on
+`/chart` and `/publish` at 390px are the Konva note grid: `MIN_LANE_WIDTH`
+(56px × 8 lanes = 448px) is a playable minimum and the grid scrolls
+horizontally inside its own `overflow:auto` region — by design, not a
+document overflow.
+
+Vision review (nemotron-3.5-super-vl-free via opencode) on the new set:
+
+- `home` 1440 / 768 / 390 — **PASS**, no defects.
+- `songs` 1440 — **PASS**.
+- `chart` 1440 — **PASS**.
+- `publish` 1440 — one minor note: the lyrics-section hint text is cut at
+  the viewport bottom edge (below-fold scroll, expected) and the YouTube
+  URL input shows a truncated value without an ellipsis affordance.
+  Input values scroll natively; recorded as accepted, not a blocker.
