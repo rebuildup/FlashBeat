@@ -462,8 +462,8 @@ namespace FlashBeat.UI.V6.Common
                 {
                     SelectedRow = index;
 
-                    // ステッパー (◀ ▶) を持たない行 (キー設定 / Media cache /
-                    // Clear save data) はクリック＝実行にする。値を変える行は
+                    // ステッパー (◀ ▶) を持たない行 (キー設定 / 映像キャッシュ /
+                    // セーブデータ消去) はクリック＝実行にする。値を変える行は
                     // ◀ ▶ ボタンで変えられるので、どの行もマウスだけで操作できる
                     // ようにするため (Acceptance: マウスとキーボードの両方)。
                     if (row.IsAction && row.Activate != null)

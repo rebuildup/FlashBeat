@@ -15,7 +15,7 @@ namespace FlashBeat.Tests.Editor
     /// Issue #241: v6 Option 画面 (4 タブ) の「表示値・実動作・保存先」の結線を検証する。
     ///
     /// 検証すること:
-    /// - Clear save data: 実体の保存先 (安定キーを鍵にする ScoreStore) まで消えること。
+    /// - セーブデータ消去: 実体の保存先 (安定キーを鍵にする ScoreStore) まで消えること。
     ///   旧 PlayerPrefs の Hiscore だけ消すと記録が復活するが、その復活が起きないこと。
     /// - 4 タブの変更が GManager / OptionSettings (PlayerPrefs) / PlaySession へ届くこと。
     /// - Key Guide / Lyrics はセッション設定 (保存されない) のままであること。
@@ -178,7 +178,7 @@ namespace FlashBeat.Tests.Editor
             PlayerPrefs.Save();
         }
 
-        // --- Clear save data (Data タブ) ---
+        // --- セーブデータ消去 (Data タブ) ---
 
         [Test]
         public void ClearSaveData_ErasesTheStableScoreStore_SoTheScoreDoesNotRevive()
@@ -190,7 +190,7 @@ namespace FlashBeat.Tests.Editor
             V6OptionView.ClearSaveData();
 
             Assert.AreEqual(0, ScorePersistence.BestOf(1),
-                "Clear save data で安定キーの保存先 (FlashBeat.ScoreStore) も消えること");
+                "セーブデータ消去で安定キーの保存先 (FlashBeat.ScoreStore) も消えること");
             for (int i = 0; i < GManager.Hiscore.Length; i++)
             {
                 Assert.AreEqual(0, GManager.Hiscore[i], "旧 Hiscore 配列も 0 に戻ること");
@@ -408,8 +408,8 @@ namespace FlashBeat.Tests.Editor
                 // Data タブを開く (タブはクリックで切り替えられる)。
                 ClickButton(view.Root.gameObject, "Tab Data");
 
-                // Clear save data の行クリック → 確認ダイアログが開く。
-                ClickButton(view.Root.gameObject, "Set Clear save data");
+                // セーブデータ消去の行クリック → 確認ダイアログが開く。
+                ClickButton(view.Root.gameObject, "Set セーブデータ消去");
                 Assert.IsNotNull(FindButton(view.Root.gameObject, "Op Clear"),
                     "行のクリックで確認ダイアログが開く (マウスでも操作できる)");
 
@@ -419,14 +419,14 @@ namespace FlashBeat.Tests.Editor
                 Assert.IsNull(FindButton(view.Root.gameObject, "Op Clear"), "キャンセルでダイアログが閉じる");
 
                 // もう一度行をクリック → 「消去する」で消去される。
-                ClickButton(view.Root.gameObject, "Set Clear save data");
+                ClickButton(view.Root.gameObject, "Set セーブデータ消去");
                 ClickButton(view.Root.gameObject, "Op Clear");
 
                 Assert.AreEqual(0, ScorePersistence.BestOf(1), "「消去する」で実体の保存先が消える");
                 Assert.IsNull(FindButton(view.Root.gameObject, "Op Clear"), "消去後はダイアログが閉じる");
 
                 // 結果表示が出る (Data タブの行に「消去しました」)。
-                TextMeshProUGUI value = FindText(view.Root.gameObject, "Set Clear save data", "Value");
+                TextMeshProUGUI value = FindText(view.Root.gameObject, "Set セーブデータ消去", "Value");
                 Assert.IsNotNull(value, "行の表示値を持つ Text がある");
                 Assert.AreEqual("消去しました", value.text, "結果表示が出る");
             }
@@ -440,7 +440,7 @@ namespace FlashBeat.Tests.Editor
             }
         }
 
-        // --- Data タブ: Media cache は確認してから消去する (Issue #352) ---
+        // --- Data タブ: 映像キャッシュは確認してから消去する (Issue #352) ---
 
         [Test]
         public void TheMediaCacheDialog_AsksForConfirmationBeforeClearing()
@@ -456,9 +456,9 @@ namespace FlashBeat.Tests.Editor
 
                 // 行のクリックは消去ではなく確認ダイアログを開く。旧実装は
                 // Activate で即時消去していたため、この assert が退行を捕まえる。
-                ClickButton(view.Root.gameObject, "Set Media cache");
+                ClickButton(view.Root.gameObject, "Set 映像キャッシュ");
                 Assert.IsNotNull(FindButton(view.Root.gameObject, "Op Clear"),
-                    "Media cache の行クリックで確認ダイアログが開く (即時消去しない)");
+                    "映像キャッシュの行クリックで確認ダイアログが開く (即時消去しない)");
                 Assert.AreEqual(before, V6OptionView.MediaCacheSizeLabel(),
                     "確認ダイアログを開いただけでは消去されない");
 
