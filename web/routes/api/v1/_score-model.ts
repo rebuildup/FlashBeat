@@ -726,8 +726,7 @@ export function computeUnityScoreV6(
     return null;
   }
   const judgment = perfect * 5 + great * 3 + bad;
-  const qualityScore =
-    perfect * PERFECT_SCORE_V6 + great * GREAT_SCORE_V6 + bad * BAD_SCORE_V6;
+  const qualityScore = perfect * PERFECT_SCORE_V6 + great * GREAT_SCORE_V6 + bad * BAD_SCORE_V6;
   const milestoneScore = (comboMilestones ?? 0) * MILESTONE_SCORE_V6;
   const clearScore = judgmentsComplete && miss === 0 ? FULL_CLEAR_SCORE_V6 : 0;
   const additionalScore = qualityScore + milestoneScore + clearScore;

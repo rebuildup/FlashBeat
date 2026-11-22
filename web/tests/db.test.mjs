@@ -303,9 +303,7 @@ test("the scores CHECK allows v4/v5 scores up to 2000000, v6 up to the chart-max
   // the exact per-chart bound is enforced by the API recomputation.
   insertScore.run(...row(1174000, 6));
   insertScore.run(...row(12025000, 6));
-  assertRejected("v6 score above the sanity ceiling", () =>
-    insertScore.run(...row(12225001, 6)),
-  );
+  assertRejected("v6 score above the sanity ceiling", () => insertScore.run(...row(12225001, 6)));
   // A v6-range score under an older version is still rejected.
   assertRejected("v1 score above the legacy ceiling (v6-sized)", () =>
     insertScore.run(...row(1174000, 1)),
