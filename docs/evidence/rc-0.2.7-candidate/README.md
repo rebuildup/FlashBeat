@@ -55,3 +55,17 @@ GManager へ注入 (run* 値は初回 Refresh で固定されるため)。139 �
 ## EditMode
 
 - 2240/2240 PASS (`/tmp/editmode-802.xml`, release tree, 6000.5.6f1 batch)
+
+## 最終成果物 (commit `f8e8b3a6`, stamp `0.2.7+f8e8b3a6`)
+
+- macOS: `dist/macos/FlashBeat-0.2.7-macos-f8e8b3a6.zip`
+  SHA-256 `ef298f50849edfb2ffc1de55ea5b644433f8fbcce44fc9a5ddcf1a5d30940251`
+- Win64: `dist/win64/FlashBeat-0.2.7-win64-f8e8b3a6.zip`
+  SHA-256 `4b5331038e9c32446be2ed70ac050040d73cfc0669fdd954b14817be2ebea1d4`
+  (entries=223 / managedDlls=131 / mediaPolicy=song-free)
+
+## 未実施 (PASS として扱わない)
+
+- Win64 実機での起動・プレイ確認 (Mac 環境では実行不可。Owner 作業)
+- CI `browser-e2e` は本 PR では skip (release-0-2-1 向け check は pass)
+- `release-0-2-1 → main` 統合・GitHub Release 公開は未実施 (明示承認待ち)
