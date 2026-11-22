@@ -102,14 +102,16 @@ namespace FlashBeat.Tests
         }
 
         /// <summary>
-        /// Issue #760: 歌詞ボックス (V6HudLyrics) のパネルスプライトにも
-        /// レーン帯の抜きが焼き込まれていることを確認する。
-        /// 上部シェードと同じ <see cref="V6TopShadeHole.CorridorRows"/> の
-        /// 領域オフセット版で帯を計算し、パネル中央行の帯の内側が透明・
-        /// 帯の外側 (パネル左右) が不透明のままであることを見る。
+        /// Issue #881: 歌詞パネル (V6HudLyrics) は上部シェードと同じ
+        /// レーン回廊カットアウトを使わず、V5Ui.Panel 標準の半透明
+        /// べた塗り角丸であることを確認する。
+        /// 回廊カットアウトはパネルをレーン帯の内側で消し、
+        /// 「歌詞本文だけが浮いてパネルが無い」表示不良の原因だった。
+        /// オーナー指摘の優先順位 (パネルの視認性 > ノーツの明るさ) に
+        /// 従い、半透明パネルのままノーツを透過させる。
         /// </summary>
         [Test]
-        public void LyricPanelSprite_HasLaneCorridorHole()
+        public void LyricPanel_IsPlainFilledPanel()
         {
             var canvasGo = new GameObject("V6PanelHoleTests Canvas", typeof(Canvas));
             try
@@ -123,93 +125,27 @@ namespace FlashBeat.Tests
                 var img = box.GetComponent<Image>();
                 Assert.NotNull(img, "Lyric Box has no Image");
                 Assert.NotNull(img.sprite, "Lyric Box has no sprite");
-                Assert.AreEqual(Image.Type.Simple, img.type,
-                    "cutout sprite must be used as Simple (9-slice と併用しない)");
 
-                var tex = img.sprite.texture;
-                Assert.NotNull(tex);
-                int w = tex.width;
-                int h = tex.height;
-                Assert.Greater(w, 100, "panel texture too narrow");
-                Assert.Greater(h, 20, "panel texture too short");
+                // V5Ui.Panel 標準 (Sliced + 角丸スプライト) であること。
+                // カットアウト焼き込みスプライト (Simple) への差し替えは
+                // Issue #881 の不具合そのものなので型で固定する。
+                Assert.AreEqual(Image.Type.Sliced, img.type,
+                    "lyric panel must use the standard V5Ui.Panel sliced sprite");
 
-                // パネルの実配置 (画面左上原点 px)。
-                Vector2 slotOrigin = V6HudLogic.LyricSlotOrigin(ScreenW, ScreenH);
-                float panelLeft = slotOrigin.x;
-                float panelTop = slotOrigin.y;
+                // 半透明の黒パネル (黒 α≈0.6)。不透明でも全透明でもない。
+                Assert.AreEqual(0f, img.color.r, 0.01f);
+                Assert.AreEqual(0f, img.color.g, 0.01f);
+                Assert.AreEqual(0f, img.color.b, 0.01f);
+                Assert.AreEqual(0x99 / 255f, img.color.a, 0.01f,
+                    "lyric panel must stay semi-transparent");
 
-                // パネル矩形に対応する corridor を本番と同じ関数で計算する。
-                var left = new float[h];
-                var right = new float[h];
-                V6TopShadeHole.CorridorRows(ScreenW, ScreenH, panelTop, h, h, left, right);
-
-                // 中央行 (上下の角丸に掛からない高さ) で帯の内側が透明なこと。
-                int midRow = h / 2;
-                float midX = (left[midRow] + right[midRow]) * 0.5f;
-                int texX = Mathf.Clamp(Mathf.RoundToInt(midX - panelLeft), 0, w - 1);
-                Assert.AreEqual(0f, tex.GetPixel(texX, midRow).a, 0.01f,
-                    "lane corridor must be clear inside the lyric panel");
-
-                // 帯の外側 (パネル左端から 4.5 px、中央行なので角丸の影響なし)
-                // は不透明のまま (パネルの見た目を維持)。
-                Assert.Greater(tex.GetPixel(4, midRow).a, 0.5f,
-                    "outside the lane corridor the panel must keep its alpha");
-            }
-            finally
-            {
-                Object.DestroyImmediate(canvasGo);
-            }
-        }
-
-        /// <summary>
-        /// Issue #789 (v0.2.1 実機受入): レーン回廊の抜きがパネル内側の
-        /// 大部分を透明にしても、角丸矩形の縁から
-        /// <see cref="V6PanelCorridorHole.FrameThicknessPx"/> 以内は
-        /// アルファが残り、パネル枠が常に視認できることを確認する。
-        /// 検証点は「レーン帯の内側」かつ「枠の内側」の交差 (上辺中央)。
-        /// </summary>
-        [Test]
-        public void LyricPanelSprite_KeepsFrameInsideCorridor()
-        {
-            V6PanelCorridorHole.ClearSpriteCacheForTests();
-            // 枠ありスプライトは「ノーツ非描画」の状態で選ばれる
-            // (Issue #735/#789)。開始待ち相当の played=false を明示する。
-            GManager.played = false;
-            var canvasGo = new GameObject("V6PanelHoleTests Canvas", typeof(Canvas));
-            try
-            {
-                var canvasRect = (RectTransform)canvasGo.transform;
-                canvasRect.sizeDelta = new Vector2(ScreenW, ScreenH);
-                var view = FlashBeat.UI.V6.Game.Hud.V6GameHudView.Create(canvasRect);
-
-                var img = view.LyricBoxForAudit.GetComponent<Image>();
-                Assert.NotNull(img, "Lyric Box has no Image");
-                var tex = img.sprite.texture;
-                int w = tex.width;
-                int h = tex.height;
-
-                Vector2 slotOrigin = V6HudLogic.LyricSlotOrigin(ScreenW, ScreenH);
-                var left = new float[h];
-                var right = new float[h];
-                V6TopShadeHole.CorridorRows(ScreenW, ScreenH, slotOrigin.y, h, h, left, right);
-
-                // 上辺の中央・縁から 3px 内側 (角丸の影響が無い位置)。
-                // テクスチャ行 h-1 がパネル上端、行 index は CorridorRows と同じ
-                // (0 = 帯下端)。
-                int frameRow = h - 1 - 3;
-                int frameX = w / 2;
-                float sx = slotOrigin.x + frameX + 0.5f;
-                Assert.Greater(sx, left[frameRow],
-                    "test premise: probe x must be inside the lane corridor");
-                Assert.Less(sx, right[frameRow],
-                    "test premise: probe x must be inside the lane corridor");
-
-                Assert.Greater(tex.GetPixel(frameX, frameRow).a, 0.5f,
-                    "panel frame must stay visible even inside the lane corridor");
-
-                // 対照: 枠から十分内側 (中央) は従来どおり回廊で透明。
-                Assert.AreEqual(0f, tex.GetPixel(w / 2, h / 2).a, 0.01f,
-                    "corridor interior must stay clear of the panel fill");
+                // スプライトは V5Ui.Panel が使う共有の角丸スプライト
+                // (キャッシュで同一インスタンス) であること。
+                // カットアウト焼き込みスプライトは別インスタンスなので、
+                // 参照一致で「標準パネルのまま」を固定する
+                // (テクスチャは readable でないため画素は読めない)。
+                Assert.AreSame(V6Sprites.Rounded(8), img.sprite,
+                    "lyric panel must keep the standard V5Ui.Panel sprite");
             }
             finally
             {

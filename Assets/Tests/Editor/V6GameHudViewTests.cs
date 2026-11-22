@@ -608,6 +608,59 @@ namespace FlashBeat.Tests
         }
 
         /// <summary>
+        /// 回帰 (v0.2.7 実機指摘「文字列はあるが画面に出ない」の検出):
+        /// 監査プロパティ <see cref="V6GameHudView.LyricGlyphCountForAudit"/> は
+        /// <see cref="V6GameHudView.LyricTextForAudit"/> (文字列の存在だけを見る)
+        /// では拾えない「本文 GO が非アクティブ」「TMP がグリフを解決できない」
+        /// 状態を 0 として報告する契約を持つ。
+        /// </summary>
+        [Test]
+        public void Lyrics_GlyphAudit_RequiresActiveHierarchyAndResolvedGlyphs()
+        {
+            originalSongId = GManager.songID;
+            originalPlayed = GManager.played;
+            originalStepTime = GManager.step_time;
+            GameObject sourceGo = null;
+            try
+            {
+                string chartJson = SyntheticCharts.LyricsChartEnvelope("hud-lyrics-song");
+                PlaySessionSnapshot session = PlaySessionSnapshot.Begin(
+                    RemoteLyricsSong("hud-lyrics-song"), 1, chartJson);
+                ChartLyricsResult resolved = ChartLyrics.Resolve(session.Song);
+                Assert.AreEqual(ChartLyricsState.HasLyrics, resolved.State);
+
+                sourceGo = CreateLyricsSource(resolved);
+                GManager.played = true;
+                GManager.step_time = 1.5f;
+                view.Refresh();
+
+                var text = LyricTextOf(view);
+                Assert.AreEqual("僕を連れてって", text.text);
+                Assert.Greater(view.LyricGlyphCountForAudit, 0,
+                    "アクティブで本文ありなら TMP がグリフを解決する");
+
+                // 本文 GO を非アクティブにしても LyricTextForAudit は
+                // 文字列を返し続ける = 旧監査が見逃した状態。
+                text.gameObject.SetActive(false);
+                Assert.AreEqual("僕を連れてって", view.LyricTextForAudit,
+                    "文字列は残る (旧監査の盲点であることの確認)");
+                Assert.AreEqual(0, view.LyricGlyphCountForAudit,
+                    "非アクティブな本文はグリフ監査で 0 になる");
+                text.gameObject.SetActive(true);
+            }
+            finally
+            {
+                if (sourceGo != null) Object.DestroyImmediate(sourceGo);
+                PlaySessionSnapshot.Clear();
+                CloudChartHolder.Clear();
+                ChartLyrics.Invalidate();
+                GManager.songID = originalSongId;
+                GManager.played = originalPlayed;
+                GManager.step_time = originalStepTime;
+            }
+        }
+
+        /// <summary>
         /// Issue #846 (v0.2.5 実機指摘の回帰): mondai はあるが startTime が
         /// 無いなど「本文を出せる行が 0」の歌詞データは、ChartLyrics.Resolve が
         /// NoLyrics と確定するため、設定 ON でも枠ごと出さない。

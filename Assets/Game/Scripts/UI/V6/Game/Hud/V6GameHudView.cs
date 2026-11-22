@@ -148,6 +148,41 @@ namespace FlashBeat.UI.V6.Game.Hud
             get { return lyricText != null ? lyricText.text : null; }
         }
 
+        /// <summary>
+        /// 検証ハーネス用 (回帰: 「文字列はあるが描画されない」の検出):
+        /// 歌詞本文がアクティブ階層で、TMP が実際にグリフを生成できているか。
+        /// <see cref="LyricTextForAudit"/> は文字列の存在しか見ないため、
+        /// 非アクティブ化・レイアウト潰れ・フォント/マテリアル未解決で
+        /// 「text は入っているのに画面に出ない」状態を PASS にしてしまう。
+        /// ここでは ForceMeshUpdate で TMP のメッシュ生成を強制し、
+        /// フォントとテキスト要素 (グリフ/スプライト) が解決できた
+        /// 文字数を返す。非アクティブ・矩形潰れ・フォント未解決では 0 になる。
+        /// </summary>
+        public int LyricGlyphCountForAudit
+        {
+            get
+            {
+                if (lyricText == null
+                    || !lyricText.gameObject.activeInHierarchy
+                    || string.IsNullOrEmpty(lyricText.text))
+                {
+                    return 0;
+                }
+
+                lyricText.ForceMeshUpdate();
+                TMP_TextInfo info = lyricText.textInfo;
+                if (info == null) { return 0; }
+
+                int glyphs = 0;
+                for (int i = 0; i < info.characterCount; i++)
+                {
+                    TMP_CharacterInfo c = info.characterInfo[i];
+                    if (c.fontAsset != null && c.textElement != null) { glyphs++; }
+                }
+                return glyphs;
+            }
+        }
+
         /// <summary>HUD canvas の実ピクセル寸法。</summary>
         public Vector2 CanvasSizeForAudit
         {
