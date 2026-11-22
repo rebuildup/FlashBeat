@@ -55,7 +55,7 @@ type Source = {
 const PROJECT_INIT_REF = 'fae2dd6b4eb2a8c4744ff719f591e6e697efe4a4';
 const WRITING_SKILLS_REF = 'c631933e5799fa1a1c418053557fd2cce1800076';
 const MATTPOCOCK_REF = '49dd158d1076134a641b33efb035946536778336';
-const DESIGN_SKILLS_REF = '342d70929dc5f33af5bb88f48362e11ed2dcf1cb';
+const DESIGN_SKILLS_REF = '10b0d4a9e25b909a392c8c20d145258511fa04fa';
 const CLOUDFLARE_REF = '86505e44f87d801aa1864a3c4109e9a8ae5c409f';
 const SPEC_KIT_REF = 'v1.3.1';
 
@@ -116,7 +116,15 @@ const SOURCES: Source[] = [
     sourceType: 'github',
     repo: 'https://github.com/rebuildup/design-skills.git',
     ref: DESIGN_SKILLS_REF,
-    skills: [{ name: 'design-intent', path: 'skills/design-intent' }],
+    skills: [
+      { name: 'design-intent', path: 'skills/design-intent' },
+      { name: 'layout-system', path: 'skills/layout-system' },
+      { name: 'responsive-design', path: 'skills/responsive-design' },
+      { name: 'ui-primitive-architecture', path: 'skills/ui-primitive-architecture' },
+      { name: 'design-system-enforcement', path: 'skills/design-system-enforcement' },
+      { name: 'visual-review', path: 'skills/visual-review' },
+      { name: 'token-audit', path: 'skills/token-audit' },
+    ],
   },
   {
     source: 'cloudflare/skills',
