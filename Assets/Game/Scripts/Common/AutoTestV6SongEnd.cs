@@ -96,15 +96,26 @@ public class AutoTestV6SongEnd : MonoBehaviour
     float nextLyricShotTime = 10f;
     int lyricShotCount;
 
-    // Issue #846: 歌詞本文の実描画 assert。v0.2.5 実機指摘の
-    // 「枠は出るが本文が空」(HasLyrics と表示可能行の不整合) を
-    // スクリーンショットではなくテキスト値で検出する。
+    // Issue #846 + 回帰 (v0.2.7 実機指摘の再発防止): 歌詞本文の実描画 assert。
+    // 旧実装は期待値を ChartLyrics.Resolve (検証対象と同じ製品コード) から
+    // 導いていたため、Resolve が Pending に張り付く・HasLyrics と表示行が
+    // 不整合、のどちらでも「skip = PASS」になり得た。ここでは
+    //   - 期待値: ピン留めされた譜面 JSON をハーネス側で直接パースして導く
+    //     (製品の状態機械を信用しない)
+    //   - 実測値: GameSceneManager.LyricsResult の状態遷移 + HUD の
+    //     文字列・アクティブ階層・TMP グリフ生成
+    // の 2 系統を独立に観測し、どちらかが検証不能なら FAIL にする。
+    /// <summary>0=未判定, 1=表示可能な歌詞あり期待, -1=歌詞なし確定期待。</summary>
+    int lyricExpect;
+    bool lyricProbeDone;
     bool lyricChartResolved;
-    bool lyricChartHasText;
     List<LyricLine> lyricAuditLines;
     FlashBeat.UI.V6.Game.Hud.V6GameHudView lyricHud;
+    GameSceneManager lyricManager;
     float lyricTextEmptySeconds;
     int lyricTextExpectedFrames;
+    int lyricGlyphMissingFrames;
+    float lyricPendingSeconds;
     string outDir;
     string songTitle;
 
@@ -488,18 +499,38 @@ public class AutoTestV6SongEnd : MonoBehaviour
         Check("the song end is not a forced deadline completion", songEndCompleted && !songEndForcedByDeadline);
         Check("the result scene is loaded", SceneManager.GetActiveScene().name == "ResultScene");
 
-        // Issue #846: 歌詞本文の assert。表示可能な歌詞行を持つ曲でだけ
-        // 判定する (歌詞なし曲・Pending のまま終わった場合は skip)。
-        if (lyricChartResolved && lyricChartHasText)
+        // Issue #846 + 回帰: 歌詞本文の assert。期待値は譜面 JSON の
+        // 独立プローブ (ProbeChartLyricsOnce) で決め、製品側が Pending に
+        // 張り付いた場合・文字列はあるがグリフが出ない場合も FAIL にする。
+        // 対象経路を検証できなかった (譜面 JSON が取れない) 場合も
+        // 「skip = PASS」にはしない (v0.2.7 実機指摘の再発防止)。
+        // "-autotest-lyrics off" の対照ランでは歌詞経路自体を検証しない。
+        if (PlaySession.LyricsEnabled)
         {
-            Check("lyric text is rendered during lyric windows (Issue #846)",
-                lyricTextExpectedFrames > 0 && lyricTextEmptySeconds < 1f);
-            Debug.Log(Tag + " lyric audit: expectedFrames=" + lyricTextExpectedFrames +
-                      " emptySeconds=" + lyricTextEmptySeconds.ToString("F2"));
+            Check("lyric audit could probe the pinned chart JSON", lyricProbeDone);
+            if (lyricProbeDone)
+            {
+                Check("lyrics resolved to a terminal state (not stuck Pending)",
+                    lyricChartResolved);
+                Debug.Log(Tag + " lyric audit: expect=" + (lyricExpect == 1 ? "lyrics" : "none") +
+                          " resolved=" + lyricChartResolved +
+                          " pendingSeconds=" + lyricPendingSeconds.ToString("F2"));
+                if (lyricExpect == 1)
+                {
+                    Check("lyrics did not stay Pending while displayable lines exist",
+                        lyricPendingSeconds < 1f);
+                    Check("lyric text is rendered during lyric windows (Issue #846)",
+                        lyricTextExpectedFrames > 0 && lyricTextEmptySeconds < 1f
+                        && lyricGlyphMissingFrames == 0);
+                    Debug.Log(Tag + " lyric audit: expectedFrames=" + lyricTextExpectedFrames +
+                              " emptySeconds=" + lyricTextEmptySeconds.ToString("F2") +
+                              " glyphMissingFrames=" + lyricGlyphMissingFrames);
+                }
+            }
         }
         else
         {
-            Debug.Log(Tag + " lyric audit: skipped (chart has no displayable lyric text)");
+            Debug.Log(Tag + " lyric audit: skipped (PlaySession.LyricsEnabled = off)");
         }
 
         // 7. Result 画面が実際に描画されているか (v6 の Result Canvas の中で)。
@@ -603,15 +634,16 @@ public class AutoTestV6SongEnd : MonoBehaviour
     }
 
     /// <summary>
-    /// Issue #846: 再生中の各フレームで、いま歌詞行が出るべき時刻
+    /// Issue #846 + 回帰: 再生中の各フレームで、いま歌詞行が出るべき時刻
     /// (HUD が使うのと同じ <see cref="GManager.step_time"/> クロック) に
-    /// HUD の歌詞本文 (<see cref="FlashBeat.UI.V6.Game.Hud.V6GameHudView.LyricTextForAudit"/>)
-    /// が空でないかを確かめる。
+    /// HUD の歌詞本文が「文字列・アクティブ階層・TMP グリフ」の 3 点で
+    /// 実際に出ているかを確かめる。
     ///
-    /// 枠 (lyricBox) は #734 のポリシーで行間・歌詞なし区間でも出続けるため、
-    /// 枠の有無では「本文が出ない」バグを検出できない。本文テキストだけを見る。
-    /// 行の切れ目 1 フレームの表示ラグを許容するため、空のままの時間が
-    /// 1 秒を超えた場合だけ終了時の Check で落とす。
+    /// 期待値は製品コードを通さず、ピン留めされた譜面 JSON
+    /// (PlaySessionSnapshot → CloudChartHolder) をこのハーネスで直接
+    /// パースして導く。製品側 (GameSceneManager.LyricsResult) が
+    /// Pending に張り付いたまま終わった場合も検出できるよう、
+    /// Pending の累積時間を別途計る。
     /// "-autotest-lyrics off" (PlaySession.LyricsEnabled = false) の対照実行では
     /// 本文が空なのが正しいので何もしない。
     /// </summary>
@@ -619,35 +651,25 @@ public class AutoTestV6SongEnd : MonoBehaviour
     {
         if (!PlaySession.LyricsEnabled) { return; }
 
-        if (!lyricChartResolved)
+        if (lyricManager == null)
         {
-            SongData song = PlaySessionSnapshot.ResolveSong(GManager.songID);
-            if (song != null)
-            {
-                ChartLyricsResult lyrics = ChartLyrics.Resolve(song);
-                if (lyrics != null && lyrics.State != ChartLyricsState.Pending
-                    && lyrics.Lyrics != null)
-                {
-                    lyricChartResolved = true;
-                    lyricAuditLines = LyricsTimeline.Build(
-                        lyrics.Lyrics.StartTime ?? new float[0],
-                        lyrics.Lyrics.EndTime ?? new float[0],
-                        lyrics.Lyrics.Mondai ?? new string[0],
-                        null, null);
-                    lyricChartHasText = false;
-                    foreach (LyricLine line in lyricAuditLines)
-                    {
-                        if (line.HasText) { lyricChartHasText = true; break; }
-                    }
-                    Debug.Log(Tag + " lyrics audit: state=" + lyrics.State +
-                              " lines=" + lyricAuditLines.Count +
-                              " hasText=" + lyricChartHasText);
-                }
-            }
-            if (!lyricChartResolved) { return; }
+            lyricManager = FindFirstObjectByType<GameSceneManager>();
         }
 
-        if (!lyricChartHasText || lyricAuditLines == null) { return; }
+        ProbeChartLyricsOnce();
+
+        // 製品側の解決状態を観測する (Pending 張り付きの検出用)。
+        ChartLyricsResult product = lyricManager != null ? lyricManager.LyricsResult : null;
+        if (product != null && product.State != ChartLyricsState.Pending)
+        {
+            lyricChartResolved = true;
+        }
+        else if (lyricExpect == 1)
+        {
+            lyricPendingSeconds += Time.unscaledDeltaTime;
+        }
+
+        if (!lyricProbeDone || lyricAuditLines == null || lyricExpect != 1) { return; }
 
         if (lyricHud == null)
         {
@@ -667,6 +689,104 @@ public class AutoTestV6SongEnd : MonoBehaviour
         {
             lyricTextEmptySeconds = 0f;
         }
+
+        // 「text は入っているが画面に出ない」(非アクティブ・レイアウト潰れ・
+        // フォント未解決) を文字列検査だけでは見逃すため、TMP が実際に
+        // 生成したグリフ数も確かめる。
+        if (lyricHud.LyricGlyphCountForAudit <= 0)
+        {
+            lyricGlyphMissingFrames++;
+        }
+    }
+
+    /// <summary>
+    /// 譜面 JSON から歌詞の期待状態を **製品コードを通さずに** 1 回だけ導く。
+    /// JSON の入手元は PlaySessionSnapshot の固定 JSON → CloudChartHolder の
+    /// 保持 JSON (ノーツ生成と同じ供給元) で、パースはこのクラス内の
+    /// 最小 DTO で行う (ChartLyrics の状態機械・キャッシュを経由しない)。
+    /// </summary>
+    void ProbeChartLyricsOnce()
+    {
+        if (lyricProbeDone) { return; }
+
+        SongData song = PlaySessionSnapshot.ResolveSong(GManager.songID);
+        if (song == null) { return; }
+
+        string json = null;
+        if (!PlaySessionSnapshot.TryGetChartJson(song, out json) && song.isRemote)
+        {
+            CloudChartHolder.TryGetForSong(song.remoteId, out _, out json);
+        }
+        if (string.IsNullOrEmpty(json)) { return; } // 到着待ち。次フレームで再試行。
+
+        lyricProbeDone = true;
+
+        LyricChartProbe probe = null;
+        try
+        {
+            probe = JsonUtility.FromJson<LyricChartProbe>(json);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning(Tag + " lyric probe: chart JSON parse failed: " + e.Message);
+        }
+
+        LyricProbeDto dto = probe != null
+            ? (probe.chart != null && probe.chart.lyrics != null
+                ? probe.chart.lyrics
+                : probe.lyrics)
+            : null;
+
+        lyricAuditLines = LyricsTimeline.Build(
+            dto != null ? dto.startTime : null,
+            dto != null ? dto.endTime : null,
+            dto != null ? dto.mondai : null,
+            null, null);
+
+        // 「表示可能」= 表示区間を持つ行があり、本文を持ち、区間が
+        // 再生範囲 (0〜曲長) と重なる (ChartLyrics.HasDisplayableLyricLines
+        // と同じ条件を、こちら側のパース結果へ適用する)。
+        bool expect = false;
+        float duration = song.duration;
+        if (lyricAuditLines != null)
+        {
+            for (int i = 0; i < lyricAuditLines.Count && !expect; i++)
+            {
+                LyricLine line = lyricAuditLines[i];
+                if (!line.HasText) { continue; }
+                if (duration <= 0f || (line.End > 0f && line.Start < duration))
+                {
+                    expect = true;
+                }
+            }
+        }
+
+        lyricExpect = expect ? 1 : -1;
+        Debug.Log(Tag + " lyric probe: lines=" +
+                  (lyricAuditLines != null ? lyricAuditLines.Count : 0) +
+                  " expect=" + (expect ? "lyrics" : "none"));
+    }
+
+    /// <summary>譜面 JSON の lyrics ブロックだけを読む最小プローブ (製品 DTO 非依存)。</summary>
+    [Serializable]
+    class LyricProbeDto
+    {
+        public float[] startTime;
+        public float[] endTime;
+        public string[] mondai;
+    }
+
+    [Serializable]
+    class LyricChartProbe
+    {
+        public LyricProbeDto lyrics;
+        public LyricChartNode chart;
+    }
+
+    [Serializable]
+    class LyricChartNode
+    {
+        public LyricProbeDto lyrics;
     }
 
     /// <summary>
