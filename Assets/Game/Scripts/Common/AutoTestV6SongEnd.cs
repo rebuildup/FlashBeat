@@ -108,6 +108,7 @@ public class AutoTestV6SongEnd : MonoBehaviour
     /// <summary>0=未判定, 1=表示可能な歌詞あり期待, -1=歌詞なし確定期待。</summary>
     int lyricExpect;
     bool lyricProbeDone;
+    bool lyricProbeFailed;
     bool lyricChartResolved;
     List<LyricLine> lyricAuditLines;
     FlashBeat.UI.V6.Game.Hud.V6GameHudView lyricHud;
@@ -507,8 +508,9 @@ public class AutoTestV6SongEnd : MonoBehaviour
         // "-autotest-lyrics off" の対照ランでは歌詞経路自体を検証しない。
         if (PlaySession.LyricsEnabled)
         {
-            Check("lyric audit could probe the pinned chart JSON", lyricProbeDone);
-            if (lyricProbeDone)
+            Check("lyric audit could probe the pinned chart JSON",
+                lyricProbeDone && !lyricProbeFailed);
+            if (lyricProbeDone && !lyricProbeFailed)
             {
                 Check("lyrics resolved to a terminal state (not stuck Pending)",
                     lyricChartResolved);
@@ -677,7 +679,7 @@ public class AutoTestV6SongEnd : MonoBehaviour
             if (lyricHud == null) { return; }
         }
 
-        int index = LyricsTimeline.IndexAt(lyricAuditLines, GManager.step_time);
+        int index = ExpectedLyricIndexAt(GManager.step_time);
         if (index < 0 || !lyricAuditLines[index].HasText) { return; }
 
         lyricTextExpectedFrames++;
@@ -719,8 +721,6 @@ public class AutoTestV6SongEnd : MonoBehaviour
         }
         if (string.IsNullOrEmpty(json)) { return; } // 到着待ち。次フレームで再試行。
 
-        lyricProbeDone = true;
-
         LyricChartProbe probe = null;
         try
         {
@@ -731,17 +731,31 @@ public class AutoTestV6SongEnd : MonoBehaviour
             Debug.LogWarning(Tag + " lyric probe: chart JSON parse failed: " + e.Message);
         }
 
+        // 解析に失敗した JSON を「歌詞なし」として成功扱いしない
+        // (プローブ不能 = 検証不能 → 終了時の Check で FAIL)。
+        // JsonUtility は壊れた JSON で例外を投げず null/部分オブジェクトを
+        // 返すこともあるため、lyrics ブロック自体が読めたかで判定する。
         LyricProbeDto dto = probe != null
             ? (probe.chart != null && probe.chart.lyrics != null
                 ? probe.chart.lyrics
                 : probe.lyrics)
             : null;
+        if (dto == null
+            || (dto.startTime == null && dto.mondai == null))
+        {
+            lyricProbeFailed = true;
+            lyricProbeDone = true;
+            Debug.LogWarning(Tag + " lyric probe: chart JSON has no readable lyrics block");
+            return;
+        }
 
-        lyricAuditLines = LyricsTimeline.Build(
-            dto != null ? dto.startTime : null,
-            dto != null ? dto.endTime : null,
-            dto != null ? dto.mondai : null,
-            null, null);
+        lyricProbeDone = true;
+
+        // 表示区間の期待値は LyricsTimeline.Build (製品と共有) を使わず、
+        // 仕様 (endTime が開始より後ならそれ、無ければ次の開始か +4 秒、
+        // end<=start の行は捨てる) をこのハーネスで独立に実装する。
+        // 製品側の区間構築に回帰があっても監査が見逃さないため。
+        lyricAuditLines = BuildExpectedLyricLines(dto);
 
         // 「表示可能」= 表示区間を持つ行があり、本文を持ち、区間が
         // 再生範囲 (0〜曲長) と重なる (ChartLyrics.HasDisplayableLyricLines
@@ -765,6 +779,58 @@ public class AutoTestV6SongEnd : MonoBehaviour
         Debug.Log(Tag + " lyric probe: lines=" +
                   (lyricAuditLines != null ? lyricAuditLines.Count : 0) +
                   " expect=" + (expect ? "lyrics" : "none"));
+    }
+
+    /// <summary>
+    /// 期待側の表示区間構築 (製品の <see cref="LyricsTimeline.Build"/> と独立)。
+    /// 仕様: endTime が開始より後ならそれを使い、無い・不正なら次の行の開始か
+    /// 既定 4 秒まで。end &lt;= start の行は捨てる。配列長は短い方に合わせる。
+    /// </summary>
+    static List<LyricLine> BuildExpectedLyricLines(LyricProbeDto dto)
+    {
+        var lines = new List<LyricLine>();
+        float[] starts = dto.startTime;
+        string[] texts = dto.mondai;
+        if (starts == null || texts == null) { return lines; }
+
+        int count = starts.Length < texts.Length ? starts.Length : texts.Length;
+        float[] ends = dto.endTime;
+        for (int i = 0; i < count; i++)
+        {
+            float start = starts[i];
+            float end = start + LyricsTimeline.DefaultLineDuration;
+            if (ends != null && i < ends.Length && ends[i] > start)
+            {
+                end = ends[i];
+            }
+            else if (i + 1 < starts.Length && starts[i + 1] > start
+                && starts[i + 1] < end)
+            {
+                end = starts[i + 1];
+            }
+            if (end <= start) { continue; }
+            lines.Add(new LyricLine(start, end, texts[i], null));
+        }
+        return lines;
+    }
+
+    /// <summary>期待側の区間判定 (製品の <see cref="LyricsTimeline.IndexAt"/> と独立)。</summary>
+    int ExpectedLyricIndexAt(float mediaTime)
+    {
+        if (lyricAuditLines == null) { return -1; }
+        int found = -1;
+        float latestStart = float.NegativeInfinity;
+        for (int i = 0; i < lyricAuditLines.Count; i++)
+        {
+            LyricLine line = lyricAuditLines[i];
+            if (mediaTime < line.Start || mediaTime >= line.End) { continue; }
+            if (line.Start >= latestStart)
+            {
+                latestStart = line.Start;
+                found = i;
+            }
+        }
+        return found;
     }
 
     /// <summary>譜面 JSON の lyrics ブロックだけを読む最小プローブ (製品 DTO 非依存)。</summary>
