@@ -21,5 +21,11 @@ import { StudioFrame } from "@/app/studio-frame";
  */
 export default function StudioLayout({ children }: { children: ReactNode }) {
   const { path } = useRouter();
-  return <StudioFrame fixed={path !== "/"}>{children}</StudioFrame>;
+  // The chart editor owns a canvas workspace and keeps the full track;
+  // every other page shares the bounded content measure (issue #802).
+  return (
+    <StudioFrame fixed={path !== "/"} fluid={path === "/chart"}>
+      {children}
+    </StudioFrame>
+  );
 }
