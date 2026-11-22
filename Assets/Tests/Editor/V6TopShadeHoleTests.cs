@@ -106,10 +106,9 @@ namespace FlashBeat.Tests
         /// レーン帯の制御が焼き込まれていることを確認する。
         /// 上部シェードと同じ <see cref="V6TopShadeHole.CorridorRows"/> の
         /// 領域オフセット版で帯を計算する。
-        /// Issue #881: 演奏中 (ノーツが帯を通過し得る) のパネルは、
-        /// 回廊の内側を完全には抜かず
-        /// <see cref="V6PanelCorridorHole.CorridorInsideAlphaDuringNotes"/>
-        /// の割合だけ暗幕を残す — パネルの存在を消さないため。
+        /// Issue #881: 演奏中 (ノーツが帯を通過し得る) のパネルも
+        /// 回廊の内側をべた塗りにする — パネル/歌詞の視認性を
+        /// ノーツの明るさより優先する (オーナー指摘の優先順位)。
         /// 検証点は「レーン帯の内側」かつ「枠の外側」の交差。
         /// </summary>
         [Test]
@@ -152,19 +151,14 @@ namespace FlashBeat.Tests
                 var right = new float[h];
                 V6TopShadeHole.CorridorRows(ScreenW, ScreenH, panelTop, h, h, left, right);
 
-                // 中央行 (上下の角丸に掛からない高さ) で、帯の内側は
-                // CorridorInsideAlphaDuringNotes の割合だけ暗幕が残る
-                // (Issue #881: パネルを消さない)。
+                // 中央行 (上下の角丸に掛からない高さ) で、帯の内側も
+                // べた塗り (Issue #881: パネルは全状態で不透明 —
+                // 歌詞パネルの視認性がノーツの明るさより優先)。
                 int midRow = h / 2;
                 float midX = (left[midRow] + right[midRow]) * 0.5f;
                 int texX = Mathf.Clamp(Mathf.RoundToInt(midX - panelLeft), 0, w - 1);
-                float insideAlpha = tex.GetPixel(texX, midRow).a;
-                Assert.Greater(insideAlpha,
-                    V6PanelCorridorHole.CorridorInsideAlphaDuringNotes * 0.5f,
-                    "corridor interior must keep a visible panel tint during playback");
-                Assert.Less(insideAlpha,
-                    V6PanelCorridorHole.CorridorInsideAlphaDuringNotes * 1.5f + 0.1f,
-                    "corridor interior must stay lighter than the full panel fill");
+                Assert.Greater(tex.GetPixel(texX, midRow).a, 0.9f,
+                    "corridor interior must be fully opaque during playback");
 
                 // 帯の外側 (パネル左端から 4.5 px、中央行なので角丸の影響なし)
                 // は不透明のまま (パネルの見た目を維持)。

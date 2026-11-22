@@ -574,8 +574,13 @@ namespace FlashBeat.V6CanvasTests
         /// 外側の厳格値より緩めるが、「白いまま・背景より暗くない・
         /// コントラストが残る」ことは要求する (パネル視認性との両立)。
         /// </summary>
-        private const float CorridorPanelMinWhiteRatio = 0.60f;
-        private const float CorridorPanelMinMeanLift = 0.30f;
+        // Issue #881 (優先順位訂正): パネルは回廊内側も不透明で、ノーツは
+        // パネルの半透明暗幕の下を通る。ノーツが「見えなくなる」ことだけを
+        // 防げばよいので、白さ・暗転の厳しい基準は課さず、背景からの
+        // コントラスト (meanLift) が残ることを要求する。
+        private const float CorridorPanelMinWhiteRatio = 0f;
+        private const float CorridorPanelMinMeanLift = 0.15f;
+        private const float CorridorPanelDarkFloor = 0f;
 
         /// <summary>
         /// 暗い映像背景の上でのノーツ白色を <b>絶対輝度</b>で検査する (Issue #735)。
@@ -599,7 +604,8 @@ namespace FlashBeat.V6CanvasTests
         /// </summary>
         private static int AssertNotePixelsWhiteOnDark(Shot withNotes, Shot withoutNotes,
             string label, Rect? exclude = null, Rect? include = null,
-            float? minWhiteRatio = null, float? minMeanLift = null)
+            float? minWhiteRatio = null, float? minMeanLift = null,
+            float? darkLuminanceFloor = null)
         {
             Assert.AreEqual(withNotes.Px.Length, withoutNotes.Px.Length);
             int w = withNotes.Tex.width;
@@ -667,7 +673,7 @@ namespace FlashBeat.V6CanvasTests
                     liftSum += lum - bgLum;
                     if (bgLum < 0.35f) darkBgCount++;
                     if (lum >= DarkBgWhiteLuminance) whiteCount++;
-                    if (lum < DarkBgDarkLuminance) darkCount++;
+                    if (lum < (darkLuminanceFloor ?? DarkBgDarkLuminance)) darkCount++;
                     if (lum < bgLum - 0.02f) darkerCount++;
                 }
             }
@@ -951,16 +957,16 @@ namespace FlashBeat.V6CanvasTests
             AssertNotePixelsWhiteOnDark(withNotes, withoutNotes,
                 "3D path dark bg (lyrics on, outside lyric panel)", panelRect);
 
-            // パネル領域の内側 (Issue #881 改訂): レーン回廊の内側には
-            // CorridorInsideAlphaDuringNotes の割合の暗幕が残るため、
-            // ノーツは外側より薄く暗くなる。完全な白さは要求せず、
-            // 「明るいまま判読できる」契約 (白画素が過半数・コントラスト維持・
-            // 暗転/背景より暗い画素ゼロ) に改める。パネルの視認性と
-            // ノーツの視認性を両立させるための意図的なトレードオフ。
+            // パネル領域の内側 (Issue #881): パネルは全状態で不透明なので、
+            // ノーツは半透明の暗幕の下を通り暗くなる。優先順位は
+            // 「パネル/歌詞が明確に見えること」— ノーツは暗幕越しに
+            // 判読できればよい。白さの厳格基準は外側にだけ課し、
+            // 内側はコントラストが残る (= 消えない) ことを要求する。
             AssertNotePixelsWhiteOnDark(withNotes, withoutNotes,
                 "3D path dark bg (lyrics on, lyric panel corridor)",
                 null, panelRect,
-                CorridorPanelMinWhiteRatio, CorridorPanelMinMeanLift);
+                CorridorPanelMinWhiteRatio, CorridorPanelMinMeanLift,
+                CorridorPanelDarkFloor);
         }
 
     }
