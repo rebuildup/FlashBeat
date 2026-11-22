@@ -100,6 +100,13 @@ public class AutoTestV6Screens : MonoBehaviour
     {
         if (string.IsNullOrEmpty(sceneName)) { yield break; }
 
+        // ResultScene の初回 Refresh はシーンロード中に走り run* 値を固定する
+        // ため、境界スコア注入 (#870) はロード前に適用する。
+        if (sceneName == "ResultScene")
+        {
+            ApplyResultScoreArgs();
+        }
+
         SceneManager.LoadScene(sceneName);
         yield return new WaitForSecondsRealtime(SettleSeconds);
         if (SceneManager.GetActiveScene().name != sceneName)
@@ -253,16 +260,6 @@ public class AutoTestV6Screens : MonoBehaviour
             var resultView = driver != null ? driver.View : null;
             if (resultView != null)
             {
-                // 境界スコアの描画証跡用 (#870): -autotest-result-score /
-                // -autotest-result-chart-notes / -autotest-result-{perfect,
-                // great,bad,miss} があれば GManager を差し替えて再描画する。
-                // 未指定時はシーン遷移時の値のまま (従来どおり)。
-                if (ApplyResultScoreArgs())
-                {
-                    resultView.Refresh();
-                    yield return new WaitForSecondsRealtime(0.2f);
-                }
-
                 resultView.PrepareForAudit();
                 yield return new WaitForSecondsRealtime(0.2f);
             }
