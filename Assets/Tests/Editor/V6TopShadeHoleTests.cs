@@ -139,11 +139,13 @@ namespace FlashBeat.Tests
                 Assert.AreEqual(0x99 / 255f, img.color.a, 0.01f,
                     "lyric panel must stay semi-transparent");
 
-                // スプライト自体は角丸のべた塗り (切り抜きテクスチャではない)。
-                var tex = img.sprite.texture;
-                Assert.NotNull(tex);
-                Assert.Greater(tex.GetPixel(tex.width / 2, tex.height / 2).a, 0.9f,
-                    "panel sprite interior must be filled, not cut out");
+                // スプライトは V5Ui.Panel が使う共有の角丸スプライト
+                // (キャッシュで同一インスタンス) であること。
+                // カットアウト焼き込みスプライトは別インスタンスなので、
+                // 参照一致で「標準パネルのまま」を固定する
+                // (テクスチャは readable でないため画素は読めない)。
+                Assert.AreSame(V6Sprites.Rounded(8), img.sprite,
+                    "lyric panel must keep the standard V5Ui.Panel sprite");
             }
             finally
             {
