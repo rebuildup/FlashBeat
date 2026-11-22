@@ -27,6 +27,24 @@ bumps land after this evidence). Unity 6000.5.6f1, macOS 実機・実ディス�
 - 歌詞: `state=HasLyrics lines=24 hasText=True`、`PASS lyric text is rendered`
 - judged=130 == chartNotes、score=1,088,846、Completed
 
+## Result 境界スコア描画証跡 — `result-boundary-8610f1b5/` (#870)
+
+`AutoTestV6Screens` に `-autotest-result-score` / `-autotest-result-chart-notes` /
+`-autotest-result-{perfect,great,bad,miss}` を追加し、ResultScene ロード前に
+GManager へ注入 (run* 値は初回 Refresh で固定されるため)。139 ノーツ
+(v6 max=1,174,000) で 5 点を実描画:
+
+| score | 期待 | 表示 grade | gauge | 判定 |
+|---|---|---|---|---|
+| 645,699 | C | C | ~55% | vision review MATCH |
+| 645,700 | B | B | ~55% | MATCH |
+| 1,056,599 | A | A | ~90% | MATCH |
+| 1,056,600 | S | S | ~90% | MATCH |
+| 1,174,000 | SS | SS | full | MATCH |
+
+全件 `fail=0`。vision review (nemotron-3.5-super-vl) で grade 文字・SCORE・
+ゲージ充填の一致を確認。不一致なし。
+
 ## v6screens 解像度マトリクス — `v6screens-f544091f/`
 
 - 5/5 PASS (1024x768 / 1280x720 / 1920x1080 / 2560x1440 / 2560x1664)、

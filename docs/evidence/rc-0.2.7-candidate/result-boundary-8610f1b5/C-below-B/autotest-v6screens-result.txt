@@ -1,0 +1,17 @@
+[AutoTestV6Screens] SCREEN ResultScene pass=94 fail=0 symbols=2 shots=v6screen-ResultScene-1.png
+[AutoTestV6Screens] [clip] summary screen=3420x2224 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] [ink] text overflow V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Bonus Line/Label ink=(x:0.0, y:-17.6, width:62.6, height:32.7) rect=(x:0.0, y:-14.0, width:100.0, height:28.0) "BASE + BONUS"
+[AutoTestV6Screens] [ink] text overflow V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Bonus Line/Note Quality Label ink=(x:0.0, y:-15.5, width:54.2, height:15.5) rect=(x:0.0, y:-14.0, width:182.5, height:14.0) "QUALITY"
+[AutoTestV6Screens] [ink] summary inside=57 partial=0 overflow=2 outside=0 unmeasurable=0
+[AutoTestV6Screens] [overlap] summary groups=1 overlaps=0
+[AutoTestV6Screens] SCREEN ResultScene-RegisterModal pass=136 fail=0 symbols=2 shots=v6screen-ResultScene-RegisterModal-2.png
+[AutoTestV6Screens] [clip] summary screen=3420x2224 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] [ink] text overflow V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Bonus Line/Label ink=(x:0.0, y:-17.6, width:62.6, height:32.7) rect=(x:0.0, y:-14.0, width:100.0, height:28.0) "BASE + BONUS"
+[AutoTestV6Screens] [ink] text overflow V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Main/Bonus Line/Note Quality Label ink=(x:0.0, y:-15.5, width:54.2, height:15.5) rect=(x:0.0, y:-14.0, width:182.5, height:14.0) "QUALITY"
+[AutoTestV6Screens] [ink] text overflow V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Modal 05b/Dialog/Head ink=(x:0.0, y:-37.9, width:222.5, height:37.9) rect=(x:0.0, y:-43.0, width:180.0, height:43.0) "この端末の名前"
+[AutoTestV6Screens] [ink] text overflow V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Modal 05b/Dialog/Name Prompt ink=(x:0.0, y:-39.5, width:378.8, height:39.5) rect=(x:0.0, y:-29.0, width:380.0, height:29.0) "プレイヤー名を入力"
+[AutoTestV6Screens] [ink] text partial V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Modal 05b/Dialog/Name Field/Text Viewport/Value ink=(x:-1.8, y:-47.5, width:3.6, height:2.1) rect=(x:0.0, y:-58.0, width:720.0, height:58.0) "​"
+[AutoTestV6Screens] [ink] text overflow V6 Result Canvas/V6 Result View/V6 Result Frame 1728x972/Modal 05b/Dialog/Input Hints/Legend 削除/KeyCap/Key ink=(x:0.0, y:-25.3, width:91.5, height:25.3) rect=(x:0.0, y:-26.0, width:90.0, height:26.0) "Backspace"
+[AutoTestV6Screens] [ink] summary inside=74 partial=1 overflow=5 outside=0 unmeasurable=0
+[AutoTestV6Screens] [overlap] summary groups=2 overlaps=0
+[AutoTestV6Screens] RESULT pass=12 fail=0 symbols=4 screenshots=2 resolution=3420x2224
