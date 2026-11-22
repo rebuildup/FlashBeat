@@ -1,0 +1,164 @@
+Mono path[0] = '/Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/Managed'
+Mono config path = '/Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/MonoBleedingEdge/etc'
+CodeReloadManager initialized
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+ preferred device: Apple M5 (high power)
+Metal devices available: 1
+0: Apple M5 (high power)
+Using device Apple M5 (high power)
+Initialize engine version: 6000.5.6f1 (0e0577a1a2ac)
+[Subsystems] Discovering subsystems at path /Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/UnitySubsystems
+GfxDevice: creating device client; kGfxThreadingModeThreaded
+Initializing Metal device caps: Apple M5
+Mac GPU Family: 2
+Apple GPU Family: 9
+MSL Version: 3.0
+Has Float MSAA: 1
+Has Float Filtering: 1
+ReadWrite Texture Tier: 2
+Begin MonoManager ReloadAssembly
+- Finished resetting the current domain, in  0.015 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+Metal RecreateSurface[0x1044fef50]: surface size 3420x2148
+UnloadTime: 0.523875 ms
+[FullscreenBootstrap] event=purge-resolution stored=1280x720, display=3420x2224
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. /var/folders/1l/fmlzfnk57zndv1pxwwkw6xrc0000gn/T//Unity_AVClip_fK1z9R.mov
+[FullscreenDiagnostics] event=startup, screen=1280x720, currentResolution=1280x720@60.0024000960038Hz, fullScreen=True, fullScreenMode=FullScreenWindow, dpi=299, safeArea=0,0,1280x720, displays=1, display0=system:3420x2224,rendering:1280x720,active:True, quality=1, time=2026-11-22T03:20:34Z
+[UpdateChecker] 更新チャンネル: stable (prerelease を更新候補に含める: no) / プラットフォーム: macos
+[Perf] opening scene start
+[AutoTestV6Screens] start scenes=ResultScene,GameScene out=/Users/rebui/work/FlashBeat/docs/evidence/rc-0.2.7-candidate/v6screens-f544091f/1280x720 resolution=1280x720 fullscreen=True
+Unloading 8 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 2.657792 ms
+Unloading 4 unused Assets to reduce memory usage. Loaded Objects now: 2212.
+Total: 1.990916 ms (FindLiveObjects: 0.144833 ms CreateObjectMapping: 0.090042 ms MarkObjects: 1.742750 ms  DeleteObjects: 0.013166 ms)
+
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+[V5GameUi] NewCanvas V6 Result Canvas id=568105589213755726 scene=ResultScene children=0
+se-bukanryou
+[FullscreenBootstrap] event=first-frame, screen=1280x720, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=1280x720
+[FullscreenBootstrap] event=request-legacy-fullscreen
+[UpdateChecker] 同じバージョン 0.2.6 の別ビルドがあります (v0.2.6-macos-1a504a37 / 現行 f544091f)。更新はしません (適用は運営者が Update.ps1 -Tag で行えます) — 現行版のまま続行します。
+[FullscreenBootstrap] event=after-legacy-0.5s, screen=1280x720, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=1280x720
+[FullscreenBootstrap] event=after-legacy-2s, screen=1280x720, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=1280x720
+[FullscreenBootstrap] event=request-fullscreen-mode
+[FullscreenBootstrap] event=after-mode-0.5s, screen=1280x720, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=1280x720
+[FullscreenBootstrap] event=after-mode-2s, screen=1280x720, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=1280x720
+[FullscreenBootstrap] event=still-uncovered, screen=1280x720, display=3420x2224, fullScreen=True, fullScreenMode=FullScreenWindow, safeArea=1280x720
+[AutoTestV6Screens] PASS the v6 screen draws at least one graphic: ResultScene
+[AutoTestV6Screens] PASS no legacy graphics are visible on ResultScene
+[AutoTestV6Screens] AUDIT-CANVAS ResultScene name=V6 Result Canvas id=568105589213755726 scene=ResultScene active=True childCount=1 graphics=92
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Result Canvas/V6 Result View/V6CompactViewport/V6 Result Frame 1728x972/Main/Result Block/Grade/Letter: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Result Canvas/V6 Result View/V6CompactViewport/V6 Result Frame 1728x972/Main/Bonus Line/Note Quality Value: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Result Canvas/V6 Result View/V6CompactViewport/V6 Result Frame 1728x972/Main/Bonus Line/Milestone Bonus Value: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Result Canvas/V6 Result View/V6CompactViewport/V6 Result Frame 1728x972/Main/Bonus Line/Clear Bonus Value: U+2013('–')
+[AutoTestV6Screens] SYMBOLS ResultScene count=4 (log only, not a failure)
+[AutoTestV6Screens] CLIP ResultScene selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] PASS no unreachable selectables on ResultScene
+[AutoTestV6Screens] PASS no unreachable info texts on ResultScene
+[AutoTestV6Screens] INK ResultScene inside=57 partial=1 overflow=1 outside=0 unmeasurable=0
+[AutoTestV6Screens] PASS no text ink fully outside its rect on ResultScene
+[AutoTestV6Screens] OVERLAP ResultScene groups=1 overlaps=0
+[AutoTestV6Screens] PASS the screenshot ResultScene was written
+[AutoTestV6Screens] SCREEN ResultScene pass=94 fail=0 symbols=4 res=1280x720
+[AutoTestV6Screens] PASS the v6 screen draws at least one graphic: ResultScene-RegisterModal
+[AutoTestV6Screens] PASS no legacy graphics are visible on ResultScene-RegisterModal
+[AutoTestV6Screens] AUDIT-CANVAS ResultScene-RegisterModal name=V6 Result Canvas id=568105589213755726 scene=ResultScene active=True childCount=1 graphics=134
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Result Canvas/V6 Result View/V6CompactViewport/V6 Result Frame 1728x972/Main/Result Block/Grade/Letter: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Result Canvas/V6 Result View/V6CompactViewport/V6 Result Frame 1728x972/Main/Bonus Line/Note Quality Value: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Result Canvas/V6 Result View/V6CompactViewport/V6 Result Frame 1728x972/Main/Bonus Line/Milestone Bonus Value: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Result Canvas/V6 Result View/V6CompactViewport/V6 Result Frame 1728x972/Main/Bonus Line/Clear Bonus Value: U+2013('–')
+[AutoTestV6Screens] SYMBOL-ICON-TEXT V6 Result Canvas/V6 Result View/V6CompactViewport/V6 Result Frame 1728x972/Modal 05b/Dialog/Summary/Grade/GradeText: U+2013('–')
+[AutoTestV6Screens] SYMBOLS ResultScene-RegisterModal count=5 (log only, not a failure)
+[AutoTestV6Screens] CLIP ResultScene-RegisterModal selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] PASS no unreachable selectables on ResultScene-RegisterModal
+[AutoTestV6Screens] PASS no unreachable info texts on ResultScene-RegisterModal
+[AutoTestV6Screens] INK ResultScene-RegisterModal inside=72 partial=2 overflow=4 outside=0 unmeasurable=0
+[AutoTestV6Screens] PASS no text ink fully outside its rect on ResultScene-RegisterModal
+[AutoTestV6Screens] OVERLAP ResultScene-RegisterModal groups=2 overlaps=0
+[AutoTestV6Screens] PASS the screenshot ResultScene-RegisterModal was written
+[AutoTestV6Screens] SCREEN ResultScene-RegisterModal pass=136 fail=0 symbols=5 res=1280x720
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.449667 ms
+[NotesManager] no chart for 'ロストアンブレラ' - playing without notes
+Unloading 38 unused Assets to reduce memory usage. Loaded Objects now: 2446.
+Total: 1.448667 ms (FindLiveObjects: 0.069750 ms CreateObjectMapping: 0.084583 ms MarkObjects: 1.227417 ms  DeleteObjects: 0.066833 ms)
+
+[MusicManager] video player: songID=1 scenePlayers=29 path=scene index=1 player='1' renderMode=MaterialOverride videoId=DeKLpgzh-qQ
+[MusicManager] InvidiousVideoPlayer removed for 'ロストアンブレラ' (yt-dlp takes over)
+Color primaries is unknown or unsupported by AVFoundationVideoMedia. Falling back to default may result in color shift. unityvfs:///Users/rebui/work/FlashBeat/Builds/macOS/FlashBeat.app/Contents/Resources/Data/resources.resource
+[V5GameUi] NewCanvas V6GameHudCanvas id=568105589213753588 scene=GameScene children=0
+[V5GameUi] NewCanvas V6GamePauseCanvas id=568105589213752374 scene=GameScene children=0
+[MusicManager] media cache hit videoId=DeKLpgzh-qQ (merged) - skipped the yt-dlp format probe
+[Perf] media resolve 135ms (cache hit)
+[Perf] media files 135ms
+[Perf] video Prepare() call 0ms file=merged.mp4
+[MusicManager] picture wired to the renderer of '1' (path=scene, _MainTex, renderMode=MaterialOverride)
+[Perf] video wire picture 0ms
+[Perf] video activate 0ms
+[MusicManager] VideoPlayer prepared=True path=scene file=merged.mp4 after 0.0s
+[Perf] media ready 289ms
+[MusicManager] media ready: song='ロストアンブレラ' audioMode=StreamCombined video=ok - press Space to start
+[AutoTestV6Screens] PASS the v6 hud exists
+[AutoTestV6Screens] PASS the v6 screen draws at least one graphic: GameScene-HUD
+[AutoTestV6Screens] PASS no legacy graphics are visible on GameScene-HUD
+[AutoTestV6Screens] AUDIT-CANVAS GameScene-HUD name=V6GamePauseCanvas id=568105589213752374 scene=GameScene active=True childCount=2 graphics=0
+[AutoTestV6Screens] AUDIT-CANVAS GameScene-HUD name=V6GameHudCanvas id=568105589213753588 scene=GameScene active=True childCount=1 graphics=44
+[AutoTestV6Screens] SYMBOLS GameScene-HUD count=0 (log only, not a failure)
+[AutoTestV6Screens] CLIP GameScene-HUD selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] PASS no unreachable selectables on GameScene-HUD
+[AutoTestV6Screens] PASS no unreachable info texts on GameScene-HUD
+[AutoTestV6Screens] INK GameScene-HUD inside=21 partial=0 overflow=0 outside=0 unmeasurable=0
+[AutoTestV6Screens] PASS no text ink fully outside its rect on GameScene-HUD
+[AutoTestV6Screens] OVERLAP GameScene-HUD groups=0 overlaps=0
+[AutoTestV6Screens] PASS the screenshot GameScene-HUD was written
+[AutoTestV6Screens] PASS the v6 screen draws at least one graphic: GameScene-Pause
+[AutoTestV6Screens] PASS no legacy graphics are visible on GameScene-Pause
+[AutoTestV6Screens] AUDIT-CANVAS GameScene-Pause name=V6GamePauseCanvas id=568105589213752374 scene=GameScene active=True childCount=2 graphics=187
+[AutoTestV6Screens] AUDIT-CANVAS GameScene-Pause name=V6GameHudCanvas id=568105589213753588 scene=GameScene active=True childCount=1 graphics=44
+[AutoTestV6Screens] SYMBOLS GameScene-Pause count=0 (log only, not a failure)
+[AutoTestV6Screens] CLIP GameScene-Pause selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] PASS no unreachable selectables on GameScene-Pause
+[AutoTestV6Screens] PASS no unreachable info texts on GameScene-Pause
+[AutoTestV6Screens] INK GameScene-Pause inside=102 partial=0 overflow=9 outside=0 unmeasurable=0
+[AutoTestV6Screens] PASS no text ink fully outside its rect on GameScene-Pause
+[AutoTestV6Screens] OVERLAP GameScene-Pause groups=6 overlaps=0
+[AutoTestV6Screens] PASS the screenshot GameScene-Pause was written
+[AutoTestV6Screens] SCREEN GameScene-Pause pass=235 fail=0 symbols=0 res=1280x720
+[AutoTestV6Screens] PASS the loading video prepares and becomes visible
+[AutoTestV6Screens] PASS the loading surface is the video (not the flat fallback)
+[AutoTestV6Screens] PASS the v6 screen draws at least one graphic: GameScene-Loading
+[AutoTestV6Screens] PASS no legacy graphics are visible on GameScene-Loading
+[AutoTestV6Screens] AUDIT-CANVAS GameScene-Loading name=V6GamePauseCanvas id=568105589213752374 scene=GameScene active=True childCount=2 graphics=13
+[AutoTestV6Screens] AUDIT-CANVAS GameScene-Loading name=V6GameHudCanvas id=568105589213753588 scene=GameScene active=True childCount=1 graphics=44
+[AutoTestV6Screens] SYMBOLS GameScene-Loading count=0 (log only, not a failure)
+[AutoTestV6Screens] CLIP GameScene-Loading selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] PASS no unreachable selectables on GameScene-Loading
+[AutoTestV6Screens] PASS no unreachable info texts on GameScene-Loading
+[AutoTestV6Screens] INK GameScene-Loading inside=27 partial=0 overflow=0 outside=0 unmeasurable=0
+[AutoTestV6Screens] PASS no text ink fully outside its rect on GameScene-Loading
+[AutoTestV6Screens] OVERLAP GameScene-Loading groups=0 overlaps=0
+[AutoTestV6Screens] PASS the screenshot GameScene-Loading was written
+[AutoTestV6Screens] SCREEN GameScene-Loading pass=62 fail=0 symbols=0 res=1280x720
+[AutoTestV6Screens] SCREEN ResultScene pass=94 fail=0 symbols=4 shots=v6screen-ResultScene-1.png
+[AutoTestV6Screens] SCREEN ResultScene-RegisterModal pass=136 fail=0 symbols=5 shots=v6screen-ResultScene-RegisterModal-2.png
+[AutoTestV6Screens] SCREEN GameScene-HUD pass=51 fail=0 symbols=0 shots=v6screen-GameScene-HUD-3.png
+[AutoTestV6Screens] SCREEN GameScene-Pause pass=235 fail=0 symbols=0 shots=v6screen-GameScene-Pause-4.png
+[AutoTestV6Screens] SCREEN GameScene-LoadingVideo pass=2 fail=0 symbols=0 shots=
+[AutoTestV6Screens] SCREEN GameScene-Loading pass=62 fail=0 symbols=0 shots=v6screen-GameScene-Loading-5.png
+[AutoTestV6Screens] RESULT pass=33 fail=0 symbols=9 screenshots=5 resolution=1280x720
+Thread 0x16fb9b000 may have been prematurely finalized
+Thread 0x16f77b000 may have been prematurely finalized
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input Polling Thread exited.
+Input System module state changed to: Shutdown.
+Thread 0x16e79f000 may have been prematurely finalized
+CodeReloadManager destroyed

@@ -1,0 +1,39 @@
+[AutoTestV6Screens] SCREEN ResultScene pass=94 fail=0 symbols=4 shots=v6screen-ResultScene-1.png
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] [ink] text partial V6 Result Canvas/V6 Result View/V6CompactViewport/V6 Result Frame 1728x972/Main/Bonus Line/Label ink=(x:0.0, y:-17.6, width:62.6, height:32.7) rect=(x:0.0, y:-14.0, width:100.0, height:28.0) "BASE + BONUS"
+[AutoTestV6Screens] [ink] text overflow V6 Result Canvas/V6 Result View/V6CompactViewport/V6 Result Frame 1728x972/Main/Bonus Line/Note Quality Label ink=(x:0.0, y:-15.5, width:54.2, height:15.5) rect=(x:0.0, y:-14.0, width:182.5, height:14.0) "QUALITY"
+[AutoTestV6Screens] [ink] summary inside=57 partial=1 overflow=1 outside=0 unmeasurable=0
+[AutoTestV6Screens] [overlap] summary groups=1 overlaps=0
+[AutoTestV6Screens] SCREEN ResultScene-RegisterModal pass=136 fail=0 symbols=5 shots=v6screen-ResultScene-RegisterModal-2.png
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] [ink] text partial V6 Result Canvas/V6 Result View/V6CompactViewport/V6 Result Frame 1728x972/Main/Bonus Line/Label ink=(x:0.0, y:-17.6, width:62.6, height:32.7) rect=(x:0.0, y:-14.0, width:100.0, height:28.0) "BASE + BONUS"
+[AutoTestV6Screens] [ink] text overflow V6 Result Canvas/V6 Result View/V6CompactViewport/V6 Result Frame 1728x972/Main/Bonus Line/Note Quality Label ink=(x:0.0, y:-15.5, width:54.2, height:15.5) rect=(x:0.0, y:-14.0, width:182.5, height:14.0) "QUALITY"
+[AutoTestV6Screens] [ink] text overflow V6 Result Canvas/V6 Result View/V6CompactViewport/V6 Result Frame 1728x972/Modal 05b/Dialog/Head ink=(x:0.0, y:-37.9, width:222.5, height:37.9) rect=(x:0.0, y:-43.0, width:180.0, height:43.0) "この端末の名前"
+[AutoTestV6Screens] [ink] text overflow V6 Result Canvas/V6 Result View/V6CompactViewport/V6 Result Frame 1728x972/Modal 05b/Dialog/Name Prompt ink=(x:0.0, y:-39.5, width:378.8, height:39.5) rect=(x:0.0, y:-29.0, width:380.0, height:29.0) "プレイヤー名を入力"
+[AutoTestV6Screens] [ink] text partial V6 Result Canvas/V6 Result View/V6CompactViewport/V6 Result Frame 1728x972/Modal 05b/Dialog/Name Field/Text Viewport/Value ink=(x:-1.8, y:-47.5, width:3.6, height:2.1) rect=(x:0.0, y:-58.0, width:720.0, height:58.0) "​"
+[AutoTestV6Screens] [ink] text overflow V6 Result Canvas/V6 Result View/V6CompactViewport/V6 Result Frame 1728x972/Modal 05b/Dialog/Input Hints/Legend 削除/KeyCap/Key ink=(x:0.0, y:-25.3, width:91.5, height:25.3) rect=(x:0.0, y:-26.0, width:90.0, height:26.0) "Backspace"
+[AutoTestV6Screens] [ink] summary inside=72 partial=2 overflow=4 outside=0 unmeasurable=0
+[AutoTestV6Screens] [overlap] summary groups=2 overlaps=0
+[AutoTestV6Screens] SCREEN GameScene-HUD pass=51 fail=0 symbols=0 shots=v6screen-GameScene-HUD-3.png
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] [ink] summary inside=21 partial=0 overflow=0 outside=0 unmeasurable=0
+[AutoTestV6Screens] [overlap] summary groups=0 overlaps=0
+[AutoTestV6Screens] SCREEN GameScene-Pause pass=233 fail=0 symbols=0 shots=v6screen-GameScene-Pause-4.png
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] [ink] text overflow V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key \/Label ink=(x:0.0, y:-22.8, width:21.2, height:22.8) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) "\"
+[AutoTestV6Screens] [ink] text overflow V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key Q/Label ink=(x:0.0, y:-23.1, width:24.4, height:23.1) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) "Q"
+[AutoTestV6Screens] [ink] text overflow V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key @/Label ink=(x:0.0, y:-22.9, width:26.1, height:22.9) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) "@"
+[AutoTestV6Screens] [ink] text overflow V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key [/Label ink=(x:0.0, y:-22.7, width:20.3, height:22.7) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) "["
+[AutoTestV6Screens] [ink] text overflow V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key ;/Label ink=(x:0.0, y:-23.2, width:19.4, height:23.2) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) ";"
+[AutoTestV6Screens] [ink] text overflow V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key ]/Label ink=(x:0.0, y:-22.7, width:19.0, height:22.7) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) "]"
+[AutoTestV6Screens] [ink] text overflow V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key ,/Label ink=(x:0.0, y:-23.2, width:19.4, height:23.2) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) ","
+[AutoTestV6Screens] [ink] text overflow V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key //Label ink=(x:0.0, y:-22.8, width:21.0, height:22.8) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) "/"
+[AutoTestV6Screens] [ink] text overflow V6GameUi/V6GamePauseCanvas/V6 Pause View/V6CompactViewport/V6 Pause Frame 1728x972/Main/Preview/Key _/Label ink=(x:0.0, y:-22.2, width:22.9, height:22.2) rect=(x:0.0, y:-20.0, width:34.0, height:20.0) "_"
+[AutoTestV6Screens] [ink] summary inside=100 partial=0 overflow=9 outside=0 unmeasurable=0
+[AutoTestV6Screens] [overlap] summary groups=6 overlaps=0
+[AutoTestV6Screens] SCREEN GameScene-LoadingVideo pass=2 fail=0 symbols=0 shots=
+[AutoTestV6Screens] SCREEN GameScene-Loading pass=62 fail=0 symbols=0 shots=v6screen-GameScene-Loading-5.png
+[AutoTestV6Screens] [clip] summary screen=1024x768 selectables partial=0 outside=0 texts partial=0 outside=0
+[AutoTestV6Screens] [ink] summary inside=27 partial=0 overflow=0 outside=0 unmeasurable=0
+[AutoTestV6Screens] [overlap] summary groups=0 overlaps=0
+[AutoTestV6Screens] RESULT pass=33 fail=0 symbols=9 screenshots=5 resolution=1024x768
