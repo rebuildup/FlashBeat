@@ -253,6 +253,16 @@ public class AutoTestV6Screens : MonoBehaviour
             var resultView = driver != null ? driver.View : null;
             if (resultView != null)
             {
+                // 境界スコアの描画証跡用 (#870): -autotest-result-score /
+                // -autotest-result-chart-notes / -autotest-result-{perfect,
+                // great,bad,miss} があれば GManager を差し替えて再描画する。
+                // 未指定時はシーン遷移時の値のまま (従来どおり)。
+                if (ApplyResultScoreArgs())
+                {
+                    resultView.Refresh();
+                    yield return new WaitForSecondsRealtime(0.2f);
+                }
+
                 resultView.PrepareForAudit();
                 yield return new WaitForSecondsRealtime(0.2f);
             }
@@ -383,6 +393,38 @@ public class AutoTestV6Screens : MonoBehaviour
         }
 
         yield return CaptureAndAudit(sceneName, reports);
+    }
+
+    /// <summary>
+    /// ResultScene 監査用のスコア注入 (#870)。
+    /// `-autotest-result-score` (必須) と任意で
+    /// `-autotest-result-chart-notes` / `-autotest-result-perfect` /
+    /// `-autotest-result-great` / `-autotest-result-bad` /
+    /// `-autotest-result-miss` を読み、GManager のスコア状態を差し替える。
+    /// 1 つでも指定があれば true を返し、呼び出し側が Refresh する。
+    /// </summary>
+    private static bool ApplyResultScoreArgs()
+    {
+        string scoreRaw = V6ScreenAudit.GetArg("-autotest-result-score");
+        if (string.IsNullOrEmpty(scoreRaw)
+            || !int.TryParse(scoreRaw, out int score))
+        {
+            return false;
+        }
+
+        GManager.score = score;
+        GManager.chartNoteCount = AuditIntArg("-autotest-result-chart-notes", GManager.chartNoteCount);
+        GManager.perfect = AuditIntArg("-autotest-result-perfect", GManager.perfect);
+        GManager.great = AuditIntArg("-autotest-result-great", GManager.great);
+        GManager.bad = AuditIntArg("-autotest-result-bad", GManager.bad);
+        GManager.miss = AuditIntArg("-autotest-result-miss", GManager.miss);
+        return true;
+    }
+
+    private static int AuditIntArg(string key, int fallback)
+    {
+        string raw = V6ScreenAudit.GetArg(key);
+        return !string.IsNullOrEmpty(raw) && int.TryParse(raw, out int value) ? value : fallback;
     }
 
     private IEnumerator CaptureAndAudit(string label, List<ScreenReport> reports)
