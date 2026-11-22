@@ -156,6 +156,21 @@ song-free を確認 (第三者楽曲同梱は引き続き `v0.1.0-win64-743c88d`
   スクリプト非検出の盲点あり。パッケージスクリプト側の song-free
   検査 (第三者メディア除外 manifest + サイズ上限) は通過済み。
 
+## 3.4 追記 (2026-11-22): v0.2.7 公開時の再監査
+
+`v0.2.7` (Program #869: 歌詞解決 / グレード・ゲージ整合 / 設定ラベル /
+Web Studio 再設計) の公開にあたり `tools/release/audit-release-media.py`
+で再監査した。新規 2 件はいずれも **song-free** (ルーズなメディア 0 件)。
+
+| Release タグ | prerelease | ZIP size (bytes) | resources.resource | ルーズなメディア | version.json | media manifest | update-channel | 判定 |
+|---|---|---|---|---|---|---|---|---|
+| `v0.2.7-win64-f8e8b3a6` | no | 236,470,071 | 25,484,646 | 0 | ✓ | ✓ | ✓ | song-free |
+| `v0.2.7-macos-f8e8b3a6` | no | 332,032,452 | (なし — `.app` 構造のためスクリプト非検出。パッケージ時に song-free 検査済み) | 0 | ✓ | (スクリプト非検出。`.app/Contents/Resources/` 内に同梱) | ✓ | song-free |
+
+- ビルド元 commit: `f8e8b3a6cf388a0db0700b636c67cc769804f397`
+  (release freeze `4411cfd5` との差分は証跡 README のみ)。
+- Win64 実機での起動・プレイ確認は未実施 (Release notes に明記)。
+
 ## 4. 再現時の注意
 
 - 判定は **中央ディレクトリに記録された非圧縮サイズ** に基づく。
