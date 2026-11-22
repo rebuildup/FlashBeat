@@ -324,7 +324,14 @@ namespace FlashBeat.V6HudTests
             float boundary, string upperGrade, string lowerGrade)
         {
             // fraction = score / max >= boundary を満たす最小のスコア。
-            int at = (int)System.Math.Ceiling(boundary * max - 1e-4f);
+            // GradeOfV6 と同じ float 除算で判定する (Math.Ceiling との
+            // 誤差で 1 点ずれるのを防ぐ)。
+            int at = (int)System.Math.Floor(boundary * max);
+            while (at > 0 && at / (float)max >= boundary)
+            {
+                at--;
+            }
+            at++;
             if (at < 1) at = 1;
 
             // 境界ちょうどのスコアが上位グレード。
