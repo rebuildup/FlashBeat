@@ -209,6 +209,26 @@ namespace FlashBeat.UI.V6.Result
             return GaugeRatio(bestScore, noteCount) * GaugeW;
         }
 
+        /// <summary>
+        /// Result 画面のグレード・ゲージ正規化に使う譜面ノーツ数 (Issue #870)。
+        /// HUD (V6GameHudView / V6HudLogic) と同じ正本
+        /// (<see cref="GManager.chartNoteCount"/>、Judge.FlushScore が譜面から
+        /// 確定する値) を使う。確定済み判定合計 (perfect+great+bad+miss) を
+        /// 使うと、未判定のノーツが残る終了 (途中離脱・未確定残り) で
+        /// 分母が小さくなり、HUD が見せていたグレードと Result の
+        /// グレード・ゲージがずれる。chartNoteCount が未確定 (0 以下) の
+        /// ときだけ判定合計へ退避する。
+        /// </summary>
+        public static int ResultNoteCount(int chartNoteCount, int perfect, int great, int bad, int miss)
+        {
+            if (chartNoteCount > 0)
+            {
+                return chartNoteCount;
+            }
+
+            return perfect + great + bad + miss;
+        }
+
         /// <summary>曲長表示 (秒 → "m:ss")。無効値は "–"。</summary>
         public static string DurationText(float seconds)
         {

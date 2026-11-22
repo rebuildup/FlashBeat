@@ -289,8 +289,11 @@ namespace FlashBeat.UI.V6.Result
             int score = runScore;
             // scoring v6 (ADR-0037) のグレード・ゲージは譜面満点
             // ScoreMaxV6(noteCount) で正規化するためノーツ数が必要。
-            // 完走後なので確定済み判定合計 = 譜面ノーツ数。
-            int noteCount = runPerfect + runGreat + runBad + runMiss;
+            // Issue #870: HUD と同じ正本 (GManager.chartNoteCount) を使う。
+            // 確定済み判定合計だと未判定残りのある終了で分母がずれ、
+            // HUD のグレードと Result が一致しなくなる。
+            int noteCount = V6ResultLogic.ResultNoteCount(
+                GManager.chartNoteCount, runPerfect, runGreat, runBad, runMiss);
             gradeLetter.text = V6ResultLogic.GradeOf(score, Scoring.LatestVersion, noteCount);
             FitGradeFont();
             scoreValue.text = V6ResultLogic.FormatScore(score);
