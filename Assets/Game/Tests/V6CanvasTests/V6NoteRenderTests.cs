@@ -99,7 +99,6 @@ namespace FlashBeat.V6CanvasTests
             // 同じ解像度キーのスプライトを作ると、ここの描画とずれるので
             // 毎回空にして自分のカメラで焼き直させる。
             V6GameHudView.ClearTopShadeSpriteCacheForTests();
-            V6PanelCorridorHole.ClearSpriteCacheForTests();
 
             // EditMode ではテスト間でシーンが共有され、前のテストが破棄し忘れた
             // 全画面 quad 等の Renderer が残りうる。フルスイートではそれが
@@ -146,7 +145,6 @@ namespace FlashBeat.V6CanvasTests
             PauseGate.HardReset();
             // 自分のカメラで焼いたスプライトを後続テストへ残さない。
             V6GameHudView.ClearTopShadeSpriteCacheForTests();
-            V6PanelCorridorHole.ClearSpriteCacheForTests();
         }
 
         private GameObject Track(GameObject go)
@@ -444,6 +442,28 @@ namespace FlashBeat.V6CanvasTests
             return (0.2126f * c.r + 0.7152f * c.g + 0.0722f * c.b) / 255f;
         }
 
+        /// <summary>Shot の矩形領域 (左下原点 px) の平均輝度。</summary>
+        private static float MeanLuminance(Shot shot, Rect r)
+        {
+            int w = shot.Tex.width;
+            int h = shot.Tex.height;
+            int x0 = Mathf.Clamp(Mathf.FloorToInt(r.x), 0, w - 1);
+            int x1 = Mathf.Clamp(Mathf.CeilToInt(r.xMax), x0 + 1, w);
+            int y0 = Mathf.Clamp(Mathf.FloorToInt(r.y), 0, h - 1);
+            int y1 = Mathf.Clamp(Mathf.CeilToInt(r.yMax), y0 + 1, h);
+            double sum = 0;
+            long n = 0;
+            for (int y = y0; y < y1; y += 2)
+            {
+                for (int x = x0; x < x1; x += 2)
+                {
+                    sum += Luminance(shot.Px[y * w + x]);
+                    n++;
+                }
+            }
+            return n > 0 ? (float)(sum / n) : 0f;
+        }
+
         /// <summary>
         /// withNotes / withoutNotes の差分でノーツ画素を同定し、輝度を検査する。
         /// 戻り値はノーツ画素数。
@@ -569,6 +589,16 @@ namespace FlashBeat.V6CanvasTests
         private const float DarkBgMinMeanLift = 0.40f;
 
         /// <summary>
+        /// Issue #881: 歌詞パネル (黒 α≈0.6 の半透明べた塗り) の下を
+        /// 通るノーツの契約。パネル越しに暗くなるのは仕様 —
+        /// ノーツが「見えなくなる」ことだけを防ぎ、背景からの
+        /// コントラスト (meanLift) が残ることを要求する。
+        /// </summary>
+        private const float CorridorPanelMinWhiteRatio = 0f;
+        private const float CorridorPanelMinMeanLift = 0.15f;
+        private const float CorridorPanelDarkFloor = 0f;
+
+        /// <summary>
         /// 暗い映像背景の上でのノーツ白色を <b>絶対輝度</b>で検査する (Issue #735)。
         ///
         /// <see cref="AssertNotePixelsBright"/> は「背景が明るい画素」だけを
@@ -589,7 +619,9 @@ namespace FlashBeat.V6CanvasTests
         /// 「include の内側かつ exclude の外側」だけが対象になる。
         /// </summary>
         private static int AssertNotePixelsWhiteOnDark(Shot withNotes, Shot withoutNotes,
-            string label, Rect? exclude = null, Rect? include = null)
+            string label, Rect? exclude = null, Rect? include = null,
+            float? minWhiteRatio = null, float? minMeanLift = null,
+            float? darkLuminanceFloor = null)
         {
             Assert.AreEqual(withNotes.Px.Length, withoutNotes.Px.Length);
             int w = withNotes.Tex.width;
@@ -657,7 +689,7 @@ namespace FlashBeat.V6CanvasTests
                     liftSum += lum - bgLum;
                     if (bgLum < 0.35f) darkBgCount++;
                     if (lum >= DarkBgWhiteLuminance) whiteCount++;
-                    if (lum < DarkBgDarkLuminance) darkCount++;
+                    if (lum < (darkLuminanceFloor ?? DarkBgDarkLuminance)) darkCount++;
                     if (lum < bgLum - 0.02f) darkerCount++;
                 }
             }
@@ -682,12 +714,15 @@ namespace FlashBeat.V6CanvasTests
                 " 画素) — シェード/パネル/マテリアルのどれかがノーツを暗くしている");
             Assert.AreEqual(0, darkerCount,
                 label + ": ノーツが背景より暗い画素を作っている (" + darkerCount + " 画素)");
-            Assert.GreaterOrEqual(whiteRatio, DarkBgMinWhiteRatio,
+            Assert.GreaterOrEqual(whiteRatio,
+                minWhiteRatio ?? DarkBgMinWhiteRatio,
                 label + ": 白いノーツ画素の割合が不足 ({whiteRatio:F2} < " +
-                DarkBgMinWhiteRatio + ")");
-            Assert.GreaterOrEqual(meanLift, DarkBgMinMeanLift,
+                (minWhiteRatio ?? DarkBgMinWhiteRatio) + ")");
+            Assert.GreaterOrEqual(meanLift,
+                minMeanLift ?? DarkBgMinMeanLift,
                 label + ": 背景からのコントラスト不足 (meanLift=" +
-                meanLift.ToString("F3") + " < " + DarkBgMinMeanLift + ")");
+                meanLift.ToString("F3") + " < " +
+                (minMeanLift ?? DarkBgMinMeanLift) + ")");
             return maskCount;
         }
 
@@ -873,11 +908,11 @@ namespace FlashBeat.V6CanvasTests
         /// Issue #735 / #760: 歌詞パネル (LyricsEnabled = true, 既定) が
         /// 表示される出荷構成で、パネルに覆われた領域のノーツ画素を計測する。
         ///
-        /// 歌詞パネルは黒 α≈0.6 の半透明パネルだが、Issue #760 で上部シェードと
-        /// 同じレーン回廊カットアウト (<see cref="V6TopShadeHole"/> →
-        /// <see cref="V6PanelCorridorHole"/>) が入った。パネル矩形内のノーツは
-        /// すべてレーン帯 (= カットアウト) の内側を通るため、パネル帯の
-        /// ノーツも外側と同じ厳しい白さ基準で検証する。
+        /// 歌詞パネルは黒 α≈0.6 の半透明べた塗り角丸 (Issue #881 で
+        /// レーン回廊カットアウトを廃止し V5Ui.Panel 標準へ復帰)。
+        /// パネル矩形内のノーツは半透明の暗幕の下を通るため暗くなる —
+        /// 優先順位はパネル/歌詞の視認性 (オーナー指摘) で、内側は
+        /// 「暗幕越しに判読できる」緩い基準を課す。
         /// パネル矩形は LyricSlotOrigin/Size (実配置の正本) から取り、
         /// 「外側は exclude・内側は include」で画面全体を漏れなく覆う。
         /// </summary>
@@ -938,14 +973,29 @@ namespace FlashBeat.V6CanvasTests
             AssertNotePixelsWhiteOnDark(withNotes, withoutNotes,
                 "3D path dark bg (lyrics on, outside lyric panel)", panelRect);
 
-            // パネル領域の内側 (Issue #760): レーン回廊カットアウトにより
-            // パネル帯のノーツも外側と同じ白さになるはずなので、
-            // 同じ厳しい基準 (白・コントラスト・暗くならない) を要求する。
-            // パネル矩形内のノーツ差分画素はすべてレーン帯 (= カットアウト
-            // の内側) を通るため、パネルの残る暗幕に掛かるノーツ画素は無い。
+            // パネル自体の視認性 (Issue #881 の回帰防止): パネルは黒
+            // α≈0.6 の半透明べた塗りなので、パネル矩形内の輝度は直上の
+            // 同サイズ帯より明確に暗い。回廊カットアウトで消えていた頃は
+            // 内側≒外側の輝度になりこの差が出なかった。
+            var aboveRect = new Rect(panelRect.x,
+                panelRect.y + panelRect.height + 4f,
+                panelRect.width, panelRect.height);
+            float insideLum = MeanLuminance(withoutNotes, panelRect);
+            float aboveLum = MeanLuminance(withoutNotes, aboveRect);
+            Assert.Less(insideLum, aboveLum * 0.8f,
+                $"lyric panel must darken its region: inside={insideLum:F3} " +
+                $"above={aboveLum:F3}");
+
+            // パネル領域の内側 (Issue #881): パネルは全状態で不透明なので、
+            // ノーツは半透明の暗幕の下を通り暗くなる。優先順位は
+            // 「パネル/歌詞が明確に見えること」— ノーツは暗幕越しに
+            // 判読できればよい。白さの厳格基準は外側にだけ課し、
+            // 内側はコントラストが残る (= 消えない) ことを要求する。
             AssertNotePixelsWhiteOnDark(withNotes, withoutNotes,
                 "3D path dark bg (lyrics on, lyric panel corridor)",
-                null, panelRect);
+                null, panelRect,
+                CorridorPanelMinWhiteRatio, CorridorPanelMinMeanLift,
+                CorridorPanelDarkFloor);
         }
 
     }
