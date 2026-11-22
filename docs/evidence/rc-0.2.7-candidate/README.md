@@ -20,6 +20,13 @@ bumps land after this evidence). Unity 6000.5.6f1, macOS 実機・実ディス�
 - 歌詞パネル描画: `77-06-lyrics-13.png` を vision review — 本文描画・
   可読性・ジャッジ/スコア/ゲージとの非重なりすべて PASS
 
+## v6songend — `songend-fa1af78f/` (stamp 後の最終候補ビルド 0.2.7+1f498134)
+
+- `RESULT pass=33 fail=0` (loadingObserved=False — メディアキャッシュ済みのため
+  loading check が対象外。判定・歌詞・動画監査は全て実施)
+- 歌詞: `state=HasLyrics lines=24 hasText=True`、`PASS lyric text is rendered`
+- judged=130 == chartNotes、score=1,088,846、Completed
+
 ## v6screens 解像度マトリクス — `v6screens-f544091f/`
 
 - 5/5 PASS (1024x768 / 1280x720 / 1920x1080 / 2560x1440 / 2560x1664)、
