@@ -51,6 +51,17 @@ namespace FlashBeat.UI.V6.Game.Hud
         public const float FrameThicknessPx = 6f;
 
         /// <summary>
+        /// ノーツがパネル帯を通過し得る間 (演奏中・ポーズの静止ノーツ)、
+        /// レーン回廊の内側に残すパネル暗幕の割合 (0..1、パネル色 α に対する比)。
+        ///
+        /// パネル色は黒 α≈0.6 なので、内側の実効暗幕は約 0.6×0.35≈0.21。
+        /// #735 が問題にした全面 α0.6 (ノーツが ~40% 暗くなる) に対し、
+        /// 内側だけ薄い色残しにすることで「パネルの存在は見えるが
+        /// ノーツは不自然に暗くならない」バランスを取る (Issue #881)。
+        /// </summary>
+        public const float CorridorInsideAlphaDuringNotes = 0.35f;
+
+        /// <summary>
         /// テスト用: パネル用スプライトのキャッシュを空にする。
         /// レーンコリドー抜きは構築時のカメラで焼き込まれるため、カメラの
         /// 居ない EditMode テストが先に同じキーのスプライトを作ると、
@@ -69,16 +80,19 @@ namespace FlashBeat.UI.V6.Game.Hud
         /// </summary>
         /// <param name="screenSize">HUD canvas の実ピクセル寸法。</param>
         /// <param name="cornerRadiusPx">角丸半径 (canvas px)。</param>
-        /// <param name="frameInsideCorridor">
-        /// レーン回廊の内側でもパネル縁 (<see cref="FrameThicknessPx"/>) の
-        /// アルファを残すか (Issue #789)。ノーツがパネル帯を通過し得る
-        /// 演奏中は false にして回廊を完全に抜き、枠がノーツを暗くする
-        /// のを防ぐ。開始待ち・曲終了などノーツが画面に無い状態では
-        /// true で枠の輪郭を保つ。
+        /// <param name="corridorInsideAlpha">
+        /// レーン回廊の内側 (枠を除く) に残すパネル暗幕の割合 (0..1)。
+        /// ノーツがパネル帯を通過し得る演奏中は
+        /// <see cref="CorridorInsideAlphaDuringNotes"/> を渡して薄い暗幕に
+        /// 留め、ノーツを不自然に暗くしない。ノーツが画面に無い
+        /// 開始待ち・終了では 1 を渡してパネルをベタ塗りにする
+        /// (回廊の抜き自体が不要になる)。枠
+        /// (<see cref="FrameThicknessPx"/>) はこの値に関わらず常に残る
+        /// (Issue #881: 枠だけ消える状態を無くす)。
         /// </param>
         public static Sprite ForPanel(float leftPx, float topPx,
             float widthPx, float heightPx, Vector2 screenSize, float cornerRadiusPx,
-            bool frameInsideCorridor)
+            float corridorInsideAlpha)
         {
             int w = Mathf.Max(2, Mathf.RoundToInt(widthPx));
             int h = Mathf.Max(2, Mathf.RoundToInt(heightPx));
@@ -86,7 +100,7 @@ namespace FlashBeat.UI.V6.Game.Hud
                 + "," + w + "x" + h
                 + "," + screenSize.x.ToString("0") + "x" + screenSize.y.ToString("0")
                 + "," + cornerRadiusPx.ToString("0.#")
-                + "," + (frameInsideCorridor ? "f" : "c");
+                + "," + corridorInsideAlpha.ToString("0.##");
             if (sprites.TryGetValue(key, out var cached) && cached != null)
             {
                 return cached;
@@ -118,16 +132,16 @@ namespace FlashBeat.UI.V6.Game.Hud
                     // 最終アルファ = 角丸被覆率 × (レーン帯の外なら 1 / 内なら 0)。
                     // RGB は白のまま — 色は Image.color (LyricBoxColor) が掛ける。
                     float sx = leftPx + x + 0.5f;
-                    // Issue #789: 角丸矩形の縁から FrameThicknessPx 以内は
-                    // 回廊帯の内側でもアルファを残し、パネル枠を常に見せる。
-                    // ただし frameInsideCorridor = false (ノーツが帯を通過
-                    // し得る演奏中) では回廊を完全に抜き、枠がノーツを
-                    // 暗くしないようにする (Issue #735/#760 の白さ契約)。
+                    // Issue #881: 枠 (縁から FrameThicknessPx 以内) は常に残す。
+                    // 回廊の内側は corridorInsideAlpha の割合だけ暗幕を残し、
+                    // パネルの存在を保ちつつノーツの暗転を抑える。
+                    // 回廊の外側は従来どおり全面の暗幕。
                     float d = RoundedDistance(x + 0.5f, y + 0.5f, w, h, radius);
                     float shape = Mathf.Clamp01(0.5f - d);
-                    float a = frameInsideCorridor && d >= -FrameThicknessPx
-                        ? shape
-                        : V6TopShadeHole.ShadeAlpha(sx, left, right, shape);
+                    bool inFrame = d >= -FrameThicknessPx;
+                    bool inCorridor = sx >= left && sx <= right;
+                    float fill = inCorridor && !inFrame ? corridorInsideAlpha : 1f;
+                    float a = shape * fill;
                     tex.SetPixel(x, y, new Color(1f, 1f, 1f, a));
                 }
             }

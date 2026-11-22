@@ -103,14 +103,23 @@ namespace FlashBeat.Tests
 
         /// <summary>
         /// Issue #760: 歌詞ボックス (V6HudLyrics) のパネルスプライトにも
-        /// レーン帯の抜きが焼き込まれていることを確認する。
+        /// レーン帯の制御が焼き込まれていることを確認する。
         /// 上部シェードと同じ <see cref="V6TopShadeHole.CorridorRows"/> の
-        /// 領域オフセット版で帯を計算し、パネル中央行の帯の内側が透明・
-        /// 帯の外側 (パネル左右) が不透明のままであることを見る。
+        /// 領域オフセット版で帯を計算する。
+        /// Issue #881: 演奏中 (ノーツが帯を通過し得る) のパネルは、
+        /// 回廊の内側を完全には抜かず
+        /// <see cref="V6PanelCorridorHole.CorridorInsideAlphaDuringNotes"/>
+        /// の割合だけ暗幕を残す — パネルの存在を消さないため。
+        /// 検証点は「レーン帯の内側」かつ「枠の外側」の交差。
         /// </summary>
         [Test]
         public void LyricPanelSprite_HasLaneCorridorHole()
         {
+            // 演奏中相当 (ノーツが画面に存在し得る) のスプライトを選ばせる。
+            bool oldPlayed = GManager.played;
+            bool oldComplete = GManager.judgmentsComplete;
+            GManager.played = true;
+            GManager.judgmentsComplete = false;
             var canvasGo = new GameObject("V6PanelHoleTests Canvas", typeof(Canvas));
             try
             {
@@ -143,38 +152,63 @@ namespace FlashBeat.Tests
                 var right = new float[h];
                 V6TopShadeHole.CorridorRows(ScreenW, ScreenH, panelTop, h, h, left, right);
 
-                // 中央行 (上下の角丸に掛からない高さ) で帯の内側が透明なこと。
+                // 中央行 (上下の角丸に掛からない高さ) で、帯の内側は
+                // CorridorInsideAlphaDuringNotes の割合だけ暗幕が残る
+                // (Issue #881: パネルを消さない)。
                 int midRow = h / 2;
                 float midX = (left[midRow] + right[midRow]) * 0.5f;
                 int texX = Mathf.Clamp(Mathf.RoundToInt(midX - panelLeft), 0, w - 1);
-                Assert.AreEqual(0f, tex.GetPixel(texX, midRow).a, 0.01f,
-                    "lane corridor must be clear inside the lyric panel");
+                float insideAlpha = tex.GetPixel(texX, midRow).a;
+                Assert.Greater(insideAlpha,
+                    V6PanelCorridorHole.CorridorInsideAlphaDuringNotes * 0.5f,
+                    "corridor interior must keep a visible panel tint during playback");
+                Assert.Less(insideAlpha,
+                    V6PanelCorridorHole.CorridorInsideAlphaDuringNotes * 1.5f + 0.1f,
+                    "corridor interior must stay lighter than the full panel fill");
 
                 // 帯の外側 (パネル左端から 4.5 px、中央行なので角丸の影響なし)
                 // は不透明のまま (パネルの見た目を維持)。
                 Assert.Greater(tex.GetPixel(4, midRow).a, 0.5f,
                     "outside the lane corridor the panel must keep its alpha");
+
+                // Issue #881: 演奏中でも枠 (縁から FrameThicknessPx 以内) は
+                // 回廊の内側で消えてはいけない — 「歌詞だけ浮いて
+                // パネルが無い」状態の直接の回帰防止。
+                int frameRow = h - 1 - 3;
+                int frameX = w / 2;
+                float fsx = panelLeft + frameX + 0.5f;
+                Assert.Greater(fsx, left[frameRow],
+                    "test premise: frame probe x must be inside the lane corridor");
+                Assert.Less(fsx, right[frameRow],
+                    "test premise: frame probe x must be inside the lane corridor");
+                Assert.Greater(tex.GetPixel(frameX, frameRow).a, 0.5f,
+                    "panel frame must stay visible inside the corridor during playback");
             }
             finally
             {
                 Object.DestroyImmediate(canvasGo);
+                GManager.played = oldPlayed;
+                GManager.judgmentsComplete = oldComplete;
             }
         }
 
         /// <summary>
-        /// Issue #789 (v0.2.1 実機受入): レーン回廊の抜きがパネル内側の
-        /// 大部分を透明にしても、角丸矩形の縁から
-        /// <see cref="V6PanelCorridorHole.FrameThicknessPx"/> 以内は
-        /// アルファが残り、パネル枠が常に視認できることを確認する。
+        /// Issue #789/#881: ノーツが画面に無い状態 (開始待ち等) の
+        /// パネルは回廊の内側も含めてべた塗りで、角丸矩形の縁から
+        /// <see cref="V6PanelCorridorHole.FrameThicknessPx"/> 以内の枠も
+        /// 常に視認できることを確認する。
         /// 検証点は「レーン帯の内側」かつ「枠の内側」の交差 (上辺中央)。
         /// </summary>
         [Test]
         public void LyricPanelSprite_KeepsFrameInsideCorridor()
         {
             V6PanelCorridorHole.ClearSpriteCacheForTests();
-            // 枠ありスプライトは「ノーツ非描画」の状態で選ばれる
-            // (Issue #735/#789)。開始待ち相当の played=false を明示する。
+            // アイドルスプライトは「ノーツ非描画」の状態で選ばれる
+            // (開始待ち相当の played=false を明示する)。
+            bool oldPlayed = GManager.played;
+            bool oldComplete = GManager.judgmentsComplete;
             GManager.played = false;
+            GManager.judgmentsComplete = false;
             var canvasGo = new GameObject("V6PanelHoleTests Canvas", typeof(Canvas));
             try
             {
@@ -207,13 +241,16 @@ namespace FlashBeat.Tests
                 Assert.Greater(tex.GetPixel(frameX, frameRow).a, 0.5f,
                     "panel frame must stay visible even inside the lane corridor");
 
-                // 対照: 枠から十分内側 (中央) は従来どおり回廊で透明。
-                Assert.AreEqual(0f, tex.GetPixel(w / 2, h / 2).a, 0.01f,
-                    "corridor interior must stay clear of the panel fill");
+                // 対照 (Issue #881): ノーツ非描画のアイドルでは回廊の内側も
+                // べた塗り (完全なパネル) でなければならない。
+                Assert.Greater(tex.GetPixel(w / 2, h / 2).a, 0.9f,
+                    "idle panel must be fully opaque inside the lane corridor");
             }
             finally
             {
                 Object.DestroyImmediate(canvasGo);
+                GManager.played = oldPlayed;
+                GManager.judgmentsComplete = oldComplete;
             }
         }
 
