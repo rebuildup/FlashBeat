@@ -178,26 +178,35 @@ CI のライセンス未設定時の扱い・展示 PC への適用手順・監�
 ## 取得先
 
 - GitHub Releases: `https://github.com/rebuildup/FlashBeat/releases`
-- 現行版 (Win64): [`v0.2.0-win64-86a843ba`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.2.0-win64-86a843ba)
-  - `FlashBeat-0.2.0-win64-86a843ba.zip`
-  - SHA-256: `76a4820e48984f4b72a1e42a86dd2a09e4ec38dd5e126891cb1ff2539787bc49`
+- 現行版 (Win64): [`v0.2.7-win64-f8e8b3a6`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.2.7-win64-f8e8b3a6)
+  - `FlashBeat-0.2.7-win64-f8e8b3a6.zip`
+  - SHA-256: `4b5331038e9c32446be2ed70ac050040d73cfc0669fdd954b14817be2ebea1d4`
+  - ビルド元 commit: `f8e8b3a6cf388a0db0700b636c67cc769804f397`
+    (Program #869: 歌詞解決の version drift 修正、Result/HUD グレード・スコア整合、
+    設定ラベル監査、Web Studio 再設計。統合 PR #879)
+  - メディア方針: `song-free` (第三者楽曲は非同梱、`flashbeat-media-policy.json` で証明)
+  - チャンネル: `stable`
+  - 実機検証: EditMode 2240/2240 + macOS 実機 AutoTest (v6songend 34/34、
+    v6screens 5 解像度、境界スコア描画) — いずれも同一ビルド内容。
+    **Windows 実機での起動・プレイは未実施** (RC 記録: `docs/evidence/rc-0.2.7-candidate/`)。
+- 現行版 (macOS): [`v0.2.7-macos-f8e8b3a6`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.2.7-macos-f8e8b3a6)
+  - `FlashBeat-0.2.7-macos-f8e8b3a6.zip`
+  - SHA-256: `ef298f50849edfb2ffc1de55ea5b644433f8fbcce44fc9a5ddcf1a5d30940251`
+  - ビルド元 commit: `f8e8b3a6cf388a0db0700b636c67cc769804f397` (`CFBundleShortVersionString=0.2.7+f8e8b3a6`)
+  - メディア方針: `song-free` / チャンネル: `stable`
+  - 実機検証: macOS 実機 AutoTest v6songend 34/34 (歌詞本文描画 PASS) +
+    v6screens 5 解像度 + Result 境界スコア C/B/A/S/SS 描画 vision review
+- 前版 (参考): [`v0.2.0-win64-86a843ba`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.2.0-win64-86a843ba) /
+  [`v0.2.0-macos-86a843ba`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.2.0-macos-86a843ba)
+  - Win64 ZIP SHA-256: `76a4820e48984f4b72a1e42a86dd2a09e4ec38dd5e126891cb1ff2539787bc49`
+  - macOS ZIP SHA-256: `b8ad5a9c00aef0cf756a81a23082f13934fbe005375e04e9687f85ed082e1108`
   - ビルド元 commit: `86a843ba2451a5aca564fdf12c38c5be8a55c2d3`
     (VERSION 0.2.0 + Epic #728 全面再構築: V6 単一 UI 経路、Option/Pause 統一、
     scoring v4 (ベース 100 万 + ボーナス、上限 200 万)、判定アニメーション、
     ノーツ白色・移動補間、Web Studio 再設計など)
-  - メディア方針: `song-free` (第三者楽曲は非同梱、`flashbeat-media-policy.json` で証明)
-  - チャンネル: `stable`
-  - 実機検証: macOS 実機 AutoTest 32/32 + EditMode 2,090/2,090 + PlayMode 6/6 (同一 SHA)。
-    **Windows 実機での起動・プレイは未実施** (RC 記録: `docs/evidence/rc-0.2.0/`)。
-- 現行版 (macOS): [`v0.2.0-macos-86a843ba`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.2.0-macos-86a843ba)
-  - `FlashBeat-0.2.0-macos-86a843ba.zip`
-  - SHA-256: `b8ad5a9c00aef0cf756a81a23082f13934fbe005375e04e9687f85ed082e1108`
-  - ビルド元 commit: `86a843ba2451a5aca564fdf12c38c5be8a55c2d3` (`CFBundleShortVersionString=0.2.0+86a843ba`)
-  - メディア方針: `song-free` / チャンネル: `stable`
-  - 実機検証: macOS 実機 AutoTest 32/32 (score 2,000,000 / scoring v4) + note probe before/after
-- 前版 (参考): [`v0.1.31-win64-f5273844`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.31-win64-f5273844) /
+- 前々版 (参考): [`v0.1.31-win64-f5273844`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.31-win64-f5273844) /
   [`v0.1.31-macos-f5273844`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.31-macos-f5273844)
-- 前々版 (参考): [`v0.1.29-win64-b5199ede`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.29-win64-b5199ede) /
+- 参考: [`v0.1.29-win64-b5199ede`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.29-win64-b5199ede) /
   [`v0.1.29-macos-b5199ede`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.29-macos-b5199ede)
 - 参考: [`v0.1.28-win64-8ce00d0f`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.28-win64-8ce00d0f) /
   [`v0.1.28-macos-8ce00d0f`](https://github.com/rebuildup/FlashBeat/releases/tag/v0.1.28-macos-8ce00d0f)
