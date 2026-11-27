@@ -150,9 +150,9 @@ explicit user/project decisionとして固定されたrelease scope/version/publ
 
 ## Agent Skills lifecycle
 
-- current `rebuildup/project-init` を `bunx skills` で project-local に追跡する。
+- current `rebuildup/aude-skills` を `bunx skills` で project-local に追跡する。
 - canonical layout: `.agents/skills/` + `.claude/skills/`。
-- bootstrap: `mise run skills-bootstrap`; update: `mise run skills-update` / `bunx skills update -p -y`。
+- fresh clone はコミット済みの Skill を使い、`mise run skills-bootstrap` で lock と照合する。再配置・再生成は固定 commit から `mise run skills-update` で行う。
 - `skills-lock.json` は durable source/content metadata。
 - Bun は Skills CLI 用の auxiliary tooling であり、Unity/C# toolchain ownershipを変更しない。
 - `--global` は freshness evidence にしない。

@@ -5,7 +5,7 @@
 // Two kinds of Skill exist in this repository:
 //
 //   1. upstream Skills: the Skill directory is copied byte for byte from a
-//      pinned upstream commit (rebuildup/project-init, rebuildup/writing-skills,
+//      pinned upstream commit (rebuildup/aude-skills, rebuildup/writing-skills,
 //      mattpocock/skills, rebuildup/design-skills, cloudflare/skills) into both
 //      `.agents/skills/` and `.claude/skills/`. The two copies are identical,
 //      so one `computedHash` describes both.
@@ -20,7 +20,7 @@
 // entry. This script still verifies kind 2 against the pinned upstream
 // template, so drift is caught.
 //
-// The lock uses `version: 1`, the format shared with rebuildup/project-init
+// The lock uses `version: 1`, the format shared with rebuildup/aude-skills
 // and the `skills` CLI, so `bunx skills` keeps reading it.
 //
 // Every entry pins an exact upstream commit SHA, and the vendored copy is the
@@ -64,9 +64,9 @@ const SPEC_KIT_REF = 'v1.3.1';
 // GitHub Issues here, not Linear.
 const SOURCES: Source[] = [
   {
-    source: 'rebuildup/project-init',
+    source: 'rebuildup/aude-skills',
     sourceType: 'github',
-    repo: 'https://github.com/rebuildup/project-init.git',
+    repo: 'https://github.com/rebuildup/aude-skills.git',
     ref: PROJECT_INIT_REF,
     skills: [
       { name: 'agent-delivery-estimation', path: 'skills/agent-delivery-estimation' },
