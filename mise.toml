@@ -16,13 +16,13 @@ dotnet = "8.0.427"
 "npm:void" = "1.6.2"
 
 [tasks.skills-list]
-run = "bunx skills add rebuildup/project-init --list"
+run = "bunx skills add rebuildup/aude-skills --list"
 
 [tasks.skills-bootstrap]
-run = "bunx skills add rebuildup/project-init --skill '*' --agent claude-code --agent codex -y"
+run = "mise run skills-check"
 
 [tasks.skills-update]
-run = "bunx skills update -p -y"
+run = "bun evals/policy-evaluation/vendor-skills.mts"
 
 # Verify that every vendored Skill still matches skills-lock.json.
 # Offline (no network) and is the gate referenced by
