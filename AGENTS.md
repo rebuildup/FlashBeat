@@ -99,7 +99,7 @@ Skills are vendored into `.agents/skills/` and `.claude/skills/` and pinned by `
 | Cloudflare | `cf-cli` + `workers-best-practices` | API / D1 / Worker の操作と review（multi） |
 | React / frontend | `web/AGENTS.md` | `web/` の実装。汎用 React Skill は使わない |
 | release planning | GitHub Issues | Linear は採用していない |
-| skill authoring | なし | 変更は upstream (`rebuildup/project-init` 等) へ PR |
+| skill authoring | なし | 変更は upstream (`rebuildup/aude-skills` 等) へ PR |
 | ideation / document formats / motion | なし | 必要になった時点で `skill-selection` で評価する |
 
 Linear 系 Skill (`linear-release-control`) と pack 全体の router (`using-superpowers`, `poteto-mode` 等) は不採用。入口は root contract だけが持つ。
